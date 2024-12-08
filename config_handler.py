@@ -1,11 +1,18 @@
+import os.path
 import xml.etree.ElementTree as ET
 
 
-def getvar(file_path: str, key: str) -> str:
-    root = ET.parse(file_path).getroot()
+def getvar(key: str, *file_paths: str) -> str:
+    for fp in file_paths:
+        if not os.path.exists(fp):
+            continue
 
-    for string in root.findall('variable'):
-        if string.get('name') == key:
-            return string.text
+        root = ET.parse(fp).getroot()
 
-    raise Exception('No value was found by the key!')
+        for string in root.findall('variable'):
+            if string.get('name') == key:
+                return string.text
+
+        raise Exception('No value was found by the key!')
+
+    raise IOError("All provided paths do not exist!")

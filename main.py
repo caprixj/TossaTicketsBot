@@ -12,9 +12,10 @@ from aiogram.types import Message
 import config_handler
 
 
-config_file = str(Path('config') / 'config.xml')
+config_file_dev = str(Path('config') / 'config.xml')
+config_file_deploy = str(Path.cwd().parent / Path('config') / 'config.xml')
 
-TOKEN = config_handler.getvar(config_file, 'BOT_TOKEN')
+TOKEN = config_handler.getvar('BOT_TOKEN', config_file_deploy, config_file_dev)
 
 # All handlers should be attached to the Router (or Dispatcher)
 
