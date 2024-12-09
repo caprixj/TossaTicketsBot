@@ -8,6 +8,10 @@ class MemberService:
     def __init__(self, repository: MemberRepository):
         self.repo = repository
 
+    #################################### !!!
+    async def reset_dp_path(self, db_path: str) -> None:
+        self.repo.db_path = db_path
+
     # Repository methods
     async def create(self, member: Member) -> None:
         await self.repo.create(member)

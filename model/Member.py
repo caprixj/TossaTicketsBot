@@ -49,5 +49,5 @@ class Member:
         self.tickets_count = tickets_count
 
     def set_unique_artifacts(self, unique_artifacts):
-        self.unique_artifacts = unique_artifacts.copy()
+        self.unique_artifacts = unique_artifacts
 

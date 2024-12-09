@@ -8,6 +8,7 @@ import aiosqlite
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
+from aiogram.filters import Command
 from aiogram.types import Message
 
 import config_handler
@@ -25,14 +26,15 @@ members_db_ide = str(Path('db') / 'members.db')
 members_db_path = ''
 
 dp = Dispatcher()
+member_service = MemberService(MemberRepository(members_db_path))
 
 
-@dp.message()
-async def test_database(message: Message) -> None:
-    member_service = MemberService(MemberRepository(members_db_path))
+@dp.message(Command("reg"))
+async def test_initial_reg(message: Message) -> None:
+    await member_service.reset_dp_path(members_db_path)
 
     if await member_service.user_exists(message.from_user.id):
-        await message.answer("Already exists!")
+        await message.answer("уже регався. іди нахуй")
     else:
         new_member = Member(
             user_id=message.from_user.id,
@@ -41,7 +43,7 @@ async def test_database(message: Message) -> None:
             last_name=message.from_user.last_name
         )
         await member_service.create(new_member)
-        await message.answer("New record has been created!")
+        await message.answer("+")
 
 
 async def create_databases():
