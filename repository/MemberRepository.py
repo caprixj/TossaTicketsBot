@@ -7,7 +7,7 @@ from model.Member import Member
 
 
 class MemberRepository(ABC):
-    def __init__(self, db_path: str):
+    def __init__(self, db_path: str = None):
         self.db_path = db_path
 
     async def _execute(self, query: str, params: tuple = ()):
@@ -52,6 +52,7 @@ class MemberRepository(ABC):
 
     async def update_tickets_count(self, member: Member) -> None:
         query = "UPDATE members SET tickets_count = ? WHERE user_id = ?"
+        print(f'{member.tickets_count}, {member.user_id}')
         await self._execute(query, (
             member.tickets_count,
             member.user_id
