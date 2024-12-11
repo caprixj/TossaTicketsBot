@@ -3,7 +3,7 @@ import json
 from abc import ABC
 from typing import Optional
 
-from model.Member import Member
+from model.database.Member import Member
 
 
 class MemberRepository(ABC):
@@ -42,7 +42,7 @@ class MemberRepository(ABC):
         await self._execute(query, (user_id,))
 
     async def update_names(self, member: Member) -> None:
-        query = "UPDATE members SET username = ?, first_name = ?, last_name = ?, WHERE user_id = ?"
+        query = "UPDATE members SET username = ?, first_name = ?, last_name = ? WHERE user_id = ?"
         await self._execute(query, (
             member.username,
             member.first_name,

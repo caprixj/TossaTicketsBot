@@ -1,3 +1,6 @@
+import copy
+
+
 class Member:
     def __init__(self,
                  user_id: int = 0,
@@ -49,5 +52,4 @@ class Member:
         self.tickets_count = tickets_count
 
     def set_unique_artifacts(self, unique_artifacts):
-        self.unique_artifacts = unique_artifacts
-
+        self.unique_artifacts = copy.deepcopy(unique_artifacts)

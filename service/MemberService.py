@@ -1,9 +1,9 @@
 import copy
-from typing import Optional, Union
+from typing import Union
 
 from aiogram.types import Message, User
 
-from model.Member import Member
+from model.database.Member import Member
 from repository.MemberRepository import MemberRepository
 
 
@@ -48,6 +48,7 @@ class MemberService:
             changed = True
             updated_member.set_username(user.username)
 
+        print(f'old_member.first_name: {old_member.first_name}; user.first_name: {user.first_name}')
         if old_member.first_name != user.first_name:
             changed = True
             updated_member.set_first_name(user.first_name)
@@ -72,8 +73,6 @@ class MemberService:
 
         await self.repo.update_tickets_count(member)
 
-    async def get_balance(self, message: Message) -> int:
-        user = message.reply_to_message.from_user
+    async def get_balance(self, user: User) -> int:
         await self.validate_member(user)
-
         return (await self.repo.read(user.id)).tickets_count
