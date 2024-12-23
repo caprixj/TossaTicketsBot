@@ -8,13 +8,13 @@ class Member:
                  first_name: str = None,
                  last_name: str = None,
                  tickets_count: int = 0,
-                 unique_artifacts: list[int] = None):
+                 artifacts: list[int] = None):
         self.user_id = user_id
         self.username = username
         self.first_name = first_name
         self.last_name = last_name
         self.tickets_count = tickets_count
-        self.unique_artifacts = unique_artifacts
+        self.artifacts = artifacts
 
     # Getters
     def get_id(self):
@@ -32,8 +32,8 @@ class Member:
     def get_tickets_count(self):
         return self.tickets_count
 
-    def get_unique_artifacts(self):
-        return self.unique_artifacts
+    def get_artifacts(self):
+        return self.artifacts
 
     # Setters
     def set_id(self, user_id):
@@ -51,5 +51,5 @@ class Member:
     def set_tickets_count(self, tickets_count):
         self.tickets_count = tickets_count
 
-    def set_unique_artifacts(self, unique_artifacts):
-        self.unique_artifacts = copy.deepcopy(unique_artifacts)
+    def set_artifacts(self, artifacts):
+        self.artifacts = copy.deepcopy(artifacts)

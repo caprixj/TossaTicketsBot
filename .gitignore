@@ -1,3 +1,4 @@
 config/config.xml
 db/
-utilities/hidden_globals.py
+utilities/hiddenglobals.py
+None
