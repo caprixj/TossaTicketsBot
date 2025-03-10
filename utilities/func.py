@@ -6,7 +6,7 @@ from pathlib import Path
 from utilities.globalvars import GlobalVariables as GV
 from utilities.hiddenglobals import permission_denied_messages
 from utilities.runmode import RunMode, RunModeSettings
-from utilities.sqlscripts import CREATE_TABLE_MEMBERS, CREATE_TABLE_ADDT, CREATE_TABLE_DELT
+from utilities.sqlscripts import CREATE_TABLE_MEMBERS, CREATE_TABLE_ADDT, CREATE_TABLE_DELT, CREATE_TABLE_ARTIFACTS
 
 
 async def _parse_pathlib(xml_path: str) -> str:
@@ -64,6 +64,7 @@ async def get_random_permission_denied_message() -> str:
 async def get_db_setup_sql_script() -> list[str]:
     return [
         CREATE_TABLE_MEMBERS,
+        CREATE_TABLE_ARTIFACTS,
         CREATE_TABLE_ADDT,
         CREATE_TABLE_DELT
     ]

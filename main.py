@@ -142,9 +142,9 @@ async def help_(message: Message) -> None:
     await message.answer(GV.HELP_TEXT)
 
 
-@dp.message(Command(cl.infom.name))
-async def infom(message: Message) -> None:
-    # [<reply>] /infom
+@dp.message(Command(cl.infm.name))
+async def infm(message: Message) -> None:
+    # [<reply>] /infm
     com_parser = CommandParser(
         message=message,
         replied=True,
@@ -162,12 +162,12 @@ async def infom(message: Message) -> None:
         else message.reply_to_message.from_user
 
     response = await service.get_member_info(user)
-    await message.answer(text=response, parse_mode=None)
+    await message.answer(response, parse_mode=ParseMode.HTML)
 
 
-@dp.message(Command(cl.infot.name))
-async def infot(message: Message) -> None:
-    # [<reply>] /infot
+@dp.message(Command(cl.bal.name))
+async def bal(message: Message) -> None:
+    # [<reply>] /bal
     com_parser = CommandParser(
         message=message,
         replied=True,

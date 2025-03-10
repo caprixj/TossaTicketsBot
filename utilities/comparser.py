@@ -17,8 +17,8 @@ class CommandList(str, Enum):
     help = '/help'
     toptall = '/toptall'
     topt = '/topt [<count:zint>]'
-    infot = '[<reply>] /infot'
-    infom = '[<reply>] /infom'
+    bal = '[<reply>] /bal'
+    infm = '[<reply>] /infm'
 
 
 class CPRResponse(str, Enum):

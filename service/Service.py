@@ -18,7 +18,7 @@ class Service:
         self.repo = repository
 
     async def execute_sql(self, query: str) -> (bool, str):
-        # (!) NO member validation is held
+        # (!) NO infm validation is held
         return await self.repo.execute_external(query)
 
     async def get_member_tickets_count_info(self, user: User) -> str:
@@ -178,16 +178,16 @@ class Service:
         arl = str()
         for ar in await self.repo.get_artifact_names_by_user_id(user.id):
             arl += f'«{ar}», '
-        arl = arl[:-2]
+        arl = arl[:-2] if arl else '-'
 
         sign = '+' if tc > 0 else str()
 
         return (f"{GV.MEMBER_INFO_TEXT}\n"
-                f"\nайді: {member.get_id()}"
+                f"\nід: {member.get_id()}"
                 f"\nім'я: {'-' if fn is None else fn}"
                 f"\nпрізвище: {'-' if ln is None else ln}"
                 f"\nюзернейм: {'-' if un is None else un}"
-                f"\n\nособистий рахунок"
+                f"\n\n<b>💳 активи</b>"
                 f"\nтікети: {sign}{tc}"
                 f"\nартефакти: {arl}")
 

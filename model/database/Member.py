@@ -30,8 +30,8 @@ class Member:
     def get_tickets_count(self):
         return self.tickets_count
 
-    def get_artifacts(self):
-        pass
+    # def get_artifacts(self):
+    #     pass
 
     # Setters
     def set_id(self, user_id):
@@ -49,5 +49,5 @@ class Member:
     def set_tickets_count(self, tickets_count):
         self.tickets_count = tickets_count
 
-    def set_artifact(self, artifact):
-        pass
+    # def set_artifact(self, artifact):
+    #     pass
