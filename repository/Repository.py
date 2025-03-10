@@ -7,7 +7,8 @@ from model.database.Member import Member
 from model.database.transactions.AddtTransaction import AddtTransaction
 from model.database.transactions.DeltTransaction import DeltTransaction
 from repository.OrderingType import OrderingType
-from utilities.sqlscripts import SELECT_TOPT, SELECT_TOPTALL
+from utilities.sqlscripts import SELECT_TOPT, SELECT_TOPTALL, INSERT_MEMBER, INSERT_DELT, INSERT_ADDT, \
+    SELECT_ARTIFACT_NAMES, SELECT_TICKETS_COUNT, UPDATE_TICKETS_COUNT, UPDATE_MEMBER, DELETE_MEMBER, SELECT_MEMBER
 
 
 class Repository(ABC):
@@ -39,10 +40,8 @@ class Repository(ABC):
             return False, str(e)
 
     async def create(self, member: Member) -> None:
-        query = ("INSERT INTO members (user_id, username, first_name, last_name, tickets_count, artifacts)"
-                 " VALUES (?, ?, ?, ?, ?, ?)")
         async with aiosqlite.connect(self.db_path) as db:
-            await db.execute(query, (
+            await db.execute(INSERT_MEMBER, (
                 member.user_id,
                 member.username,
                 member.first_name,
@@ -52,19 +51,16 @@ class Repository(ABC):
             await db.commit()
 
     async def read(self, user_id: int) -> Optional[Member]:
-        query = "SELECT * FROM members WHERE user_id = ?"
         async with aiosqlite.connect(self.db_path) as db:
-            cursor = await db.execute(query, (user_id,))
+            cursor = await db.execute(SELECT_MEMBER, (user_id,))
             row = await cursor.fetchone()
             return Member(*row) if row else None
 
     async def delete(self, user_id: int) -> None:
-        query = "DELETE FROM members WHERE user_id = ?"
-        await self._execute(query, (user_id,))
+        await self._execute(DELETE_MEMBER, (user_id,))
 
     async def update_names(self, member: Member) -> None:
-        query = "UPDATE members SET username = ?, first_name = ?, last_name = ? WHERE user_id = ?"
-        await self._execute(query, (
+        await self._execute(UPDATE_MEMBER, (
             member.username,
             member.first_name,
             member.last_name,
@@ -72,8 +68,7 @@ class Repository(ABC):
         ))
 
     async def update_tickets_count(self, member: Member) -> None:
-        query = "UPDATE members SET tickets_count = ? WHERE user_id = ?"
-        await self._execute(query, (
+        await self._execute(UPDATE_TICKETS_COUNT, (
             member.tickets_count,
             member.user_id
         ))
@@ -92,23 +87,19 @@ class Repository(ABC):
             return [Member(*row) for row in rows]
 
     async def get_member_tickets_count(self, user_id: int) -> int:
-        query = "SELECT tickets_count FROM members WHERE user_id = ?"
         async with aiosqlite.connect(self.db_path) as db:
-            cursor = await db.execute(query, (user_id,))
+            cursor = await db.execute(SELECT_TICKETS_COUNT, (user_id,))
             return int((await cursor.fetchone())[0])
 
     async def get_artifact_names_by_user_id(self, user_id: int) -> list[str]:
-        query = "SELECT a.name FROM artifacts a WHERE owner_id = ?"
         async with aiosqlite.connect(self.db_path) as db:
-            cursor = await db.execute(query, (user_id,))
+            cursor = await db.execute(SELECT_ARTIFACT_NAMES, (user_id,))
             rows = await cursor.fetchall()  # rows: list[tuple[str]]
             return [row[0] for row in rows]
 
     async def add_stat_addt(self, addt: AddtTransaction) -> None:
-        query = ("INSERT INTO addt (user_id, tickets_count, transaction_time, description)"
-                 " VALUES (?, ?, ?, ?)")
         async with aiosqlite.connect(self.db_path) as db:
-            await db.execute(query, (
+            await db.execute(INSERT_ADDT, (
                 addt.user_id,
                 addt.tickets_count,
                 addt.transaction_time,
@@ -117,10 +108,8 @@ class Repository(ABC):
             await db.commit()
 
     async def add_stat_delt(self, delt: DeltTransaction) -> None:
-        query = ("INSERT INTO delt (user_id, tickets_count, transaction_time, description)"
-                 " VALUES (?, ?, ?, ?)")
         async with aiosqlite.connect(self.db_path) as db:
-            await db.execute(query, (
+            await db.execute(INSERT_DELT, (
                 delt.user_id,
                 delt.tickets_count,
                 delt.transaction_time,

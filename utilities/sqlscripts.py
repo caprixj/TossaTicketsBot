@@ -84,3 +84,21 @@ SELECT_TOPT = """
         m.tickets_count $, MAX(COALESCE(a.transaction_time, d.transaction_time)) $
     LIMIT ?;
 """
+
+INSERT_ADDT = "INSERT INTO addt (user_id, tickets_count, transaction_time, description) VALUES (?, ?, ?, ?)"
+INSERT_DELT = "INSERT INTO delt (user_id, tickets_count, transaction_time, description) VALUES (?, ?, ?, ?)"
+
+INSERT_MEMBER = """
+    INSERT INTO 
+        members (user_id, username, first_name, last_name, tickets_count)
+    VALUES
+        (?, ?, ?, ?, ?);
+"""
+SELECT_MEMBER = "SELECT * FROM members WHERE user_id = ?"
+DELETE_MEMBER = "DELETE FROM members WHERE user_id = ?"
+UPDATE_MEMBER = "UPDATE members SET username = ?, first_name = ?, last_name = ? WHERE user_id = ?"
+
+UPDATE_TICKETS_COUNT = "UPDATE members SET tickets_count = ? WHERE user_id = ?"
+SELECT_TICKETS_COUNT = "SELECT tickets_count FROM members WHERE user_id = ?"
+
+SELECT_ARTIFACT_NAMES = "SELECT a.name FROM artifacts a WHERE owner_id = ?"
