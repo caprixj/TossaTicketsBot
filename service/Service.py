@@ -99,12 +99,45 @@ class Service:
                 description=description
             ))
 
-    async def get_members_top_on_tickets_count(self, user: User, top_size: int) -> str:
+    async def get_tickets_top(self, user: User) -> str:
         await self._validate_member(user)
 
-        result = f'{GV.TOPT_DESC_TEXT if top_size > 0 else GV.TOPT_ASC_TEXT}\n\n'
-        order = OrderingType.DESC if top_size > 0 else OrderingType.ASC
-        members = await self.repo.get_members_by_tickets_count(abs(top_size), order)
+        result = f'{GV.TOPT_DESC_TEXT} (повний)\n\n'
+        members = await self.repo.get_members_by_tickets()
+
+        for i in range(len(members)):
+            m = members[i]
+            name = await get_formatted_name(
+                username=m.username,
+                first_name=m.first_name,
+                last_name=m.last_name
+            )
+
+            iterator = str()
+            if i < 3:
+                if i == 0:
+                    iterator = '🥇'
+                elif i == 1:
+                    iterator = '🥈'
+                elif i == 2:
+                    iterator = '🥉'
+            else:
+                iterator = f'{i + 1}.'
+
+            sign = '+' if m.tickets_count > 0 else str()
+            result += f'{iterator} ( {sign}{m.tickets_count} )  {name[:32]}\n'
+
+            if i == 2:
+                result += '\n'
+
+        return result
+
+    async def get_tickets_top_by_size(self, user: User, size: int) -> str:
+        await self._validate_member(user)
+
+        result = f'{GV.TOPT_DESC_TEXT if size > 0 else GV.TOPT_ASC_TEXT}\n\n'
+        order = OrderingType.DESC if size > 0 else OrderingType.ASC
+        members = await self.repo.get_members_by_tickets_limited(order, abs(size))
 
         for i in range(len(members)):
             m = members[i]
@@ -116,11 +149,11 @@ class Service:
 
             iterator = str()
             if i < 3 and order == OrderingType.DESC:
-                if (i + 1) == 1:
+                if i == 0:
                     iterator = '🥇'
-                elif (i + 1) == 2:
+                elif i == 1:
                     iterator = '🥈'
-                elif (i + 1) == 3:
+                elif i == 2:
                     iterator = '🥉'
             else:
                 iterator = f'{i + 1}.'

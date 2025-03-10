@@ -7,12 +7,17 @@ from utilities.globalvars import GlobalVariables as GV
 
 
 class CommandList(str, Enum):
+    # for creator
     sql = '/sql <query:text>'
-    infot = '[<reply>] /infot'
     addt = '<reply> /addt <count:pzint> [<description:text>]'
     delt = '<reply> /delt <count:pzint> [<description:text>]'
     sett = '<reply> /sett <count:int> [<description:text>]'
+
+    # for all users
+    help = '/help'
+    toptall = '/toptall'
     topt = '/topt [<count:zint>]'
+    infot = '[<reply>] /infot'
     infom = '[<reply>] /infom'
 
 

@@ -7,7 +7,7 @@ from model.database.Member import Member
 from model.database.transactions.AddtTransaction import AddtTransaction
 from model.database.transactions.DeltTransaction import DeltTransaction
 from repository.OrderingType import OrderingType
-from utilities.sqlscripts import SELECT_TOPT
+from utilities.sqlscripts import SELECT_TOPT, SELECT_TOPTALL
 
 
 class Repository(ABC):
@@ -78,10 +78,16 @@ class Repository(ABC):
             member.user_id
         ))
 
-    async def get_members_by_tickets_count(self, top_size: int, order: OrderingType) -> list[Member]:
+    async def get_members_by_tickets(self) -> list[Member]:
+        async with aiosqlite.connect(self.db_path) as db:
+            cursor = await db.execute(SELECT_TOPTALL)
+            rows = await cursor.fetchall()
+            return [Member(*row) for row in rows]
+
+    async def get_members_by_tickets_limited(self, order: OrderingType, size: int) -> list[Member]:
         query = SELECT_TOPT.replace('$', order.value)
         async with aiosqlite.connect(self.db_path) as db:
-            cursor = await db.execute(query, (abs(top_size),))
+            cursor = await db.execute(query, (abs(size),))
             rows = await cursor.fetchall()
             return [Member(*row) for row in rows]
 

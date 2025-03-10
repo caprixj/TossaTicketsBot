@@ -54,6 +54,21 @@ CREATE_TABLE_RATING = """
     );
 """
 
+SELECT_TOPTALL = """
+    SELECT 
+        m.*
+    FROM 
+        members m
+    LEFT JOIN 
+        addt a ON m.user_id = a.user_id
+    LEFT JOIN 
+        delt d ON m.user_id = d.user_id
+    GROUP BY 
+        m.user_id, m.username, m.first_name, m.last_name, m.tickets_count
+    ORDER BY 
+        m.tickets_count DESC, MAX(COALESCE(a.transaction_time, d.transaction_time)) DESC;
+"""
+
 SELECT_TOPT = """
     SELECT 
         m.*

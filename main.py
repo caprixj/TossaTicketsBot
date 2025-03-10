@@ -46,29 +46,6 @@ async def sql(message: Message) -> None:
     await message.reply(f'{status}\n\n{response}', parse_mode=None)
 
 
-@dp.message(Command(cl.infot.name))
-async def infot(message: Message) -> None:
-    # [<reply>] /infot
-    com_parser = CommandParser(
-        message=message,
-        replied=True,
-        reply_optional=True
-    )
-
-    result = await com_parser.parse()
-
-    if not result.valid:
-        await _respond_invalid(message, result.response)
-        return
-
-    user = message.from_user \
-        if message.reply_to_message is None \
-        else message.reply_to_message.from_user
-
-    response = await service.get_member_tickets_count_info(user)
-    await message.answer(response)
-
-
 @dp.message(Command(cl.addt.name))
 async def addt(message: Message) -> None:
     # <reply> /addt <count:pzint> [<description:text>]
@@ -153,23 +130,16 @@ async def sett(message: Message) -> None:
     await message.answer(GV.TICKETS_SET_TEXT)
 
 
-@dp.message(Command(cl.topt.name))
-async def topt(message: Message) -> None:
-    # /topt [<size:zint>]
-    _size = 'size'
-
-    result = await CommandParser(message).add_param(_size, pt.zint).parse()
+@dp.message(Command(cl.help.name))
+async def help_(message: Message) -> None:
+    # /help
+    result = await CommandParser(message).parse()
 
     if not result.valid:
         await _respond_invalid(message, result.response)
         return
 
-    response = await service.get_members_top_on_tickets_count(
-        user=message.from_user,
-        top_size=result.params.get(_size)
-    )
-
-    await message.answer(response)
+    await message.answer(GV.HELP_TEXT)
 
 
 @dp.message(Command(cl.infom.name))
@@ -193,6 +163,61 @@ async def infom(message: Message) -> None:
 
     response = await service.get_member_info(user)
     await message.answer(text=response, parse_mode=None)
+
+
+@dp.message(Command(cl.infot.name))
+async def infot(message: Message) -> None:
+    # [<reply>] /infot
+    com_parser = CommandParser(
+        message=message,
+        replied=True,
+        reply_optional=True
+    )
+
+    result = await com_parser.parse()
+
+    if not result.valid:
+        await _respond_invalid(message, result.response)
+        return
+
+    user = message.from_user \
+        if message.reply_to_message is None \
+        else message.reply_to_message.from_user
+
+    response = await service.get_member_tickets_count_info(user)
+    await message.answer(response)
+
+
+@dp.message(Command(cl.toptall.name))
+async def toptall(message: Message) -> None:
+    # /toptall
+    result = await CommandParser(message).parse()
+
+    if not result.valid:
+        await _respond_invalid(message, result.response)
+        return
+
+    response = await service.get_tickets_top(message.from_user)
+    await message.answer(response)
+
+
+@dp.message(Command(cl.topt.name))
+async def topt(message: Message) -> None:
+    # /topt [<size:zint>]
+    _size = 'size'
+
+    result = await CommandParser(message).add_param(_size, pt.zint).parse()
+
+    if not result.valid:
+        await _respond_invalid(message, result.response)
+        return
+
+    response = await service.get_tickets_top_by_size(
+        user=message.from_user,
+        size=result.params.get(_size)
+    )
+
+    await message.answer(response)
 
 
 async def _create_databases():
