@@ -17,53 +17,8 @@ class Service:
     def __init__(self, repository: Repository = None):
         self.repo = repository
 
-    async def _create(self, value: Union[Member, User]) -> None:
-        if isinstance(value, Member):
-            await self.repo.create(value)
-
-        elif isinstance(value, User):
-            member = Member(
-                user_id=value.id,
-                username=value.username,
-                first_name=value.first_name,
-                last_name=value.last_name
-            )
-            await self.repo.create(member)
-
-        else:
-            raise TypeError("Invalid argument type")
-
-    async def _validate_member(self, user: User) -> None:
-        if await self._member_exists(user.id):
-            await self._update_member_info(user)
-        else:
-            await self._create(user)
-
-    async def _member_exists(self, user_id: int) -> bool:
-        return await self.repo.read(user_id) is not None
-
-    async def _update_member_info(self, user: User) -> None:
-        old_member = await self.repo.read(user.id)
-        updated_member = copy.deepcopy(old_member)
-        changed = False
-
-        if old_member.username != user.username:
-            changed = True
-            updated_member.set_username(user.username)
-
-        if old_member.first_name != user.first_name:
-            changed = True
-            updated_member.set_first_name(user.first_name)
-
-        if old_member.last_name != user.last_name:
-            changed = True
-            updated_member.set_last_name(user.last_name)
-
-        if changed:
-            await self.repo.update_names(updated_member)
-
-    async def execute_sql(self, user: User, query: str) -> (bool, str):
-        await self._validate_member(user)
+    async def execute_sql(self, query: str) -> (bool, str):
+        # (!) NO member validation is held
         return await self.repo.execute_external(query)
 
     async def get_member_tickets_count_info(self, user: User) -> str:
@@ -187,6 +142,11 @@ class Service:
         un = member.get_username()
         tc = member.get_tickets_count()
 
+        arl = str()
+        for ar in await self.repo.get_artifact_names_by_user_id(user.id):
+            arl += f'«{ar}», '
+        arl = arl[:-2]
+
         sign = '+' if tc > 0 else str()
 
         return (f"{GV.MEMBER_INFO_TEXT}\n"
@@ -194,4 +154,51 @@ class Service:
                 f"\nім'я: {'-' if fn is None else fn}"
                 f"\nпрізвище: {'-' if ln is None else ln}"
                 f"\nюзернейм: {'-' if un is None else un}"
-                f"\nбаланс: {sign}{tc}")
+                f"\n\nособистий рахунок"
+                f"\nтікети: {sign}{tc}"
+                f"\nартефакти: {arl}")
+
+    async def _create(self, value: Union[Member, User]) -> None:
+        if isinstance(value, Member):
+            await self.repo.create(value)
+
+        elif isinstance(value, User):
+            member = Member(
+                user_id=value.id,
+                username=value.username,
+                first_name=value.first_name,
+                last_name=value.last_name
+            )
+            await self.repo.create(member)
+
+        else:
+            raise TypeError("Invalid argument type")
+
+    async def _validate_member(self, user: User) -> None:
+        if await self._member_exists(user.id):
+            await self._update_member_info(user)
+        else:
+            await self._create(user)
+
+    async def _member_exists(self, user_id: int) -> bool:
+        return await self.repo.read(user_id) is not None
+
+    async def _update_member_info(self, user: User) -> None:
+        old_member = await self.repo.read(user.id)
+        updated_member = copy.deepcopy(old_member)
+        changed = False
+
+        if old_member.username != user.username:
+            changed = True
+            updated_member.set_username(user.username)
+
+        if old_member.first_name != user.first_name:
+            changed = True
+            updated_member.set_first_name(user.first_name)
+
+        if old_member.last_name != user.last_name:
+            changed = True
+            updated_member.set_last_name(user.last_name)
+
+        if changed:
+            await self.repo.update_names(updated_member)

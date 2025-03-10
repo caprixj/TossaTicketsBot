@@ -18,5 +18,4 @@ class SourceFilterMiddleware(BaseMiddleware):
         if event.chat.type == "private" or event.chat.id == gv.rms.group_chat_id:
             if await _is_accepted_content_type(event):
                 return await handler(event, data)
-
         return

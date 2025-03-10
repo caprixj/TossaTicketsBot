@@ -7,14 +7,12 @@ class Member:
                  username: str = None,
                  first_name: str = None,
                  last_name: str = None,
-                 tickets_count: int = 0,
-                 artifacts: list[int] = None):
+                 tickets_count: int = 0):
         self.user_id = user_id
         self.username = username
         self.first_name = first_name
         self.last_name = last_name
         self.tickets_count = tickets_count
-        self.artifacts = artifacts
 
     # Getters
     def get_id(self):
@@ -33,7 +31,7 @@ class Member:
         return self.tickets_count
 
     def get_artifacts(self):
-        return self.artifacts
+        pass
 
     # Setters
     def set_id(self, user_id):
@@ -51,5 +49,5 @@ class Member:
     def set_tickets_count(self, tickets_count):
         self.tickets_count = tickets_count
 
-    def set_artifacts(self, artifacts):
-        self.artifacts = copy.deepcopy(artifacts)
+    def set_artifact(self, artifact):
+        pass

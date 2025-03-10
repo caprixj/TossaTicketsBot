@@ -4,8 +4,17 @@ CREATE_TABLE_MEMBERS = """
         username TEXT,
         first_name TEXT,
         last_name TEXT,
-        tickets_count INTEGER DEFAULT 0,
-        artifacts TEXT
+        tickets_count INTEGER DEFAULT 0
+    );
+"""
+
+CREATE_TABLE_ARTIFACTS = """
+    CREATE TABLE IF NOT EXISTS artifacts (
+        artifact_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        owner_id INTEGER,
+        name TEXT,
+        description TEXT,
+        FOREIGN KEY (owner_id) REFERENCES members (user_id)
     );
 """
 
@@ -45,10 +54,9 @@ CREATE_TABLE_RATING = """
     );
 """
 
-TOPT_SELECT = """
+SELECT_TOPT = """
     SELECT 
         m.*
-        MAX(COALESCE(a.transaction_time, d.transaction_time)) AS last_transaction_time
     FROM 
         members m
     LEFT JOIN 
@@ -56,7 +64,8 @@ TOPT_SELECT = """
     LEFT JOIN 
         delt d ON m.user_id = d.user_id
     GROUP BY 
-        m.user_id, m.username, m.first_name, m.last_name, m.tickets_count, m.artifacts
+        m.user_id, m.username, m.first_name, m.last_name, m.tickets_count
     ORDER BY 
-        m.tickets_count $, last_transaction_time $;
+        m.tickets_count $, MAX(COALESCE(a.transaction_time, d.transaction_time)) $
+    LIMIT ?;
 """

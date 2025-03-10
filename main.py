@@ -27,10 +27,10 @@ async def sql(message: Message) -> None:
     # /sql <query:text>
     _query = 'query'
 
-    com_parser = CommandParser(
+    com_parser = (CommandParser(
         message=message,
-        creator_required=True
-    )
+        creator_required=True)
+                  .add_param(_query, pt.text))
 
     result = await com_parser.parse()
 
@@ -39,12 +39,11 @@ async def sql(message: Message) -> None:
         return
 
     (executed, response) = await service.execute_sql(
-        user=message.from_user,
         query=result.params.get(_query)
     )
 
     status = GV.SQL_EXECUTE_SUCCEED_TEXT if executed else GV.SQL_EXECUTE_FAILED_TEXT
-    await message.reply(f'{status}\n\n{response}')
+    await message.reply(f'{status}\n\n{response}', parse_mode=None)
 
 
 @dp.message(Command(cl.infot.name))

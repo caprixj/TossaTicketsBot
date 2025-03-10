@@ -7,7 +7,7 @@ from model.database.Member import Member
 from model.database.transactions.AddtTransaction import AddtTransaction
 from model.database.transactions.DeltTransaction import DeltTransaction
 from repository.OrderingType import OrderingType
-from utilities.sqlscripts import TOPT_SELECT
+from utilities.sqlscripts import SELECT_TOPT
 
 
 class Repository(ABC):
@@ -47,8 +47,7 @@ class Repository(ABC):
                 member.username,
                 member.first_name,
                 member.last_name,
-                member.tickets_count,
-                member.artifacts
+                member.tickets_count
             ))
             await db.commit()
 
@@ -79,15 +78,8 @@ class Repository(ABC):
             member.user_id
         ))
 
-    async def update_artifacts(self, member: Member) -> None:
-        query = "UPDATE members SET artifacts = ? WHERE user_id = ?"
-        await self._execute(query, (
-            json.dumps(member.artifacts),
-            member.user_id
-        ))
-
     async def get_members_by_tickets_count(self, top_size: int, order: OrderingType) -> list[Member]:
-        query = TOPT_SELECT.replace('$', order.value)
+        query = SELECT_TOPT.replace('$', order.value)
         async with aiosqlite.connect(self.db_path) as db:
             cursor = await db.execute(query, (abs(top_size),))
             rows = await cursor.fetchall()
@@ -98,6 +90,13 @@ class Repository(ABC):
         async with aiosqlite.connect(self.db_path) as db:
             cursor = await db.execute(query, (user_id,))
             return int((await cursor.fetchone())[0])
+
+    async def get_artifact_names_by_user_id(self, user_id: int) -> list[str]:
+        query = "SELECT a.name FROM artifacts a WHERE owner_id = ?"
+        async with aiosqlite.connect(self.db_path) as db:
+            cursor = await db.execute(query, (user_id,))
+            rows = await cursor.fetchall()  # rows: list[tuple[str]]
+            return [row[0] for row in rows]
 
     async def add_stat_addt(self, addt: AddtTransaction) -> None:
         query = ("INSERT INTO addt (user_id, tickets_count, transaction_time, description)"
