@@ -8,6 +8,7 @@ from utilities.globalvars import GlobalVariables as GV
 
 class CommandList(str, Enum):
     # for creator
+    togglechat = '/togglechat'
     sql = '/sql <query:text>'
     addt = '<reply> /addt <count:pzint> [<description:text>]'
     delt = '<reply> /delt <count:pzint> [<description:text>]'

@@ -16,6 +16,8 @@ from repository.Repository import Repository
 class Service:
     def __init__(self, repository: Repository = None):
         self.repo = repository
+        self.bot = None
+        self.chat_mode = False
 
     async def execute_sql(self, query: str) -> (bool, str):
         # (!) NO infm validation is held
@@ -34,7 +36,9 @@ class Service:
         )
 
         sign = '+' if tickets_count > 0 else str()
-        return f"ім'я: {name}\n{GV.MEMBER_TICKETS_COUNT_TEXT}: {sign}{tickets_count}"
+        arl = await self._get_artifact_names_by_user_id_str(user.id)
+
+        return f"🪪 ім'я: {name}\n💳 тікети: {sign}{tickets_count}\n🔮 артефакти: {arl}"
 
     async def add_tickets(self, user: User, tickets_count: int, description: str = None) -> None:
         await self._validate_member(user)
@@ -174,15 +178,10 @@ class Service:
         ln = member.get_last_name()
         un = member.get_username()
         tc = member.get_tickets_count()
-
-        arl = str()
-        for ar in await self.repo.get_artifact_names_by_user_id(user.id):
-            arl += f'«{ar}», '
-        arl = arl[:-2] if arl else '-'
-
+        arl = await self._get_artifact_names_by_user_id_str(user.id)
         sign = '+' if tc > 0 else str()
 
-        return (f"{GV.MEMBER_INFO_TEXT}\n"
+        return (f"{GV.INFM_TEXT}\n"
                 f"\nід: {member.get_id()}"
                 f"\nім'я: {'-' if fn is None else fn}"
                 f"\nпрізвище: {'-' if ln is None else ln}"
@@ -190,6 +189,9 @@ class Service:
                 f"\n\n<b>💳 активи</b>"
                 f"\nтікети: {sign}{tc}"
                 f"\nартефакти: {arl}")
+
+    async def toggle_chat_mode(self) -> None:
+        self.chat_mode = not self.chat_mode
 
     async def _create(self, value: Union[Member, User]) -> None:
         if isinstance(value, Member):
@@ -235,3 +237,10 @@ class Service:
 
         if changed:
             await self.repo.update_names(updated_member)
+
+    async def _get_artifact_names_by_user_id_str(self, user_id: int) -> str:
+        arl = str()
+        for ar in await self.repo.get_artifact_names_by_user_id(user_id):
+            arl += f'«{ar}», '
+
+        return arl[:-2] if arl else '-'

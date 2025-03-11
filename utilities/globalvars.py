@@ -8,17 +8,17 @@ class GlobalVariables:
     CREATOR_USER_ID = 825549745
     CREATOR_USERNAME = '@capri_xj'
 
-    TICKETS_ADDED_TEXT = '📈 тікети нараховано!'
-    TICKETS_REMOVED_TEXT = '📉 тікети знято!'
-    TICKETS_SET_TEXT = '🔄 тікети перевстановлено!'
+    ADDT_TEXT = '📈 тікети нараховано!'
+    DELT_TEXT = '📉 тікети знято!'
+    SETT_TEXT = '🔄 тікети перевстановлено!'
     TOPT_DESC_TEXT = '*💸 рейтинг тікетів*'
     TOPT_ASC_TEXT = '*💩 анти-рейтинг тікетів*'
-    MEMBER_INFO_TEXT = '<b>ℹ️ інформація про учасника</b>'
-    MEMBER_TICKETS_COUNT_TEXT = '💳 тікетів'
-    SQL_EXECUTE_SUCCEED_TEXT = '✅ команду виконано!'
-    SQL_EXECUTE_FAILED_TEXT = '❌ команду відхилено!'
+    INFM_TEXT = '<b>ℹ️ інформація про учасника</b>'
+    SQL_SUCCESS_TEXT = '✅ команду виконано!'
+    SQL_FAILED_TEXT = '❌ команду відхилено!'
     NO_NAMES_TEXT = '<unknown-dobvoyob>'
     VALID_ARGS_TEXT = 'THE PROGRAM WAS STARTED WITH INVALID COMMAND PARAMETERS!'
+    TOGGLE_CHAT_TEXT = '🪬 гіпер пупер секретний режим ГУР'
 
     HELP_TEXT = """
 🇺🇦 перелік доступних команд

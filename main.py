@@ -22,6 +22,25 @@ service = Service()
 dp = Dispatcher()
 
 
+@dp.message(Command(cl.togglechat.name))
+async def togglechat(message: Message) -> None:
+    com_parser = CommandParser(
+        message=message,
+        creator_required=True
+    )
+
+    result = await com_parser.parse()
+
+    if not result.valid:
+        await _respond_invalid(message, result.response)
+        return
+
+    await service.toggle_chat_mode()
+    status = 'enabled' if service.chat_mode else 'disabled'
+
+    await message.reply(f'{GV.TOGGLE_CHAT_TEXT}: <b>{status}</b>', parse_mode=ParseMode.HTML)
+
+
 @dp.message(Command(cl.sql.name))
 async def sql(message: Message) -> None:
     # /sql <query:text>
@@ -42,7 +61,7 @@ async def sql(message: Message) -> None:
         query=result.params.get(_query)
     )
 
-    status = GV.SQL_EXECUTE_SUCCEED_TEXT if executed else GV.SQL_EXECUTE_FAILED_TEXT
+    status = GV.SQL_SUCCESS_TEXT if executed else GV.SQL_FAILED_TEXT
     await message.reply(f'{status}\n\n{response}', parse_mode=None)
 
 
@@ -71,7 +90,7 @@ async def addt(message: Message) -> None:
         description=result.params.get(_description)
     )
 
-    await message.answer(GV.TICKETS_ADDED_TEXT)
+    await message.answer(GV.ADDT_TEXT)
 
 
 @dp.message(Command(cl.delt.name))
@@ -99,7 +118,7 @@ async def delt(message: Message) -> None:
         description=result.params.get(_description)
     )
 
-    await message.answer(GV.TICKETS_REMOVED_TEXT)
+    await message.answer(GV.DELT_TEXT)
 
 
 @dp.message(Command(cl.sett.name))
@@ -127,7 +146,7 @@ async def sett(message: Message) -> None:
         description=result.params.get(_description)
     )
 
-    await message.answer(GV.TICKETS_SET_TEXT)
+    await message.answer(GV.SETT_TEXT)
 
 
 @dp.message(Command(cl.help.name))
@@ -220,6 +239,31 @@ async def topt(message: Message) -> None:
     await message.answer(response)
 
 
+@dp.message()
+async def gur_mode(message: Message) -> None:
+    if not service.chat_mode:
+        return
+
+    if not message.content_type == 'text':
+        return
+
+    com_parser = CommandParser(
+        message=message,
+        creator_required=True
+    )
+
+    result = await com_parser.parse()
+
+    if not result.valid:
+        await _respond_invalid(message, result.response)
+        return
+
+    await service.bot.send_message(
+        chat_id=GV.rms.group_chat_id,
+        text=message.text
+    )
+
+
 async def _create_databases():
     os.makedirs(os.path.dirname(GV.rms.db_file_path), exist_ok=True)
     async with aiosqlite.connect(GV.rms.db_file_path) as db:
@@ -270,10 +314,10 @@ async def main() -> None:
     await _define_service()
     await _create_databases()
 
-    bot = Bot(token=GV.rms.bot_token, default=DefaultBotProperties(parse_mode=ParseMode.MARKDOWN))
+    service.bot = Bot(token=GV.rms.bot_token, default=DefaultBotProperties(parse_mode=ParseMode.MARKDOWN))
     dp.message.middleware(SourceFilterMiddleware())
 
-    await dp.start_polling(bot)
+    await dp.start_polling(service.bot)
 
 
 if __name__ == "__main__":
