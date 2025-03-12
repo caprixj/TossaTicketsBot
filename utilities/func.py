@@ -1,12 +1,12 @@
 import random
 import os
 import xml.etree.ElementTree as ET
+import utilities.globals as glob
 from pathlib import Path
 
-from utilities.globalvars import GlobalVariables as GV
-from utilities.hiddenglobals import permission_denied_messages
-from utilities.runmode import RunMode, RunModeSettings
-from utilities.sqlscripts import CREATE_TABLE_MEMBERS, CREATE_TABLE_ADDT, CREATE_TABLE_DELT, CREATE_TABLE_ARTIFACTS
+from utilities.rand_globals import permission_denied_messages
+from utilities.run_mode import RunMode, RunModeSettings
+from utilities.sql_scripts import CREATE_TABLE_MEMBERS, CREATE_TABLE_ADDT, CREATE_TABLE_DELT, CREATE_TABLE_ARTIFACTS
 
 
 async def _parse_pathlib(xml_path: str) -> str:
@@ -33,8 +33,8 @@ async def _parse_pathlib(xml_path: str) -> str:
 
 
 async def get_run_mode_settings(run_mode: RunMode) -> RunModeSettings:
-    config_path_dev = await _parse_pathlib(GV.CONFIG_PATH_DEV)
-    config_path_prod = await _parse_pathlib(GV.CONFIG_PATH_PROD)
+    config_path_dev = await _parse_pathlib(glob.CONFIG_PATH_DEV)
+    config_path_prod = await _parse_pathlib(glob.CONFIG_PATH_PROD)
 
     paths = [config_path_dev, config_path_prod]
 
@@ -90,7 +90,7 @@ async def get_formatted_name(
     elif username:
         name += username
     else:
-        name = GV.NO_NAMES_TEXT
+        name = glob.NO_NAMES_TEXT
 
     return name if not ping else \
         f'@{name}' if name == username else f'[{name}](tg://user?id={user_id})'

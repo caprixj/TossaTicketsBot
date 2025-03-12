@@ -55,33 +55,21 @@ CREATE_TABLE_RATING = """
 """
 
 SELECT_TOPTALL = """
-    SELECT 
-        m.*
-    FROM 
-        members m
-    LEFT JOIN 
-        addt a ON m.user_id = a.user_id
-    LEFT JOIN 
-        delt d ON m.user_id = d.user_id
-    GROUP BY 
-        m.user_id, m.username, m.first_name, m.last_name, m.tickets_count
-    ORDER BY 
-        m.tickets_count DESC, MAX(COALESCE(a.transaction_time, d.transaction_time)) DESC;
+    SELECT m.*
+    FROM members m
+    LEFT JOIN addt a ON m.user_id = a.user_id
+    LEFT JOIN delt d ON m.user_id = d.user_id
+    GROUP BY m.user_id, m.username, m.first_name, m.last_name, m.tickets_count
+    ORDER BY m.tickets_count DESC, MAX(COALESCE(a.transaction_time, d.transaction_time)) DESC;
 """
 
 SELECT_TOPT = """
-    SELECT 
-        m.*
-    FROM 
-        members m
-    LEFT JOIN 
-        addt a ON m.user_id = a.user_id
-    LEFT JOIN 
-        delt d ON m.user_id = d.user_id
-    GROUP BY 
-        m.user_id, m.username, m.first_name, m.last_name, m.tickets_count
-    ORDER BY 
-        m.tickets_count $, MAX(COALESCE(a.transaction_time, d.transaction_time)) $
+    SELECT m.*
+    FROM members m
+    LEFT JOIN addt a ON m.user_id = a.user_id
+    LEFT JOIN delt d ON m.user_id = d.user_id
+    GROUP BY m.user_id, m.username, m.first_name, m.last_name, m.tickets_count
+    ORDER BY m.tickets_count $, MAX(COALESCE(a.transaction_time, d.transaction_time)) $
     LIMIT ?;
 """
 
@@ -89,12 +77,11 @@ INSERT_ADDT = "INSERT INTO addt (user_id, tickets_count, transaction_time, descr
 INSERT_DELT = "INSERT INTO delt (user_id, tickets_count, transaction_time, description) VALUES (?, ?, ?, ?)"
 
 INSERT_MEMBER = """
-    INSERT INTO 
-        members (user_id, username, first_name, last_name, tickets_count)
-    VALUES
-        (?, ?, ?, ?, ?);
+    INSERT INTO members (user_id, username, first_name, last_name, tickets_count)
+    VALUES (?, ?, ?, ?, ?);
 """
-SELECT_MEMBER = "SELECT * FROM members WHERE user_id = ?"
+SELECT_MEMBER_BY_USER_ID = "SELECT * FROM members WHERE user_id = ?"
+SELECT_MEMBER_BY_USERNAME = "SELECT * FROM members WHERE username = ?"
 DELETE_MEMBER = "DELETE FROM members WHERE user_id = ?"
 UPDATE_MEMBER = "UPDATE members SET username = ?, first_name = ?, last_name = ? WHERE user_id = ?"
 

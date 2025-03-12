@@ -1,10 +1,10 @@
-from utilities.globalvars import GlobalVariables as gv
+import utilities.globals as glob
 
 
 permission_denied_messages = [
-    f"пизда тобі. {gv.CREATOR_USERNAME} ходь сюди",
-    f"дохуя розумний? я кличу {gv.CREATOR_USERNAME}",
-    f"безкоштовних тікетів не буває. ставай раком, {gv.CREATOR_USERNAME} скоро підійде",
+    f"пизда тобі. {glob.CREATOR_USERNAME} ходь сюди",
+    f"дохуя розумний? я кличу {glob.CREATOR_USERNAME}",
+    f"безкоштовних тікетів не буває. ставай раком, {glob.CREATOR_USERNAME} скоро підійде",
     "з'єбався з чату. шоб я тебе більше тут не бачила",
     "адмінка ще не виросла, клуша",
     "хто тобі дав право змінювати свій баланс тікетів, дура?",
@@ -17,7 +17,7 @@ permission_denied_messages = [
     "коли вже цього лошпеда забанять?",
     "лівай чат, уебище",
     "даю тобі можливість покинути чат самостійно..",
-    f"цікаво, шо тепер з тобою зробить {gv.CREATOR_USERNAME}.. співчуваю",
+    f"цікаво, шо тепер з тобою зробить {glob.CREATOR_USERNAME}.. співчуваю",
     "лох",
     "лошара",
     "не хочу",

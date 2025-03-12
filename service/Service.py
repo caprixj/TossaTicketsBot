@@ -1,116 +1,108 @@
 import copy
+import utilities.globals as glob
+import comparser.standard_overloads as sol
+
 from datetime import datetime
-from typing import Union
+from typing import Union, Optional
 
 from aiogram.types import User
 
 from model.database.Member import Member
 from model.database.transactions.AddtTransaction import AddtTransaction
 from model.database.transactions.DeltTransaction import DeltTransaction
+from comparser.enums.OverloadType import OverloadType as cot
+from comparser.results import CommandParserResult
 from utilities.func import get_formatted_name
-from utilities.globalvars import GlobalVariables as GV
 from repository.OrderingType import OrderingType
 from repository.Repository import Repository
+
+
+async def _get_transaction_time() -> str:
+    return datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
 
 class Service:
     def __init__(self, repository: Repository = None):
         self.repo = repository
         self.bot = None
-        self.chat_mode = False
 
     async def execute_sql(self, query: str) -> (bool, str):
-        # (!) NO infm validation is held
+        # (!) NO member validation is held
         return await self.repo.execute_external(query)
 
-    async def get_member_tickets_count_info(self, user: User) -> str:
-        await self._validate_member(user)
+    async def validate_member(self, user: User) -> None:
+        if await self._member_exists_by_user_id(user.id):
+            await self._update_member_info(user)
+        else:
+            await self._create(user)
 
-        tickets_count = await self.repo.get_member_tickets_count(user.id)
+    async def get_member_tickets_count_info(self, member: Member) -> str:
         name = await get_formatted_name(
-            user_id=user.id,
-            username=user.username,
-            first_name=user.first_name,
-            last_name=user.last_name,
+            user_id=member.user_id,
+            username=member.username,
+            first_name=member.first_name,
+            last_name=member.last_name,
             ping=True
         )
 
-        sign = '+' if tickets_count > 0 else str()
-        arl = await self._get_artifact_names_by_user_id_str(user.id)
+        sign = '+' if member.tickets_count > 0 else str()
+        arl = await self._get_artifact_names_by_user_id_str(member.user_id)
 
-        return f"🪪 ім'я: {name}\n💳 тікети: {sign}{tickets_count}\n🔮 артефакти: {arl}"
+        return f"🪪 ім'я: {name}\n💳 тікети: {sign}{member.tickets_count}\n🔮 артефакти: {arl}"
 
-    async def add_tickets(self, user: User, tickets_count: int, description: str = None) -> None:
-        await self._validate_member(user)
+    async def add_tickets(self, member: Member, tickets_count: int, description: str = None) -> None:
+        member.tickets_count += tickets_count
+        transaction_time = await _get_transaction_time()
 
-        cur_tickets_count = await self.repo.get_member_tickets_count(user.id)
-        transaction_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-
-        await self.repo.update_tickets_count(Member(
-            user_id=user.id,
-            tickets_count=cur_tickets_count + tickets_count
-        ))
+        await self.repo.update_tickets_count(member)
         await self.repo.add_stat_addt(AddtTransaction(
-            user_id=user.id,
+            user_id=member.user_id,
             tickets_count=tickets_count,
             transaction_time=transaction_time,
             description=description
         ))
 
-    async def remove_tickets(self, user: User, tickets_count: int, description: str = None) -> None:
-        await self._validate_member(user)
+    async def delete_tickets(self, member: Member, tickets_count: int, description: str = None) -> None:
+        member.tickets_count -= tickets_count
+        transaction_time = await _get_transaction_time()
 
-        cur_tickets_count = await self.repo.get_member_tickets_count(user.id)
-        transaction_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-
-        await self.repo.update_tickets_count(Member(
-            user_id=user.id,
-            tickets_count=cur_tickets_count - tickets_count
-        ))
+        await self.repo.update_tickets_count(member)
         await self.repo.add_stat_delt(DeltTransaction(
-            user_id=user.id,
+            user_id=member.user_id,
             tickets_count=tickets_count,
             transaction_time=transaction_time,
             description=description
         ))
 
-    async def set_tickets(self, user: User, tickets_count: int, description: str = None) -> None:
-        await self._validate_member(user)
-
-        cur_tickets_count = await self.repo.get_member_tickets_count(user.id)
-        transaction_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-
-        if cur_tickets_count == tickets_count:
+    async def set_tickets(self, member: Member, tickets_count: int, description: str = None) -> None:
+        if member.tickets_count == tickets_count:
             return
 
-        await self.repo.update_tickets_count(Member(
-            user_id=user.id,
-            tickets_count=tickets_count
-        ))
+        transaction_time = await _get_transaction_time()
 
-        if tickets_count > cur_tickets_count:
+        if tickets_count > member.tickets_count:
             await self.repo.add_stat_addt(AddtTransaction(
-                user_id=user.id,
-                tickets_count=tickets_count - cur_tickets_count,
+                user_id=member.user_id,
+                tickets_count=tickets_count - member.tickets_count,
                 transaction_time=transaction_time,
                 description=description
             ))
         else:
             await self.repo.add_stat_delt(DeltTransaction(
-                user_id=user.id,
-                tickets_count=cur_tickets_count - tickets_count,
+                user_id=member.user_id,
+                tickets_count=member.tickets_count - tickets_count,
                 transaction_time=transaction_time,
                 description=description
             ))
 
-    async def get_tickets_top(self, user: User) -> str:
-        await self._validate_member(user)
+        member.tickets_count = tickets_count
+        await self.repo.update_tickets_count(member)
 
-        result = f'{GV.TOPT_DESC_TEXT} (повний)\n\n'
+    async def get_tickets_top(self) -> str:
+        result = f'{glob.TOPT_DESC_TEXT} (повний)\n\n'
         members = await self.repo.get_members_by_tickets()
 
-        for i in range(len(members)):
-            m = members[i]
+        for i, m in enumerate(members):
             name = await get_formatted_name(
                 username=m.username,
                 first_name=m.first_name,
@@ -136,15 +128,12 @@ class Service:
 
         return result
 
-    async def get_tickets_top_by_size(self, user: User, size: int) -> str:
-        await self._validate_member(user)
-
-        result = f'{GV.TOPT_DESC_TEXT if size > 0 else GV.TOPT_ASC_TEXT}\n\n'
+    async def get_tickets_top_by_size(self, size: int) -> str:
+        result = f'{glob.TOPT_DESC_TEXT if size > 0 else glob.TOPT_ASC_TEXT}\n\n'
         order = OrderingType.DESC if size > 0 else OrderingType.ASC
         members = await self.repo.get_members_by_tickets_limited(order, abs(size))
 
-        for i in range(len(members)):
-            m = members[i]
+        for i, m in enumerate(members):
             name = await get_formatted_name(
                 username=m.username,
                 first_name=m.first_name,
@@ -170,19 +159,18 @@ class Service:
 
         return result
 
-    async def get_member_info(self, user: User) -> str:
-        await self._validate_member(user)
-        member = await self.repo.read(user.id)
+    async def get_member_info(self, user_id: int) -> str:
+        member = await self.repo.read_by_user_id(user_id)
 
-        fn = member.get_first_name()
-        ln = member.get_last_name()
-        un = member.get_username()
-        tc = member.get_tickets_count()
-        arl = await self._get_artifact_names_by_user_id_str(user.id)
+        fn = member.first_name
+        ln = member.last_name
+        un = member.username
+        tc = member.tickets_count
+        arl = await self._get_artifact_names_by_user_id_str(user_id)
         sign = '+' if tc > 0 else str()
 
-        return (f"{GV.INFM_TEXT}\n"
-                f"\nід: {member.get_id()}"
+        return (f"{glob.INFM_TEXT}\n"
+                f"\nід: {member.user_id}"
                 f"\nім'я: {'-' if fn is None else fn}"
                 f"\nпрізвище: {'-' if ln is None else ln}"
                 f"\nюзернейм: {'-' if un is None else un}"
@@ -190,8 +178,14 @@ class Service:
                 f"\nтікети: {sign}{tc}"
                 f"\nартефакти: {arl}")
 
-    async def toggle_chat_mode(self) -> None:
-        self.chat_mode = not self.chat_mode
+    async def get_member_by_cpr(self, cpr: CommandParserResult, user: User) -> Optional[Member]:
+        if cpr.overload.type == cot.reply:
+            await self.validate_member(user)
+            return await self.repo.read_by_user_id(user.id)
+        elif cpr.overload.type == cot.username:
+            return await self.repo.read_by_username(cpr.params.get(sol.USERNAME))
+        elif cpr.overload.type == cot.user_id:
+            return await self.repo.read_by_user_id(cpr.params.get(sol.USER_ID))
 
     async def _create(self, value: Union[Member, User]) -> None:
         if isinstance(value, Member):
@@ -209,31 +203,28 @@ class Service:
         else:
             raise TypeError("Invalid argument type")
 
-    async def _validate_member(self, user: User) -> None:
-        if await self._member_exists(user.id):
-            await self._update_member_info(user)
-        else:
-            await self._create(user)
+    async def _member_exists_by_user_id(self, user_id: int) -> bool:
+        return await self.repo.read_by_user_id(user_id) is not None
 
-    async def _member_exists(self, user_id: int) -> bool:
-        return await self.repo.read(user_id) is not None
+    async def _member_exists_by_username(self, username: str) -> bool:
+        return await self.repo.read_by_username(username) is not None
 
     async def _update_member_info(self, user: User) -> None:
-        old_member = await self.repo.read(user.id)
+        old_member = await self.repo.read_by_user_id(user.id)
         updated_member = copy.deepcopy(old_member)
         changed = False
 
         if old_member.username != user.username:
             changed = True
-            updated_member.set_username(user.username)
+            updated_member.username = user.username
 
         if old_member.first_name != user.first_name:
             changed = True
-            updated_member.set_first_name(user.first_name)
+            updated_member.first_name = user.first_name
 
         if old_member.last_name != user.last_name:
             changed = True
-            updated_member.set_last_name(user.last_name)
+            updated_member.last_name = user.last_name
 
         if changed:
             await self.repo.update_names(updated_member)

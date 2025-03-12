@@ -2,6 +2,7 @@ import asyncio
 import logging
 import os
 import sys
+import utilities.globals as glob
 
 import aiosqlite
 from aiogram import Bot, Dispatcher
@@ -10,263 +11,248 @@ from aiogram.enums import ParseMode
 from aiogram.filters import Command
 from aiogram.types import Message
 
+import comparser.standard_overloads as sol
+from comparser.results.CommandHandlerResult import CommandHandlerResult
+from comparser.CommandParser import CommandParser
+from comparser.Overload import Overload
+from comparser.enums.ParamType import ParamType as pt
+from comparser.enums.CommandList import CommandList as cl
+from comparser.enums.ResultErrorMessages import ResultErrorMessages
 from middleware.SourceFilterMiddleware import SourceFilterMiddleware
-from utilities.comparser import CommandList as cl, CPRResponse as cprr, ParamType as pt, CommandParser
-from utilities.globalvars import GlobalVariables as GV
 from repository.Repository import Repository
 from service.Service import Service
-from utilities.runmode import RunMode
+from utilities.run_mode import RunMode
 from utilities.func import get_random_permission_denied_message, get_run_mode_settings, get_db_setup_sql_script
 
 service = Service()
 dp = Dispatcher()
 
 
-@dp.message(Command(cl.togglechat.name))
-async def togglechat(message: Message) -> None:
-    com_parser = CommandParser(
-        message=message,
-        creator_required=True
-    )
-
-    result = await com_parser.parse()
-
-    if not result.valid:
-        await _respond_invalid(message, result.response)
-        return
-
-    await service.toggle_chat_mode()
-    status = 'enabled' if service.chat_mode else 'disabled'
-
-    await message.reply(f'{GV.TOGGLE_CHAT_TEXT}: <b>{status}</b>', parse_mode=ParseMode.HTML)
-
-
 @dp.message(Command(cl.sql.name))
 async def sql(message: Message) -> None:
     # /sql <query:text>
-    _query = 'query'
+    o = Overload(creator_filter=True).add_param(sol.QUERY, pt.text)
 
-    com_parser = (CommandParser(
-        message=message,
-        creator_required=True)
-                  .add_param(_query, pt.text))
-
-    result = await com_parser.parse()
+    cp = CommandParser(message, o)
+    result = await cp.parse()
 
     if not result.valid:
-        await _respond_invalid(message, result.response)
+        await _respond_invalid(message, result.error_message)
         return
 
     (executed, response) = await service.execute_sql(
-        query=result.params.get(_query)
+        query=result.params.get(sol.QUERY)
     )
 
-    status = GV.SQL_SUCCESS_TEXT if executed else GV.SQL_FAILED_TEXT
+    status = glob.SQL_SUCCESS_TEXT if executed else glob.SQL_FAILED_TEXT
     await message.reply(f'{status}\n\n{response}', parse_mode=None)
 
 
 @dp.message(Command(cl.addt.name))
 async def addt(message: Message) -> None:
-    # <reply> /addt <count:pzint> [<description:text>]
-    _count = 'count'
-    _description = 'description'
-
-    com_parser = (CommandParser(
+    result = await count_handler(
         message=message,
-        creator_required=True,
-        replied=True)
-                  .add_param(_count, pt.pzint)
-                  .add_param(_description, pt.text))
-
-    result = await com_parser.parse()
+        count_type=pt.pzint,
+        creator_filter=True
+    )
 
     if not result.valid:
-        await _respond_invalid(message, result.response)
         return
 
     await service.add_tickets(
-        user=message.reply_to_message.from_user,
-        tickets_count=result.params.get(_count),
-        description=result.params.get(_description)
+        member=result.target_member,
+        tickets_count=result.get_param(sol.COUNT),
+        description=result.get_param(sol.DESCRIPTION)
     )
 
-    await message.answer(GV.ADDT_TEXT)
+    await message.answer(glob.ADDT_TEXT)
 
 
 @dp.message(Command(cl.delt.name))
 async def delt(message: Message) -> None:
-    # <reply> /delt <count:pzint> [<description:text>]
-    _count = 'count'
-    _description = 'description'
-
-    com_parser = (CommandParser(
+    result = await count_handler(
         message=message,
-        creator_required=True,
-        replied=True)
-                  .add_param(_count, pt.pzint)
-                  .add_param(_description, pt.text))
-
-    result = await com_parser.parse()
-
-    if not result.valid:
-        await _respond_invalid(message, result.response)
-        return
-
-    await service.remove_tickets(
-        user=message.reply_to_message.from_user,
-        tickets_count=result.params.get(_count),
-        description=result.params.get(_description)
+        count_type=pt.pzint,
+        creator_filter=True
     )
 
-    await message.answer(GV.DELT_TEXT)
+    if not result.valid:
+        return
+
+    await service.delete_tickets(
+        member=result.target_member,
+        tickets_count=result.get_param(sol.COUNT),
+        description=result.get_param(sol.DESCRIPTION)
+    )
+
+    await message.answer(glob.DELT_TEXT)
 
 
 @dp.message(Command(cl.sett.name))
 async def sett(message: Message) -> None:
-    # <reply> /sett <count:int> [<description:text>]
-    _count = 'count'
-    _description = 'description'
-
-    com_parser = (CommandParser(
+    result = await count_handler(
         message=message,
-        creator_required=True,
-        replied=True)
-                  .add_param(_count, pt.int)
-                  .add_param(_description, pt.text))
-
-    result = await com_parser.parse()
+        count_type=pt.int,
+        creator_filter=True
+    )
 
     if not result.valid:
-        await _respond_invalid(message, result.response)
         return
 
     await service.set_tickets(
-        user=message.reply_to_message.from_user,
-        tickets_count=result.params.get(_count),
-        description=result.params.get(_description)
+        member=result.target_member,
+        tickets_count=result.get_param(sol.COUNT),
+        description=result.get_param(sol.DESCRIPTION)
     )
 
-    await message.answer(GV.SETT_TEXT)
+    await message.answer(glob.SETT_TEXT)
 
 
 @dp.message(Command(cl.help.name))
 async def help_(message: Message) -> None:
-    # /help
-    result = await CommandParser(message).parse()
-
-    if not result.valid:
-        await _respond_invalid(message, result.response)
-        return
-
-    await message.answer(GV.HELP_TEXT)
-
-
-@dp.message(Command(cl.infm.name))
-async def infm(message: Message) -> None:
-    # [<reply>] /infm
-    com_parser = CommandParser(
-        message=message,
-        replied=True,
-        reply_optional=True
-    )
-
-    result = await com_parser.parse()
-
-    if not result.valid:
-        await _respond_invalid(message, result.response)
-        return
-
-    user = message.from_user \
-        if message.reply_to_message is None \
-        else message.reply_to_message.from_user
-
-    response = await service.get_member_info(user)
-    await message.answer(response, parse_mode=ParseMode.HTML)
-
-
-@dp.message(Command(cl.bal.name))
-async def bal(message: Message) -> None:
-    # [<reply>] /bal
-    com_parser = CommandParser(
-        message=message,
-        replied=True,
-        reply_optional=True
-    )
-
-    result = await com_parser.parse()
-
-    if not result.valid:
-        await _respond_invalid(message, result.response)
-        return
-
-    user = message.from_user \
-        if message.reply_to_message is None \
-        else message.reply_to_message.from_user
-
-    response = await service.get_member_tickets_count_info(user)
-    await message.answer(response)
-
-
-@dp.message(Command(cl.toptall.name))
-async def toptall(message: Message) -> None:
-    # /toptall
-    result = await CommandParser(message).parse()
-
-    if not result.valid:
-        await _respond_invalid(message, result.response)
-        return
-
-    response = await service.get_tickets_top(message.from_user)
-    await message.answer(response)
+    await message.answer(glob.HELP_TEXT)
 
 
 @dp.message(Command(cl.topt.name))
 async def topt(message: Message) -> None:
-    # /topt [<size:zint>]
-    _size = 'size'
+    # /topt
+    o_no_size = Overload(name='no-size')
 
-    result = await CommandParser(message).add_param(_size, pt.zint).parse()
+    # /topt <size:zint>
+    o_size = Overload(name='size').add_param(sol.SIZE, pt.zint)
 
-    if not result.valid:
-        await _respond_invalid(message, result.response)
+    cpr = await CommandParser(message, o_no_size, o_size).parse()
+
+    if not cpr.valid:
+        await _respond_invalid(message, cpr.error_message)
         return
 
-    response = await service.get_tickets_top_by_size(
-        user=message.from_user,
-        size=result.params.get(_size)
-    )
+    async def _match_overload():
+        return await service.get_tickets_top() if cpr.overload.name == o_no_size.name \
+            else await service.get_tickets_top_by_size(cpr.params.get(sol.SIZE))
 
+    await service.validate_member(message.from_user)
+    response = await _match_overload()
     await message.answer(response)
 
 
-@dp.message()
-async def gur_mode(message: Message) -> None:
-    if not service.chat_mode:
-        return
-
-    if not message.content_type == 'text':
-        return
-
-    com_parser = CommandParser(
-        message=message,
-        creator_required=True
-    )
-
-    result = await com_parser.parse()
+@dp.message(Command(cl.bal.name))
+async def bal(message: Message) -> None:
+    result = await empty_handler(message)
 
     if not result.valid:
-        await _respond_invalid(message, result.response)
         return
 
-    await service.bot.send_message(
-        chat_id=GV.rms.group_chat_id,
-        text=message.text
-    )
+    response = await service.get_member_tickets_count_info(result.target_member)
+    await message.answer(response)
+
+
+@dp.message(Command(cl.infm.name))
+async def infm(message: Message) -> None:
+    result = await empty_handler(message)
+
+    if not result.valid:
+        return
+
+    response = await service.get_member_info(result.target_member.user_id)
+    await message.answer(response, parse_mode=ParseMode.HTML)
+
+
+@dp.message(Command(cl.ttime.name))
+async def ttime(message: Message) -> None:
+    pass
+
+
+@dp.message(Command(cl.tpay.name))
+async def tpay(message: Message) -> None:
+    pass
+
+
+@dp.message(Command(cl.tkick.name))
+async def tkick(message: Message) -> None:
+    pass
+
+
+@dp.message(Command(cl.tmute.name))
+async def tmute(message: Message) -> None:
+    pass
+
+
+@dp.message(Command(cl.tban.name))
+async def tban(message: Message) -> None:
+    pass
+
+
+@dp.message(Command(cl.demute.name))
+async def demute(message: Message) -> None:
+    pass
+
+
+@dp.message(Command(cl.deban.name))
+async def deban(message: Message) -> None:
+    pass
+
+
+# [<reply>] /command
+# /command <username:username>
+# /command <user_id:pzint>
+async def empty_handler(message: Message) -> CommandHandlerResult:
+    overloads = [
+        await sol.reply_empty(reply_optional=True),
+        await sol.username_empty(),
+        await sol.user_id_empty()
+    ]
+
+    cp = CommandParser(message, *overloads)
+    cpr = await cp.parse()
+
+    if not cpr.valid:
+        await _respond_invalid(message, cpr.error_message)
+        return CommandHandlerResult()
+
+    user = message.from_user \
+        if message.reply_to_message is None \
+        else message.reply_to_message.from_user
+
+    target_member = await service.get_member_by_cpr(cpr, user)
+
+    if target_member is None:
+        await message.answer(glob.GET_MEMBER_FAILED_TEXT)
+        return CommandHandlerResult()
+
+    return CommandHandlerResult(target_member, cpr, valid=True)
+
+
+# <reply> /command <count:any> [<description:text>]
+# /command <username:username> <count:any> [<description:text>]
+# /command <user_id:pzint> <count:any> [<description:text>]
+async def count_handler(message: Message, count_type: pt, creator_filter: bool = False) -> CommandHandlerResult:
+    overloads = [
+        await sol.reply_count(count_type=count_type, creator_filter=creator_filter),
+        await sol.username_count(pt.pzint, creator_filter=creator_filter),
+        await sol.user_id_count(pt.pzint, creator_filter=creator_filter)
+    ]
+
+    cp = CommandParser(message, *overloads)
+    cpr = await cp.parse()
+
+    if not cpr.valid:
+        await _respond_invalid(message, cpr.error_message)
+        return CommandHandlerResult()
+
+    user = message.reply_to_message.from_user if message.reply_to_message is not None else None
+    target_member = await service.get_member_by_cpr(cpr, user)
+
+    if target_member is None:
+        await message.answer(glob.GET_MEMBER_FAILED_TEXT)
+        return CommandHandlerResult()
+
+    return CommandHandlerResult(target_member, cpr, valid=True)
 
 
 async def _create_databases():
-    os.makedirs(os.path.dirname(GV.rms.db_file_path), exist_ok=True)
-    async with aiosqlite.connect(GV.rms.db_file_path) as db:
+    os.makedirs(os.path.dirname(glob.rms.db_file_path), exist_ok=True)
+    async with aiosqlite.connect(glob.rms.db_file_path) as db:
         for query in await get_db_setup_sql_script():
             await db.execute(query)
             await db.commit()
@@ -288,18 +274,18 @@ async def _define_rms(rm: RunMode) -> bool:
     if rm not in [RunMode.PROD, RunMode.DEV]:
         return False
 
-    GV.rms = await get_run_mode_settings(rm)
+    glob.rms = await get_run_mode_settings(rm)
     return True
 
 
 async def _define_service() -> None:
     global service
-    service = Service(Repository(GV.rms.db_file_path))
+    service = Service(Repository(glob.rms.db_file_path))
 
 
-async def _respond_invalid(message: Message, response: cprr):
+async def _respond_invalid(message: Message, response: ResultErrorMessages):
     out_message = await get_random_permission_denied_message() \
-        if response == cprr.not_creator else response
+        if response == ResultErrorMessages.not_creator else response
 
     await message.reply(out_message)
 
@@ -309,12 +295,12 @@ async def main() -> None:
     valid_args = await _define_rms(run_mode)
 
     if not valid_args:
-        raise RuntimeError(GV.VALID_ARGS_TEXT)
+        raise RuntimeError(glob.VALID_ARGS_TEXT)
 
     await _define_service()
     await _create_databases()
 
-    service.bot = Bot(token=GV.rms.bot_token, default=DefaultBotProperties(parse_mode=ParseMode.MARKDOWN))
+    service.bot = Bot(token=glob.rms.bot_token, default=DefaultBotProperties(parse_mode=ParseMode.MARKDOWN))
     dp.message.middleware(SourceFilterMiddleware())
 
     await dp.start_polling(service.bot)

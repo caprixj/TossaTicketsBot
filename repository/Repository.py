@@ -1,5 +1,4 @@
 import aiosqlite
-import json
 from abc import ABC
 from typing import Optional
 
@@ -7,8 +6,9 @@ from model.database.Member import Member
 from model.database.transactions.AddtTransaction import AddtTransaction
 from model.database.transactions.DeltTransaction import DeltTransaction
 from repository.OrderingType import OrderingType
-from utilities.sqlscripts import SELECT_TOPT, SELECT_TOPTALL, INSERT_MEMBER, INSERT_DELT, INSERT_ADDT, \
-    SELECT_ARTIFACT_NAMES, SELECT_TICKETS_COUNT, UPDATE_TICKETS_COUNT, UPDATE_MEMBER, DELETE_MEMBER, SELECT_MEMBER
+from utilities.sql_scripts import SELECT_TOPT, SELECT_TOPTALL, INSERT_MEMBER, INSERT_DELT, INSERT_ADDT, \
+    SELECT_ARTIFACT_NAMES, SELECT_TICKETS_COUNT, UPDATE_TICKETS_COUNT, UPDATE_MEMBER, DELETE_MEMBER, \
+    SELECT_MEMBER_BY_USER_ID, SELECT_MEMBER_BY_USERNAME
 
 
 class Repository(ABC):
@@ -50,9 +50,15 @@ class Repository(ABC):
             ))
             await db.commit()
 
-    async def read(self, user_id: int) -> Optional[Member]:
+    async def read_by_user_id(self, user_id: int) -> Optional[Member]:
         async with aiosqlite.connect(self.db_path) as db:
-            cursor = await db.execute(SELECT_MEMBER, (user_id,))
+            cursor = await db.execute(SELECT_MEMBER_BY_USER_ID, (user_id,))
+            row = await cursor.fetchone()
+            return Member(*row) if row else None
+
+    async def read_by_username(self, username: str) -> Optional[Member]:
+        async with aiosqlite.connect(self.db_path) as db:
+            cursor = await db.execute(SELECT_MEMBER_BY_USERNAME, (username,))
             row = await cursor.fetchone()
             return Member(*row) if row else None
 
