@@ -4,7 +4,7 @@ import utilities.globals as glob
 from comparser.Overload import Overload
 from comparser.results.CommandParserResult import CommandParserResult
 from comparser.enums.ParamType import ParamType
-from comparser.enums.ResultErrorMessages import ResultErrorMessages
+from comparser.enums.CommandParserResultErrorMessages import CommandParserResultErrorMessages as cprem
 
 
 async def _is_pzint(t: str) -> bool:
@@ -35,7 +35,7 @@ async def _is_time(t: str) -> bool:
     return t[-1] in ['m', 'h', 'd'] and t[:-1].isdigit()
 
 
-async def _create_invalid_cpr(error_message: ResultErrorMessages):
+async def _create_invalid_cpr(error_message: cprem):
     return CommandParserResult(
         overload=Overload(),
         params=dict(),
@@ -76,22 +76,22 @@ class CommandParser:
     async def _parse_overload(self, ol: Overload):
         # reply filter (rFo)
         if not self._replied() and ol.reply_filter and not ol.reply_optional:
-            return await _create_invalid_cpr(ResultErrorMessages.no_reply)
+            return await _create_invalid_cpr(cprem.no_reply)
 
         # bot filter
         if ol.reply_filter and self.reply_message and self.reply_message.from_user.is_bot:
-            return await _create_invalid_cpr(ResultErrorMessages.is_bot)
+            return await _create_invalid_cpr(cprem.is_bot)
 
         # creator permission filter
         if ol.creator_filter and self.message.from_user.id != glob.CREATOR_USER_ID:
-            return await _create_invalid_cpr(ResultErrorMessages.not_creator)
+            return await _create_invalid_cpr(cprem.not_creator)
 
         # token to param ratio filter
         min_param_count = len(ol.params)
         if ol.is_optioned():
             min_param_count -= 1
         if len(self.tokens) < min_param_count:
-            return await _create_invalid_cpr(ResultErrorMessages.wrong_args)
+            return await _create_invalid_cpr(cprem.wrong_args)
 
         result_dict = dict()
         for param in ol.params:
@@ -105,7 +105,7 @@ class CommandParser:
             # and the lack of required params in tokens
             if len(self.tokens) <= i:
                 if not param.optional:
-                    return await _create_invalid_cpr(ResultErrorMessages.wrong_args)
+                    return await _create_invalid_cpr(cprem.wrong_args)
                 else:
                     cpr.params[param.name] = None
                     break
@@ -122,27 +122,27 @@ class CommandParser:
             # -> int
             elif param.type == ParamType.int:
                 if not t.isdigit():
-                    return await _create_invalid_cpr(ResultErrorMessages.wrong_args)
+                    return await _create_invalid_cpr(cprem.wrong_args)
                 cpr.params[param.name] = int(t)
             # -> zint
             elif param.type == ParamType.zint:
                 if not await _is_zint(t):
-                    return await _create_invalid_cpr(ResultErrorMessages.wrong_args)
+                    return await _create_invalid_cpr(cprem.wrong_args)
                 cpr.params[param.name] = int(t)
             # -> pzint
             elif param.type == ParamType.pzint:
                 if not await _is_pzint(t):
-                    return await _create_invalid_cpr(ResultErrorMessages.wrong_args)
+                    return await _create_invalid_cpr(cprem.wrong_args)
                 cpr.params[param.name] = int(t)
             # -> username
             elif param.type == ParamType.username:
                 if not await _is_username(t):
-                    return await _create_invalid_cpr(ResultErrorMessages.wrong_args)
+                    return await _create_invalid_cpr(cprem.wrong_args)
                 cpr.params[param.name] = t[1:]
             # -> time
             elif param.type == ParamType.time:
                 if not await _is_time(t):
-                    return await _create_invalid_cpr(ResultErrorMessages.wrong_args)
+                    return await _create_invalid_cpr(cprem.wrong_args)
                 cpr.params[param.name] = t
             # -> ?
             else:
@@ -153,7 +153,7 @@ class CommandParser:
 
         # if not self.tokens and ol.params:
         #     if not ol.params[-1].optional:
-        #         return await _create_invalid_cpr(ResultErrorMessages.wrong_args)
+        #         return await _create_invalid_cpr(transactions.wrong_args)
 
         # the command overload is parsed successfully
         cpr.valid = True

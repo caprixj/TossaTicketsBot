@@ -1,7 +1,7 @@
 from enum import Enum
 
 
-class ResultErrorMessages(str, Enum):
+class CommandParserResultErrorMessages(str, Enum):
     wrong_args = '❌ відхилено! помилкові аргументи'
     no_reply = '❌ відхилено! команда має бути у відповідь на повідомлення учасника групи'
     is_bot = '❌ відхилено! команда не може бути застосована до бота'

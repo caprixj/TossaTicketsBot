@@ -1,14 +1,14 @@
 import copy
 
 from comparser.Overload import Overload
-from comparser.enums.ResultErrorMessages import ResultErrorMessages
+from comparser.enums.CommandParserResultErrorMessages import CommandParserResultErrorMessages
 
 
 class CommandParserResult:
     def __init__(self,
                  overload: Overload,
                  params: dict = None,
-                 error_message: ResultErrorMessages = None,
+                 error_message: CommandParserResultErrorMessages = None,
                  valid: bool = False):
         self.overload = overload
         self.params = copy.deepcopy(params)

@@ -1,12 +1,16 @@
 import random
 import os
 import xml.etree.ElementTree as ET
+from datetime import datetime
+
 import utilities.globals as glob
 from pathlib import Path
 
+from model.database.Member import Member
 from utilities.rand_globals import permission_denied_messages
 from utilities.run_mode import RunMode, RunModeSettings
-from utilities.sql_scripts import CREATE_TABLE_MEMBERS, CREATE_TABLE_ADDT, CREATE_TABLE_DELT, CREATE_TABLE_ARTIFACTS
+from utilities.sql_scripts import CREATE_TABLE_MEMBERS, CREATE_TABLE_ADDT, CREATE_TABLE_DELT, CREATE_TABLE_ARTIFACTS, \
+    CREATE_TABLE_TPAY
 
 
 async def _parse_pathlib(xml_path: str) -> str:
@@ -66,8 +70,34 @@ async def get_db_setup_sql_script() -> list[str]:
         CREATE_TABLE_MEMBERS,
         CREATE_TABLE_ARTIFACTS,
         CREATE_TABLE_ADDT,
-        CREATE_TABLE_DELT
+        CREATE_TABLE_DELT,
+        CREATE_TABLE_TPAY
     ]
+
+
+async def get_transaction_time() -> str:
+    return datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+
+async def get_fee(transfer_amount: int) -> int:
+    if transfer_amount <= 10:
+        return 1
+    if transfer_amount <= 50:
+        return round(0.2 * transfer_amount) + 1
+    if transfer_amount <= 100:
+        return round(0.4 * transfer_amount) + 1
+
+    return round(0.6 * transfer_amount) + 1
+
+
+async def get_formatted_name_by_member(member: Member, ping: bool = False) -> str:
+    return await get_formatted_name(
+        username=member.username,
+        first_name=member.first_name,
+        last_name=member.last_name,
+        user_id=member.user_id,
+        ping=ping
+    )
 
 
 async def get_formatted_name(

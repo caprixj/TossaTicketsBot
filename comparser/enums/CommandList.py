@@ -16,6 +16,9 @@ class CommandList(str, Enum):
     # # # # # # # # #
     # for creator
 
+    # /db
+    db = 'db'
+
     # /sql <query:text>
     sql = 'sql'
 

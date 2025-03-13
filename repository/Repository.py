@@ -5,10 +5,11 @@ from typing import Optional
 from model.database.Member import Member
 from model.database.transactions.AddtTransaction import AddtTransaction
 from model.database.transactions.DeltTransaction import DeltTransaction
+from model.database.transactions.TpayTransaction import TpayTransaction
 from repository.OrderingType import OrderingType
 from utilities.sql_scripts import SELECT_TOPT, SELECT_TOPTALL, INSERT_MEMBER, INSERT_DELT, INSERT_ADDT, \
     SELECT_ARTIFACT_NAMES, SELECT_TICKETS_COUNT, UPDATE_TICKETS_COUNT, UPDATE_MEMBER, DELETE_MEMBER, \
-    SELECT_MEMBER_BY_USER_ID, SELECT_MEMBER_BY_USERNAME
+    SELECT_MEMBER_BY_USER_ID, SELECT_MEMBER_BY_USERNAME, INSERT_TPAY, UPDATE_TPAY_AVAILABLE
 
 
 class Repository(ABC):
@@ -62,9 +63,6 @@ class Repository(ABC):
             row = await cursor.fetchone()
             return Member(*row) if row else None
 
-    async def delete(self, user_id: int) -> None:
-        await self._execute(DELETE_MEMBER, (user_id,))
-
     async def update_names(self, member: Member) -> None:
         await self._execute(UPDATE_MEMBER, (
             member.username,
@@ -76,6 +74,12 @@ class Repository(ABC):
     async def update_tickets_count(self, member: Member) -> None:
         await self._execute(UPDATE_TICKETS_COUNT, (
             member.tickets_count,
+            member.user_id
+        ))
+
+    async def spend_tpay_available(self, member: Member):
+        await self._execute(UPDATE_TPAY_AVAILABLE, (
+            member.tpay_available - 1,
             member.user_id
         ))
 
@@ -103,22 +107,36 @@ class Repository(ABC):
             rows = await cursor.fetchall()  # rows: list[tuple[str]]
             return [row[0] for row in rows]
 
-    async def add_stat_addt(self, addt: AddtTransaction) -> None:
+    async def create_stat_addt(self, addt: AddtTransaction) -> None:
         async with aiosqlite.connect(self.db_path) as db:
             await db.execute(INSERT_ADDT, (
                 addt.user_id,
                 addt.tickets_count,
                 addt.transaction_time,
-                addt.description
+                addt.description,
+                addt.type_
             ))
             await db.commit()
 
-    async def add_stat_delt(self, delt: DeltTransaction) -> None:
+    async def create_stat_delt(self, delt: DeltTransaction) -> None:
         async with aiosqlite.connect(self.db_path) as db:
             await db.execute(INSERT_DELT, (
                 delt.user_id,
                 delt.tickets_count,
                 delt.transaction_time,
-                delt.description
+                delt.description,
+                delt.type_
+            ))
+            await db.commit()
+
+    async def create_stat_tpay(self, tpay: TpayTransaction):
+        async with aiosqlite.connect(self.db_path) as db:
+            await db.execute(INSERT_TPAY, (
+                tpay.sender_id,
+                tpay.receiver_id,
+                tpay.transfer_amount,
+                tpay.fee_amount,
+                tpay.transaction_time,
+                tpay.description
             ))
             await db.commit()

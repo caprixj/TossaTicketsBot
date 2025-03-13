@@ -2,6 +2,12 @@ import asyncio
 import logging
 import os
 import sys
+from typing import Optional
+
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+
+from aiogram.utils.keyboard import InlineKeyboardBuilder
+
 import utilities.globals as glob
 
 import aiosqlite
@@ -9,7 +15,7 @@ from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.filters import Command
-from aiogram.types import Message
+from aiogram.types import Message, CallbackQuery, InlineKeyboardButton
 
 import comparser.standard_overloads as sol
 from comparser.results.CommandHandlerResult import CommandHandlerResult
@@ -17,15 +23,27 @@ from comparser.CommandParser import CommandParser
 from comparser.Overload import Overload
 from comparser.enums.ParamType import ParamType as pt
 from comparser.enums.CommandList import CommandList as cl
-from comparser.enums.ResultErrorMessages import ResultErrorMessages
+from comparser.enums.CommandParserResultErrorMessages import CommandParserResultErrorMessages
 from middleware.SourceFilterMiddleware import SourceFilterMiddleware
+from model.database.transactions.TransactionResult import TransactionResult
+from model.database.transactions.TransactionResultErrorMessages import TransactionResultErrorMessages as trem
 from repository.Repository import Repository
 from service.Service import Service
+from utilities.callback_utils import generate_callback_data, get_callback_data
 from utilities.run_mode import RunMode
-from utilities.func import get_random_permission_denied_message, get_run_mode_settings, get_db_setup_sql_script
+from utilities.func import get_random_permission_denied_message, get_run_mode_settings, get_db_setup_sql_script, \
+    get_formatted_name_by_member, get_fee
 
 service = Service()
 dp = Dispatcher()
+
+
+# @dp.message(Command(cl.db.name))
+# async def db(message: Message) -> None:
+#     await service.bot.send_document(
+#         chat_id=glob.rms.group_chat_id,
+#         document=FSInputFile(glob.rms.db_file_path)
+#     )
 
 
 @dp.message(Command(cl.sql.name))
@@ -143,7 +161,7 @@ async def bal(message: Message) -> None:
     if not result.valid:
         return
 
-    response = await service.get_member_tickets_count_info(result.target_member)
+    response = await service.get_member_balance(result.target_member)
     await message.answer(response)
 
 
@@ -160,37 +178,134 @@ async def infm(message: Message) -> None:
 
 @dp.message(Command(cl.ttime.name))
 async def ttime(message: Message) -> None:
-    pass
+    await message.answer('ще не реалізовано :с')
+
+
+def tpay_confirm_keyboard(op_id: int, sender_id: int):
+    builder = InlineKeyboardBuilder()
+
+    cd_yes = generate_callback_data(glob.TPAY_YES_CALLBACK, op_id, sender_id)
+    if cd_yes is None:
+        raise RuntimeError(glob.GENERATE_CALLBACK_DATA_ERROR_TEXT)
+    builder.row(InlineKeyboardButton(text='✅ Продовжити', callback_data=cd_yes))
+
+    cd_no = generate_callback_data(glob.TPAY_NO_CALLBACK, op_id, sender_id)
+    if cd_no is None:
+        raise RuntimeError(glob.GENERATE_CALLBACK_DATA_ERROR_TEXT)
+    builder.row(InlineKeyboardButton(text='❌ Скасувати', callback_data=cd_no))
+
+    return builder.as_markup()
 
 
 @dp.message(Command(cl.tpay.name))
 async def tpay(message: Message) -> None:
-    pass
+    chr_ = await count_handler(message, pt.pzint)
+
+    if not chr_.valid:
+        return
+
+    sender = await service.get_member_by_user(message.from_user)
+
+    if sender.tpay_available == 0:
+        await message.answer(trem.tpay_unavailable)
+        return
+
+    receiver = chr_.target_member
+    transfer_amount = chr_.get_param(sol.COUNT)
+    fee_amount = await get_fee(transfer_amount)
+    total_amount = transfer_amount + fee_amount
+    fee_percentage = round(100 * fee_amount / transfer_amount, 1)
+    description = chr_.get_param(sol.DESCRIPTION)
+
+    tpay_confirm_text = (f'відправник: {await get_formatted_name_by_member(sender, ping=True)}\n'
+                         f'отримувач: {await get_formatted_name_by_member(receiver, ping=True)}\n\n'
+                         f'*загальна сума: {total_amount}*\n'
+                         f'сума переводу: {transfer_amount}\n'
+                         f'комісія: {fee_amount} ({fee_percentage}%)\n\n'
+                         f'опис: _{description}_')
+
+    op_id = await service.operation_manager.register(
+        service.tpay, sender, receiver, transfer_amount, description
+    )
+
+    await message.answer(tpay_confirm_text, reply_markup=tpay_confirm_keyboard(op_id, sender.user_id))
+
+
+@dp.callback_query(lambda c: c.data.startswith(glob.TPAY_YES_CALLBACK))
+async def tpay_yes(callback: CallbackQuery):
+    op_id_str, sender_id_str = await get_callback_data(callback.data)
+    op_id = int(op_id_str)
+    sender_id = int(sender_id_str)
+    message_id = callback.message.message_id
+
+    if message_id in service.active_callbacks:
+        await callback.answer(glob.ALERT_CALLBACK_ACTIVE_TEXT, show_alert=True)
+        return
+
+    service.active_callbacks.append(message_id)
+
+    if callback.from_user.id != sender_id:
+        await callback.answer(glob.ALERT_CALLBACK_YES_TEXT, show_alert=True)
+        return
+
+    tr_: Optional[TransactionResult] = await service.operation_manager.run(op_id)
+
+    if tr_ is None:
+        await callback.message.edit_reply_markup(reply_markup=None)
+        await callback.message.answer(glob.SERVICE_OPERATION_NONE_RESULT_TEXT)
+        service.active_callbacks.remove(message_id)
+        return
+
+    if not tr_.valid:
+        await callback.message.answer(tr_.error_message)
+        await callback.message.delete()
+        service.active_callbacks.remove(message_id)
+        return
+
+    await callback.message.edit_reply_markup(reply_markup=None)
+    await callback.message.reply(glob.TPAY_TEXT)
+    await callback.answer()
+    service.active_callbacks.remove(message_id)
+
+
+@dp.callback_query(lambda c: c.data.startswith(glob.TPAY_NO_CALLBACK))
+async def tpay_no(callback: CallbackQuery):
+    op_id_str, sender_id_str = await get_callback_data(callback.data)
+    op_id = int(op_id_str)
+    sender_id = int(sender_id_str)
+
+    if callback.from_user.id != sender_id:
+        await callback.answer(glob.ALERT_CALLBACK_NO_TEXT, show_alert=True)
+        return
+
+    await service.operation_manager.cancel(op_id)
+    await callback.message.delete()
+    await callback.answer()
 
 
 @dp.message(Command(cl.tkick.name))
 async def tkick(message: Message) -> None:
-    pass
+    await message.answer(glob.NOT_IMPLEMENTED_TEXT)
 
 
 @dp.message(Command(cl.tmute.name))
 async def tmute(message: Message) -> None:
-    pass
+    await message.answer(glob.NOT_IMPLEMENTED_TEXT)
 
 
 @dp.message(Command(cl.tban.name))
 async def tban(message: Message) -> None:
-    pass
+    await message.answer(glob.NOT_IMPLEMENTED_TEXT)
 
 
 @dp.message(Command(cl.demute.name))
 async def demute(message: Message) -> None:
-    pass
+    await message.answer(glob.NOT_IMPLEMENTED_TEXT)
 
 
 @dp.message(Command(cl.deban.name))
 async def deban(message: Message) -> None:
-    pass
+    await message.answer(glob.NOT_IMPLEMENTED_TEXT)
 
 
 # [<reply>] /command
@@ -283,16 +398,22 @@ async def _define_service() -> None:
     service = Service(Repository(glob.rms.db_file_path))
 
 
-async def _respond_invalid(message: Message, response: ResultErrorMessages):
+async def _respond_invalid(message: Message, response: CommandParserResultErrorMessages):
     out_message = await get_random_permission_denied_message() \
-        if response == ResultErrorMessages.not_creator else response
+        if response == CommandParserResultErrorMessages.not_creator else response
 
     await message.reply(out_message)
+
+
+async def _schedule_events(scheduler: AsyncIOScheduler):
+    scheduler.add_job(service.reset_tpay_available, 'cron', hour=0, minute=0)
+    scheduler.start()
 
 
 async def main() -> None:
     run_mode = await _define_run_mode()
     valid_args = await _define_rms(run_mode)
+    scheduler = AsyncIOScheduler()
 
     if not valid_args:
         raise RuntimeError(glob.VALID_ARGS_TEXT)
@@ -303,6 +424,7 @@ async def main() -> None:
     service.bot = Bot(token=glob.rms.bot_token, default=DefaultBotProperties(parse_mode=ParseMode.MARKDOWN))
     dp.message.middleware(SourceFilterMiddleware())
 
+    await _schedule_events(scheduler)
     await dp.start_polling(service.bot)
 
 
