@@ -73,5 +73,3 @@ class CommandList(str, Enum):
 
     # /deban
     deban = 'deban'
-
-

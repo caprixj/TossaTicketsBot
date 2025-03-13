@@ -13,7 +13,6 @@ from model.database.member import Member
 from model.database.transactions.addt_transaction import AddtTransaction
 from model.database.transactions.delt_transaction import DeltTransaction
 from comparser.enums.overload_type import OverloadType as cot
-from comparser.results import com_parser_result
 from model.database.transactions.tpay_transaction import TpayTransaction
 from model.database.transactions.transaction_result import TransactionResult
 from model.database.transactions.tr_error_messages import TransactionResultErrorMessages as trem
@@ -21,7 +20,7 @@ from model.database.transactions.transaction_type import TransactionType
 from service.service_operation_manager import ServiceOperationManager
 from utilities.func import get_formatted_name, get_transaction_time, get_fee
 from repository.ordering_type import OrderingType
-from repository.repository import Repository
+from repository.repository_core import Repository
 from utilities.sql_scripts import RESET_TPAY_AVAILABLE
 
 

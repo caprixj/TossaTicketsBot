@@ -1,4 +1,3 @@
-import asyncio
 import functools
 from datetime import datetime
 

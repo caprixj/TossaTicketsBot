@@ -15,13 +15,15 @@ SIZE = 'size'
 async def reply_empty(
         name: str = None,
         creator_filter: bool = False,
+        reply_optional: bool = False,
         self_reply_filter: bool = False) -> Overload:
     return Overload(
         name=name,
         type_=OverloadType.reply,
         creator_filter=creator_filter,
         reply_filter=True,
-        self_reply_filter=self_reply_filter
+        self_reply_filter=self_reply_filter,
+        reply_optional=reply_optional
     )
 
 
@@ -49,7 +51,10 @@ async def reply_count(
         name: str = None,
         creator_filter: bool = False,
         self_reply_filter: bool = False) -> Overload:
-    return ((await reply_empty(name, creator_filter, self_reply_filter))
+    return ((await reply_empty(
+        name=name,
+        creator_filter=creator_filter,
+        self_reply_filter=self_reply_filter))
             .add_param(COUNT, count_type)
             .add_param(DESCRIPTION, pt.text, optional=True))
 
