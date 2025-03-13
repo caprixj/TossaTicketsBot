@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from model.database.transactions.TransactionType import TransactionType
+from model.database.transactions.transaction_type import TransactionType
 
 
 class AddtTransaction:

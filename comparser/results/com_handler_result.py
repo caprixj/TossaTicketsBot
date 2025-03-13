@@ -1,5 +1,5 @@
-from comparser.results.CommandParserResult import CommandParserResult
-from model.database.Member import Member
+from comparser.results.com_parser_result import CommandParserResult
+from model.database.member import Member
 
 
 class CommandHandlerResult:

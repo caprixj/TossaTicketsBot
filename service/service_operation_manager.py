@@ -1,7 +1,7 @@
 import functools
 from typing import Optional, Union
 
-from service.ServiceOperation import ServiceOperation
+from service.service_operation import ServiceOperation
 
 
 class ServiceOperationManager:

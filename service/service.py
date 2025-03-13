@@ -8,19 +8,20 @@ import comparser.standard_overloads as sol
 
 from typing import Union, Optional
 
-from model.database.Member import Member
-from model.database.transactions.AddtTransaction import AddtTransaction
-from model.database.transactions.DeltTransaction import DeltTransaction
-from comparser.enums.OverloadType import OverloadType as cot
-from comparser.results import CommandParserResult
-from model.database.transactions.TpayTransaction import TpayTransaction
-from model.database.transactions.TransactionResult import TransactionResult
-from model.database.transactions.TransactionResultErrorMessages import TransactionResultErrorMessages as trem
-from model.database.transactions.TransactionType import TransactionType
-from service.ServiceOperationManager import ServiceOperationManager
+from comparser.results.com_parser_result import CommandParserResult
+from model.database.member import Member
+from model.database.transactions.addt_transaction import AddtTransaction
+from model.database.transactions.delt_transaction import DeltTransaction
+from comparser.enums.overload_type import OverloadType as cot
+from comparser.results import com_parser_result
+from model.database.transactions.tpay_transaction import TpayTransaction
+from model.database.transactions.transaction_result import TransactionResult
+from model.database.transactions.tr_error_messages import TransactionResultErrorMessages as trem
+from model.database.transactions.transaction_type import TransactionType
+from service.service_operation_manager import ServiceOperationManager
 from utilities.func import get_formatted_name, get_transaction_time, get_fee
-from repository.OrderingType import OrderingType
-from repository.Repository import Repository
+from repository.ordering_type import OrderingType
+from repository.repository import Repository
 from utilities.sql_scripts import RESET_TPAY_AVAILABLE
 
 

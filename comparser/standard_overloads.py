@@ -1,6 +1,6 @@
-from comparser.Overload import Overload
-from comparser.enums.OverloadType import OverloadType
-from comparser.enums.ParamType import ParamType as pt
+from comparser.overload import Overload
+from comparser.enums.overload_type import OverloadType
+from comparser.enums.param_type import ParamType as pt
 
 COUNT = 'count'
 DESCRIPTION = 'description'
@@ -12,13 +12,16 @@ SIZE = 'size'
 
 
 # {<creator>} {<reply>} /command
-async def reply_empty(name: str = None, creator_filter: bool = False, reply_optional: bool = False) -> Overload:
+async def reply_empty(
+        name: str = None,
+        creator_filter: bool = False,
+        self_reply_filter: bool = False) -> Overload:
     return Overload(
         name=name,
         type_=OverloadType.reply,
         creator_filter=creator_filter,
         reply_filter=True,
-        reply_optional=reply_optional
+        self_reply_filter=self_reply_filter
     )
 
 
@@ -41,8 +44,12 @@ async def user_id_empty(name: str = None, creator_filter: bool = False) -> Overl
 
 
 # {<creator>} <reply> /command <count:pzint> [<description:text>]
-async def reply_count(count_type: pt, name: str = None, creator_filter: bool = False) -> Overload:
-    return ((await reply_empty(name, creator_filter))
+async def reply_count(
+        count_type: pt,
+        name: str = None,
+        creator_filter: bool = False,
+        self_reply_filter: bool = False) -> Overload:
+    return ((await reply_empty(name, creator_filter, self_reply_filter))
             .add_param(COUNT, count_type)
             .add_param(DESCRIPTION, pt.text, optional=True))
 

@@ -1,7 +1,7 @@
 import copy
 
-from comparser.Overload import Overload
-from comparser.enums.CommandParserResultErrorMessages import CommandParserResultErrorMessages
+from comparser.overload import Overload
+from comparser.enums.cpr_error_messages import CommandParserResultErrorMessages
 
 
 class CommandParserResult:

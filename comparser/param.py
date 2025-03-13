@@ -1,4 +1,4 @@
-from comparser.enums.ParamType import ParamType
+from comparser.enums.param_type import ParamType
 
 
 class Param:

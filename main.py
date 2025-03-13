@@ -18,17 +18,17 @@ from aiogram.filters import Command
 from aiogram.types import Message, CallbackQuery, InlineKeyboardButton
 
 import comparser.standard_overloads as sol
-from comparser.results.CommandHandlerResult import CommandHandlerResult
-from comparser.CommandParser import CommandParser
-from comparser.Overload import Overload
-from comparser.enums.ParamType import ParamType as pt
-from comparser.enums.CommandList import CommandList as cl
-from comparser.enums.CommandParserResultErrorMessages import CommandParserResultErrorMessages
-from middleware.SourceFilterMiddleware import SourceFilterMiddleware
-from model.database.transactions.TransactionResult import TransactionResult
-from model.database.transactions.TransactionResultErrorMessages import TransactionResultErrorMessages as trem
-from repository.Repository import Repository
-from service.Service import Service
+from comparser.results.com_handler_result import CommandHandlerResult
+from comparser.com_parser import CommandParser
+from comparser.overload import Overload
+from comparser.enums.param_type import ParamType as pt
+from comparser.enums.comlist import CommandList as cl
+from comparser.enums.cpr_error_messages import CommandParserResultErrorMessages
+from middleware.source_filter_middleware import SourceFilterMiddleware
+from model.database.transactions.transaction_result import TransactionResult
+from model.database.transactions.tr_error_messages import TransactionResultErrorMessages as trem
+from repository.repository import Repository
+from service.service import Service
 from utilities.callback_utils import generate_callback_data, get_callback_data
 from utilities.run_mode import RunMode
 from utilities.func import get_random_permission_denied_message, get_run_mode_settings, get_db_setup_sql_script, \
@@ -199,7 +199,7 @@ def tpay_confirm_keyboard(op_id: int, sender_id: int):
 
 @dp.message(Command(cl.tpay.name))
 async def tpay(message: Message) -> None:
-    chr_ = await count_handler(message, pt.pzint)
+    chr_ = await count_handler(message, pt.pzint, self_reply_filter=True)
 
     if not chr_.valid:
         return
@@ -341,9 +341,17 @@ async def empty_handler(message: Message) -> CommandHandlerResult:
 # <reply> /command <count:any> [<description:text>]
 # /command <username:username> <count:any> [<description:text>]
 # /command <user_id:pzint> <count:any> [<description:text>]
-async def count_handler(message: Message, count_type: pt, creator_filter: bool = False) -> CommandHandlerResult:
+async def count_handler(
+        message: Message,
+        count_type: pt,
+        creator_filter: bool = False,
+        self_reply_filter: bool = False) -> CommandHandlerResult:
     overloads = [
-        await sol.reply_count(count_type=count_type, creator_filter=creator_filter),
+        await sol.reply_count(
+            count_type=count_type,
+            creator_filter=creator_filter,
+            self_reply_filter=self_reply_filter
+        ),
         await sol.username_count(pt.pzint, creator_filter=creator_filter),
         await sol.user_id_count(pt.pzint, creator_filter=creator_filter)
     ]

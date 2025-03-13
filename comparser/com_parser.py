@@ -1,10 +1,10 @@
 from aiogram.types import Message
 
 import utilities.globals as glob
-from comparser.Overload import Overload
-from comparser.results.CommandParserResult import CommandParserResult
-from comparser.enums.ParamType import ParamType
-from comparser.enums.CommandParserResultErrorMessages import CommandParserResultErrorMessages as cprem
+from comparser.overload import Overload
+from comparser.results.com_parser_result import CommandParserResult
+from comparser.enums.param_type import ParamType
+from comparser.enums.cpr_error_messages import CommandParserResultErrorMessages as cprem
 
 
 async def _is_pzint(t: str) -> bool:
@@ -47,11 +47,10 @@ class CommandParser:
     def __init__(self, message: Message, *overloads: Overload):
         self.tokens = message.text.split()[1:]
         self.message = message
-        self.reply_message = message.reply_to_message
         self.overloads: list[overloads] = list(overloads)
 
     def _replied(self) -> bool:
-        return self.reply_message is not None
+        return self.message.reply_to_message is not None
 
     async def parse(self) -> CommandParserResult:
         if not self.overloads:
@@ -74,12 +73,18 @@ class CommandParser:
                 return cpr
 
     async def _parse_overload(self, ol: Overload):
+        # self-reply filter
+        if (self._replied() and ol.self_reply_filter
+                and self.message.reply_to_message.from_user.id == self.message.from_user.id):
+            return await _create_invalid_cpr(cprem.self_reply)
+
         # reply filter (rFo)
         if not self._replied() and ol.reply_filter and not ol.reply_optional:
             return await _create_invalid_cpr(cprem.no_reply)
 
         # bot filter
-        if ol.reply_filter and self.reply_message and self.reply_message.from_user.is_bot:
+        if (ol.reply_filter and self.message.reply_to_message
+                and self.message.reply_to_message.from_user.is_bot):
             return await _create_invalid_cpr(cprem.is_bot)
 
         # creator permission filter

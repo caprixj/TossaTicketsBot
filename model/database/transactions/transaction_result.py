@@ -1,4 +1,4 @@
-from model.database.transactions.TransactionResultErrorMessages import TransactionResultErrorMessages
+from model.database.transactions.tr_error_messages import TransactionResultErrorMessages
 
 
 class TransactionResult:

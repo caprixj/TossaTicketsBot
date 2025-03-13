@@ -2,11 +2,11 @@ import aiosqlite
 from abc import ABC
 from typing import Optional
 
-from model.database.Member import Member
-from model.database.transactions.AddtTransaction import AddtTransaction
-from model.database.transactions.DeltTransaction import DeltTransaction
-from model.database.transactions.TpayTransaction import TpayTransaction
-from repository.OrderingType import OrderingType
+from model.database.member import Member
+from model.database.transactions.addt_transaction import AddtTransaction
+from model.database.transactions.delt_transaction import DeltTransaction
+from model.database.transactions.tpay_transaction import TpayTransaction
+from repository.ordering_type import OrderingType
 from utilities.sql_scripts import SELECT_TOPT, SELECT_TOPTALL, INSERT_MEMBER, INSERT_DELT, INSERT_ADDT, \
     SELECT_ARTIFACT_NAMES, SELECT_TICKETS_COUNT, UPDATE_TICKETS_COUNT, UPDATE_MEMBER, DELETE_MEMBER, \
     SELECT_MEMBER_BY_USER_ID, SELECT_MEMBER_BY_USERNAME, INSERT_TPAY, UPDATE_TPAY_AVAILABLE

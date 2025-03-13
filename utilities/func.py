@@ -6,7 +6,7 @@ from datetime import datetime
 import utilities.globals as glob
 from pathlib import Path
 
-from model.database.Member import Member
+from model.database.member import Member
 from utilities.rand_globals import permission_denied_messages
 from utilities.run_mode import RunMode, RunModeSettings
 from utilities.sql_scripts import CREATE_TABLE_MEMBERS, CREATE_TABLE_ADDT, CREATE_TABLE_DELT, CREATE_TABLE_ARTIFACTS, \

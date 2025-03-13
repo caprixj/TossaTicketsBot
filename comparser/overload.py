@@ -1,6 +1,6 @@
-from comparser.Param import Param
-from comparser.enums.OverloadType import OverloadType
-from comparser.enums.ParamType import ParamType
+from comparser.param import Param
+from comparser.enums.overload_type import OverloadType
+from comparser.enums.param_type import ParamType
 
 
 class Overload:
@@ -9,11 +9,13 @@ class Overload:
                  type_: OverloadType = OverloadType.none,
                  creator_filter: bool = False,
                  reply_filter: bool = False,
+                 self_reply_filter: bool = False,
                  reply_optional: bool = False):
         self.name = name
         self.type = type_
         self.creator_filter = creator_filter
         self.reply_filter = reply_filter
+        self.self_reply_filter = self_reply_filter
         self.reply_optional = reply_optional
         self.params: list[Param] = list()
 
