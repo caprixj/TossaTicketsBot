@@ -70,7 +70,8 @@ class Service:
             user_id=member.user_id,
             tickets=tickets,
             time=time,
-            description=description
+            description=description,
+            type_=TransactionType.creator
         ))
 
     async def delete_tickets(self, member: Member, tickets: int, description: str = None) -> None:
@@ -82,7 +83,8 @@ class Service:
             user_id=member.user_id,
             tickets=tickets,
             time=time,
-            description=description
+            description=description,
+            type_=TransactionType.creator
         ))
 
     async def set_tickets(self, member: Member, tickets: int, description: str = None) -> None:
@@ -96,14 +98,16 @@ class Service:
                 user_id=member.user_id,
                 tickets=tickets - member.tickets,
                 time=time,
-                description=description
+                description=description,
+                type_=TransactionType.creator
             ))
         else:
             await self.repo.create_stat_delt(DeltTransaction(
                 user_id=member.user_id,
                 tickets=member.tickets - tickets,
                 time=time,
-                description=description
+                description=description,
+                type_=TransactionType.creator
             ))
 
         member.tickets = tickets
