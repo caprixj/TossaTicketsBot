@@ -39,7 +39,7 @@ dp = Dispatcher()
 
 
 @dp.message(Command(cl.sql.name))
-async def sql(message: Message) -> None:
+async def sql(message: Message):
     # /sql <query:text>
     o = Overload(creator_filter=True).add_param(sol.QUERY, pt.text)
 
@@ -59,7 +59,7 @@ async def sql(message: Message) -> None:
 
 
 @dp.message(Command(cl.addt.name))
-async def addt(message: Message) -> None:
+async def addt(message: Message):
     result = await count_handler(
         message=message,
         count_type=pt.pnreal,
@@ -79,7 +79,7 @@ async def addt(message: Message) -> None:
 
 
 @dp.message(Command(cl.delt.name))
-async def delt(message: Message) -> None:
+async def delt(message: Message):
     result = await count_handler(
         message=message,
         count_type=pt.pnreal,
@@ -99,7 +99,7 @@ async def delt(message: Message) -> None:
 
 
 @dp.message(Command(cl.sett.name))
-async def sett(message: Message) -> None:
+async def sett(message: Message):
     result = await count_handler(
         message=message,
         count_type=pt.real,
@@ -119,7 +119,7 @@ async def sett(message: Message) -> None:
 
 
 @dp.message(Command(cl.help.name))
-async def help_(message: Message) -> None:
+async def help_(message: Message):
     await message.answer(
         text=glob.HELP_TEXT,
         parse_mode=ParseMode.MARKDOWN,
@@ -128,7 +128,7 @@ async def help_(message: Message) -> None:
 
 
 @dp.message(Command(cl.topt.name))
-async def topt(message: Message) -> None:
+async def topt(message: Message):
     # /topt
     o_no_size = Overload(name='no-size')
 
@@ -151,7 +151,7 @@ async def topt(message: Message) -> None:
 
 
 @dp.message(Command(cl.bal.name))
-async def bal(message: Message) -> None:
+async def bal(message: Message):
     result = await empty_handler(message)
 
     if not result.valid:
@@ -162,7 +162,7 @@ async def bal(message: Message) -> None:
 
 
 @dp.message(Command(cl.infm.name))
-async def infm(message: Message) -> None:
+async def infm(message: Message):
     result = await empty_handler(message)
 
     if not result.valid:
@@ -189,7 +189,7 @@ def tpay_confirm_keyboard(op_id: int, sender_id: int):
 
 
 @dp.message(Command(cl.tpay.name))
-async def tpay(message: Message) -> None:
+async def tpay(message: Message):
     chr_ = await count_handler(message, pt.pnreal, self_reply_filter=True)
 
     if not chr_.valid:
@@ -209,9 +209,9 @@ async def tpay(message: Message) -> None:
 
     tpay_confirm_text = (f'відправник: {await get_formatted_name_by_member(sender, ping=True)}\n'
                          f'отримувач: {await get_formatted_name_by_member(receiver, ping=True)}\n\n'
-                         f'*загальна сума: {total}*\n'
-                         f'сума переводу: {transfer}\n'
-                         f'комісія: {fee} (37%, min 1.00)\n\n'
+                         f'*загальна сума: {total:.2f}*\n'
+                         f'сума переводу: {transfer:.2f}\n'
+                         f'комісія: {fee:.2f} (37%, min 1.00)\n\n'
                          f'опис: _{description}_')
 
     op_id = await service.operation_manager.register(
@@ -366,7 +366,7 @@ async def _define_rms(rm: RunMode) -> bool:
     return True
 
 
-async def _define_service() -> None:
+async def _define_service():
     global service
     service = Service(Repository(glob.rms.db_file_path))
 
@@ -378,7 +378,7 @@ async def _respond_invalid(message: Message, response: CommandParserResultMessag
     await message.reply(out_message)
 
 
-async def main() -> None:
+async def main():
     run_mode = await _define_run_mode()
     valid_args = await _define_rms(run_mode)
     scheduler = AsyncIOScheduler()

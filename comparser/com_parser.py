@@ -6,7 +6,8 @@ import utilities.globals as glob
 from comparser.overload import Overload
 from comparser.results.com_parser_result import CommandParserResult
 from comparser.enums.param_type import ParamType
-from comparser.enums.cpr_messages import CommandParserResultMessages as cprem
+from comparser.enums.cpr_messages import CommandParserResultMessages as cprm
+from utilities.glob_func import eufloat
 
 
 async def _is_pnreal(t: str) -> bool:
@@ -49,7 +50,7 @@ async def _is_username(t: str) -> bool:
 #     return bool(re.match(p, t))
 
 
-async def _create_invalid_cpr(error_message: cprem):
+async def _create_invalid_cpr(error_message: cprm):
     return CommandParserResult(
         overload=Overload(),
         params=dict(),
@@ -90,27 +91,27 @@ class CommandParser:
         # self-reply filter
         if (self._replied() and ol.self_reply_filter
                 and self.message.reply_to_message.from_user.id == self.message.from_user.id):
-            return await _create_invalid_cpr(cprem.self_reply)
+            return await _create_invalid_cpr(cprm.self_reply)
 
         # reply filter (rFo)
         if not self._replied() and ol.reply_filter and not ol.reply_optional:
-            return await _create_invalid_cpr(cprem.no_reply)
+            return await _create_invalid_cpr(cprm.no_reply)
 
         # bot filter
         if (ol.reply_filter and self.message.reply_to_message
                 and self.message.reply_to_message.from_user.is_bot):
-            return await _create_invalid_cpr(cprem.is_bot)
+            return await _create_invalid_cpr(cprm.is_bot)
 
         # creator permission filter
         if ol.creator_filter and self.message.from_user.id != glob.CREATOR_USER_ID:
-            return await _create_invalid_cpr(cprem.not_creator)
+            return await _create_invalid_cpr(cprm.not_creator)
 
         # token to param ratio filter
         min_param_count = len(ol.params)
         if ol.is_optioned():
             min_param_count -= 1
         if len(self.tokens) < min_param_count:
-            return await _create_invalid_cpr(cprem.wrong_args)
+            return await _create_invalid_cpr(cprm.wrong_args)
 
         result_dict = dict()
         for param in ol.params:
@@ -124,7 +125,7 @@ class CommandParser:
             # and the lack of required params in tokens
             if len(self.tokens) <= i:
                 if not param.optional:
-                    return await _create_invalid_cpr(cprem.wrong_args)
+                    return await _create_invalid_cpr(cprm.wrong_args)
                 else:
                     cpr.params[param.name] = None
                     break
@@ -141,42 +142,42 @@ class CommandParser:
             # -> real
             elif param.type == ParamType.real:
                 if not await _is_real(t):
-                    return await _create_invalid_cpr(cprem.wrong_args)
-                cpr.params[param.name] = float(t)
+                    return await _create_invalid_cpr(cprm.wrong_args)
+                cpr.params[param.name] = eufloat(t)
             # -> nreal
             elif param.type == ParamType.nreal:
                 if not await _is_nreal(t):
-                    return await _create_invalid_cpr(cprem.wrong_args)
-                cpr.params[param.name] = float(t)
+                    return await _create_invalid_cpr(cprm.wrong_args)
+                cpr.params[param.name] = eufloat(t)
             # -> pnreal
             elif param.type == ParamType.pnreal:
                 if not await _is_pnreal(t):
-                    return await _create_invalid_cpr(cprem.wrong_args)
-                cpr.params[param.name] = float(t)
+                    return await _create_invalid_cpr(cprm.wrong_args)
+                cpr.params[param.name] = eufloat(t)
             # -> int
             elif param.type == ParamType.int:
                 if not await _is_int(t):
-                    return await _create_invalid_cpr(cprem.wrong_args)
+                    return await _create_invalid_cpr(cprm.wrong_args)
                 cpr.params[param.name] = int(t)
             # -> nint
             elif param.type == ParamType.nint:
                 if not await _is_nint(t):
-                    return await _create_invalid_cpr(cprem.wrong_args)
+                    return await _create_invalid_cpr(cprm.wrong_args)
                 cpr.params[param.name] = int(t)
             # -> pnint
             elif param.type == ParamType.pnint:
                 if not await _is_pnint(t):
-                    return await _create_invalid_cpr(cprem.wrong_args)
+                    return await _create_invalid_cpr(cprm.wrong_args)
                 cpr.params[param.name] = int(t)
             # -> username
             elif param.type == ParamType.username:
                 if not await _is_username(t):
-                    return await _create_invalid_cpr(cprem.wrong_args)
+                    return await _create_invalid_cpr(cprm.wrong_args)
                 cpr.params[param.name] = t[1:]
             # -> time
             # elif param.type == ParamType.time:
             #     if not await _is_time(t):
-            #         return await _create_invalid_cpr(cprem.wrong_args)
+            #         return await _create_invalid_cpr(cprm.wrong_args)
             #     cpr.params[param.name] = t
             # -> ?
             else:

@@ -79,7 +79,7 @@ async def get_transaction_time() -> str:
     return datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
 
-async def get_fee(transfer: int) -> int:
+async def get_fee(transfer: float) -> float:
     return max(round(0.37 * transfer), 1)
 
 
@@ -120,3 +120,9 @@ async def get_formatted_name(
 
     return name if not ping else \
         f'@{name}' if name == username else f'[{name}](tg://user?id={user_id})'
+
+
+def eufloat(value: str):
+    if isinstance(value, str):
+        value = value.replace(",", ".")
+    return float(value)
