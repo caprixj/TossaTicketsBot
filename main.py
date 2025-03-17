@@ -210,8 +210,8 @@ async def tpay(message: Message):
     tpay_confirm_text = (f'відправник: {await get_formatted_name_by_member(sender, ping=True)}\n'
                          f'отримувач: {await get_formatted_name_by_member(receiver, ping=True)}\n\n'
                          f'*загальна сума: {total:.2f}*\n'
-                         f'сума переводу: {transfer:.2f}\n'
-                         f'комісія: {fee:.2f} (37%, min 1.00)\n\n'
+                         f'сума переказу: {transfer:.2f}\n'
+                         f'комісія: {fee:.2f} (27%, min 1.00)\n\n'
                          f'опис: _{description}_')
 
     op_id = await service.operation_manager.register(
@@ -317,8 +317,14 @@ async def count_handler(
             creator_filter=creator_filter,
             self_reply_filter=self_reply_filter
         ),
-        await sol.username_count(pt.pnint, creator_filter=creator_filter),
-        await sol.user_id_count(pt.pnint, creator_filter=creator_filter)
+        await sol.username_count(
+            count_type=count_type,
+            creator_filter=creator_filter
+        ),
+        await sol.user_id_count(
+            count_type=count_type,
+            creator_filter=creator_filter
+        )
     ]
 
     cp = CommandParser(message, *overloads)

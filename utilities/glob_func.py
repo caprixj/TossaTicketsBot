@@ -80,7 +80,7 @@ async def get_transaction_time() -> str:
 
 
 async def get_fee(transfer: float) -> float:
-    return max(round(0.37 * transfer, 2), 1)
+    return max(round(0.27 * transfer, 2), 1)
 
 
 async def get_formatted_name_by_member(member: Member, ping: bool = False) -> str:

@@ -41,7 +41,7 @@ async def _is_int(t: str) -> bool:
 
 
 async def _is_username(t: str) -> bool:
-    p = r'^@[A-Za-z][A-Za-z0-9_]{4,}$'
+    p = r'^@[A-Za-z_][A-Za-z0-9_]{4,}$'
     return bool(re.match(p, t))
 
 
