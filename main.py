@@ -462,7 +462,7 @@ async def main():
     service.bot = Bot(token=glob.rms.bot_token, default=DefaultBotProperties(parse_mode=ParseMode.MARKDOWN))
     dp.message.middleware(SourceFilterMiddleware())
 
-    scheduler.add_job(service.reset_tpay_available, 'cron', hour=0, minute=0)
+    scheduler.add_job(service.reset_tpay_available, 'cron', hour=0, minute=47)
     scheduler.start()
 
     await dp.start_polling(service.bot)
