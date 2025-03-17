@@ -448,6 +448,11 @@ async def _define_service():
     service = Service(Repository(glob.rms.db_file_path))
 
 
+async def _schedule(scheduler: AsyncIOScheduler):
+    scheduler.add_job(service.reset_tpay_available, 'cron', hour=0, minute=51)
+    scheduler.start()
+
+
 async def main():
     run_mode = await _define_run_mode()
     valid_args = await _define_rms(run_mode)
@@ -462,9 +467,7 @@ async def main():
     service.bot = Bot(token=glob.rms.bot_token, default=DefaultBotProperties(parse_mode=ParseMode.MARKDOWN))
     dp.message.middleware(SourceFilterMiddleware())
 
-    scheduler.add_job(service.reset_tpay_available, 'cron', hour=0, minute=47)
-    scheduler.start()
-
+    await _schedule(scheduler)
     await dp.start_polling(service.bot)
 
 
