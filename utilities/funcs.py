@@ -1,11 +1,16 @@
 import random
 import os
 import xml.etree.ElementTree as ET
-from datetime import datetime
+
+import aiosqlite
+from aiogram import Bot
+from aiogram.enums import ChatMemberStatus
+from aiogram.types import Message
 
 import utilities.globals as glob
 from pathlib import Path
 
+from comparser.results.com_parser_result import CommandParserResult
 from model.database.member import Member
 from utilities.rand_globals import permission_denied_messages
 from utilities.run_mode import RunMode, RunModeSettings
@@ -35,6 +40,14 @@ async def _parse_pathlib(xml_path: str) -> str:
         path /= path_split[i] if (i == len(path_split) - 1) else Path(path_split[i])
 
     return str(path)
+
+
+async def create_databases():
+    os.makedirs(os.path.dirname(glob.rms.db_file_path), exist_ok=True)
+    async with aiosqlite.connect(glob.rms.db_file_path) as db:
+        for query in await get_db_setup_sql_script():
+            await db.execute(query)
+            await db.commit()
 
 
 async def get_run_mode_settings(run_mode: RunMode) -> RunModeSettings:
@@ -74,10 +87,6 @@ async def get_db_setup_sql_script() -> list[str]:
         CREATE_TABLE_DELT,
         CREATE_TABLE_TPAY
     ]
-
-
-async def get_transaction_time() -> str:
-    return datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
 
 async def get_fee(transfer: float) -> float:
@@ -126,12 +135,8 @@ async def get_formatted_name(
         f'@{name}' if name == username else f'[{name}](tg://user?id={user_id})'
 
 
-async def eufloat(value: str):
-    if isinstance(value, str):
-        value = value.replace(",", ".")
-    return float(value)
+async def respond_invalid(message: Message, cpr: CommandParserResult):
+    out_message = await get_random_permission_denied_message() \
+        if cpr.creator_filter_violation else glob.COM_PARSER_FAILED_TEXT
 
-
-async def scape(text: str) -> str:
-    text.replace('_', '\_')
-    return text
+    await message.reply(out_message)

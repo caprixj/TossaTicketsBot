@@ -1,6 +1,6 @@
 from typing import Optional
 
-from utilities.callback.TpayCallbackData import TpayCallbackData
+from utilities.callback.tpay_callback_data import TpayCallbackData
 
 
 def generate_callback_data(name: str, *args) -> Optional[str]:

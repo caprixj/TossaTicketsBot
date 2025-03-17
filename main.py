@@ -1,6 +1,5 @@
 import asyncio
 import logging
-import os
 import sys
 from typing import Optional
 
@@ -10,12 +9,11 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 import utilities.globals as glob
 
-import aiosqlite
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.filters import Command
-from aiogram.types import Message, CallbackQuery, InlineKeyboardButton, LinkPreviewOptions
+from aiogram.types import Message, CallbackQuery, InlineKeyboardButton, LinkPreviewOptions, User
 
 import comparser.standard_overloads as sol
 from comparser.results.com_handler_result import CommandHandlerResult
@@ -23,7 +21,6 @@ from comparser.com_parser import CommandParser
 from comparser.overload import Overload
 from comparser.enums.param_type import ParamType as pt
 from comparser.enums.com_list import CommandList as cl
-from comparser.results.com_parser_result import CommandParserResult
 from middleware.source_filter_middleware import SourceFilterMiddleware
 from model.database.transactions.transaction_result import TransactionResult
 from model.database.transactions.tr_messages import TransactionResultMessages as trem
@@ -31,8 +28,8 @@ from repository.repository_core import Repository
 from service.service_core import Service
 from utilities.callback.funcs import generate_callback_data, get_callback_data
 from utilities.run_mode import RunMode
-from utilities.funcs import get_random_permission_denied_message, get_run_mode_settings, get_db_setup_sql_script, \
-    get_formatted_name_by_member, get_fee, scape, get_transfer_by_total
+from utilities.funcs import get_run_mode_settings, get_formatted_name_by_member, get_fee, \
+    get_transfer_by_total, create_databases, respond_invalid
 
 service = Service()
 dp = Dispatcher()
@@ -40,6 +37,9 @@ dp = Dispatcher()
 
 @dp.message(Command(cl.sql.name))
 async def sql(message: Message):
+    if not await validate_user(message):
+        return
+
     # /sql <query:text>
     o = Overload(creator_filter=True).add_param(sol.QUERY, pt.text)
 
@@ -47,7 +47,7 @@ async def sql(message: Message):
     result = await cp.parse()
 
     if not result.valid:
-        await _respond_invalid(message, result)
+        await respond_invalid(message, result)
         return
 
     (executed, response) = await service.execute_sql(
@@ -60,6 +60,9 @@ async def sql(message: Message):
 
 @dp.message(Command(cl.addt.name))
 async def addt(message: Message):
+    if not await validate_user(message):
+        return
+
     result = await count_handler(
         message=message,
         count_type=pt.pnreal,
@@ -80,6 +83,9 @@ async def addt(message: Message):
 
 @dp.message(Command(cl.delt.name))
 async def delt(message: Message):
+    if not await validate_user(message):
+        return
+
     result = await count_handler(
         message=message,
         count_type=pt.pnreal,
@@ -100,6 +106,9 @@ async def delt(message: Message):
 
 @dp.message(Command(cl.sett.name))
 async def sett(message: Message):
+    if not await validate_user(message):
+        return
+
     result = await count_handler(
         message=message,
         count_type=pt.real,
@@ -120,8 +129,12 @@ async def sett(message: Message):
 
 @dp.message(Command(cl.help.name))
 async def help_(message: Message):
+    if message.chat.id == glob.rms.group_chat_id:
+        if not await validate_user(message):
+            return
+
     await message.answer(
-        text=await scape(glob.HELP_TEXT),
+        text=glob.HELP_TEXT,
         parse_mode=ParseMode.MARKDOWN,
         link_preview_options=LinkPreviewOptions(is_disabled=True)
     )
@@ -129,6 +142,9 @@ async def help_(message: Message):
 
 @dp.message(Command(cl.topt.name))
 async def topt(message: Message):
+    if not await validate_user(message):
+        return
+
     # /topt
     o_no_size = Overload(name='no-size')
 
@@ -138,20 +154,22 @@ async def topt(message: Message):
     cpr = await CommandParser(message, o_no_size, o_size).parse()
 
     if not cpr.valid:
-        await _respond_invalid(message, cpr)
+        await respond_invalid(message, cpr)
         return
 
     async def _match_overload():
         return await service.get_tickets_top() if cpr.overload.name == o_no_size.name \
             else await service.get_tickets_top_by_size(cpr.params.get(sol.SIZE))
 
-    await service.validate_member(message.from_user)
     response = await _match_overload()
     await message.answer(response)
 
 
 @dp.message(Command(cl.bal.name))
 async def bal(message: Message):
+    if not await validate_user(message):
+        return
+
     result = await empty_handler(message)
 
     if not result.valid:
@@ -163,6 +181,9 @@ async def bal(message: Message):
 
 @dp.message(Command(cl.infm.name))
 async def infm(message: Message):
+    if not await validate_user(message):
+        return
+
     result = await empty_handler(message)
 
     if not result.valid:
@@ -190,6 +211,9 @@ def tpay_keyboard(operation_id: int, sender_id: int, fee_incorporated: bool):
 
 @dp.message(Command(cl.tpay.name))
 async def tpay(message: Message, callback_message: Message = None, fee_incorporated: bool = False):
+    if not await validate_user(message):
+        return
+
     chr_ = await count_handler(message, pt.pnreal, self_reply_filter=True)
 
     if not chr_.valid:
@@ -325,7 +349,7 @@ async def empty_handler(message: Message) -> CommandHandlerResult:
     cpr = await cp.parse()
 
     if not cpr.valid:
-        await _respond_invalid(message, cpr)
+        await respond_invalid(message, cpr)
         return CommandHandlerResult()
 
     user = message.from_user \
@@ -369,7 +393,7 @@ async def count_handler(
     cpr = await cp.parse()
 
     if not cpr.valid:
-        await _respond_invalid(message, cpr)
+        await respond_invalid(message, cpr)
         return CommandHandlerResult()
 
     user = message.reply_to_message.from_user if message.reply_to_message is not None else None
@@ -382,12 +406,21 @@ async def count_handler(
     return CommandHandlerResult(target_member, cpr, valid=True)
 
 
-async def _create_databases():
-    os.makedirs(os.path.dirname(glob.rms.db_file_path), exist_ok=True)
-    async with aiosqlite.connect(glob.rms.db_file_path) as db:
-        for query in await get_db_setup_sql_script():
-            await db.execute(query)
-            await db.commit()
+async def validate_user(message: Message) -> bool:
+    is_member = await is_ticketonomics_member(message.from_user)
+
+    if message.chat.type == 'private':
+        if not is_member:
+            await message.answer(glob.NOT_TICKETONOMICS_MEMBER_DM_TEXT)
+            return False
+    elif is_member:
+        await service.validate_member(message.from_user)
+
+    return True
+
+
+async def is_ticketonomics_member(user: User) -> bool:
+    return await service.validate_member(user, create=False)
 
 
 async def _define_run_mode() -> RunMode:
@@ -415,13 +448,6 @@ async def _define_service():
     service = Service(Repository(glob.rms.db_file_path))
 
 
-async def _respond_invalid(message: Message, cpr: CommandParserResult):
-    out_message = await get_random_permission_denied_message() \
-        if cpr.creator_filter_violation else glob.COM_PARSER_FAILED_TEXT
-
-    await message.reply(out_message)
-
-
 async def main():
     run_mode = await _define_run_mode()
     valid_args = await _define_rms(run_mode)
@@ -431,7 +457,7 @@ async def main():
         raise RuntimeError(glob.VALID_ARGS_TEXT)
 
     await _define_service()
-    await _create_databases()
+    await create_databases()
 
     service.bot = Bot(token=glob.rms.bot_token, default=DefaultBotProperties(parse_mode=ParseMode.MARKDOWN))
     dp.message.middleware(SourceFilterMiddleware())

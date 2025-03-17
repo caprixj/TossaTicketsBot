@@ -1,4 +1,5 @@
 import copy
+from datetime import datetime
 
 from aiogram import Bot
 from aiogram.types import User
@@ -18,10 +19,14 @@ from model.database.transactions.transaction_result import TransactionResult
 from model.database.transactions.tr_messages import TransactionResultMessages as trm
 from model.database.transactions.transaction_type import TransactionType
 from service.service_operation_manager import ServiceOperationManager
-from utilities.funcs import get_formatted_name, get_transaction_time, get_fee
+from utilities.funcs import get_formatted_name, get_fee
 from repository.ordering_type import OrderingType
 from repository.repository_core import Repository
 from utilities.sql_scripts import RESET_TPAY_AVAILABLE
+
+
+async def _get_transaction_time() -> str:
+    return datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
 
 class Service:
@@ -31,14 +36,15 @@ class Service:
         self.operation_manager: ServiceOperationManager = ServiceOperationManager()
 
     async def execute_sql(self, query: str) -> (bool, str):
-        # (!) NO member validation is held
         return await self.repo.execute_external(query)
 
-    async def validate_member(self, user: User) -> None:
+    async def validate_member(self, user: User, create: bool = True) -> bool:
         if await self._member_exists_by_user_id(user.id):
             await self._update_member_info(user)
-        else:
+            return True
+        elif create:
             await self._create(user)
+        return False
 
     async def reset_tpay_available(self) -> (bool, str):
         return await self.repo.execute_external(RESET_TPAY_AVAILABLE)
@@ -62,7 +68,7 @@ class Service:
 
     async def add_tickets(self, member: Member, tickets: int, description: str = None) -> None:
         member.tickets += tickets
-        time = await get_transaction_time()
+        time = await _get_transaction_time()
 
         await self.repo.update_tickets(member)
         await self.repo.create_stat_addt(AddtTransaction(
@@ -75,7 +81,7 @@ class Service:
 
     async def delete_tickets(self, member: Member, tickets: int, description: str = None) -> None:
         member.tickets -= tickets
-        time = await get_transaction_time()
+        time = await _get_transaction_time()
 
         await self.repo.update_tickets(member)
         await self.repo.create_stat_delt(DeltTransaction(
@@ -90,7 +96,7 @@ class Service:
         if member.tickets == tickets:
             return
 
-        time = await get_transaction_time()
+        time = await _get_transaction_time()
 
         if tickets > member.tickets:
             await self.repo.create_stat_addt(AddtTransaction(
@@ -205,7 +211,6 @@ class Service:
 
     async def get_member_by_cpr(self, cpr: CommandParserResult, user: User) -> Optional[Member]:
         if cpr.overload.type == cot.reply:
-            await self.validate_member(user)
             return await self.repo.read_by_user_id(user.id)
         elif cpr.overload.type == cot.username:
             return await self.repo.read_by_username(cpr.params.get(sol.USERNAME))
@@ -224,7 +229,7 @@ class Service:
         if total > sender.tickets:
             return TransactionResult(trm.insufficient_funds)
 
-        time = await get_transaction_time()
+        time = await _get_transaction_time()
 
         # sender: -transfer -tpay_available
         sender.tickets -= transfer
@@ -289,8 +294,8 @@ class Service:
     async def _member_exists_by_user_id(self, user_id: int) -> bool:
         return await self.repo.read_by_user_id(user_id) is not None
 
-    async def _member_exists_by_username(self, username: str) -> bool:
-        return await self.repo.read_by_username(username) is not None
+    # async def _member_exists_by_username(self, username: str) -> bool:
+    #     return await self.repo.read_by_username(username) is not None
 
     async def _update_member_info(self, user: User) -> None:
         old_member = await self.repo.read_by_user_id(user.id)
