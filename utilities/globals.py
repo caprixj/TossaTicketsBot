@@ -6,8 +6,12 @@ CONFIG_PATH_PROD = '../config/config.xml'
 CREATOR_USER_ID = 825549745
 CREATOR_USERNAME = '@capri_xj'
 
+FEE_RATE = 0.27  # f
+MIN_FEE = 1      # m
+
 TPAY_YES_CALLBACK = 'tpay_yes'
 TPAY_NO_CALLBACK = 'tpay_no'
+TPAY_FEE_INCORPORATION_CALLBACK = 'tpay_fi'
 
 ADDT_TEXT = '📈 тікети нараховано!'
 DELT_TEXT = '📉 тікети знято!'
@@ -25,9 +29,9 @@ VALID_ARGS_TEXT = 'THE PROGRAM WAS STARTED WITH INVALID COMMAND ARGUMENTS!'
 TOGGLE_CHAT_TEXT = '🪬 гіпер пупер секретний режим ГУР'
 SERVICE_OPERATION_NONE_RESULT_TEXT = '😔 не вдалося виконати операцію..'
 GENERATE_CALLBACK_DATA_ERROR_TEXT = 'cannot generate callback data with given callback args'
-ALERT_CALLBACK_ACTIVE_TEXT = "не тикай! операція вже виконується..."
 ALERT_CALLBACK_YES_TEXT = "ви не можете підтвердити цю операцію!"
 ALERT_CALLBACK_NO_TEXT = "ви не можете скасувати цю операцію!"
+ALERT_CALLBACK_ACTION_TEXT = "ви не можете здійснити цю операцію!"
 NOT_IMPLEMENTED_TEXT = "ще не реалізовано :с"
 
 HELP_TEXT = """
@@ -50,7 +54,7 @@ _Май на увазі, що бот хоститься на телефоні р
 
 *✉️ Маєш питання?*
 
-• Підтримка: @capri\_xj
+• Підтримка: @capri_xj
 • GitHub: github.com/caprixj/TossaTicketsBot
 """
 

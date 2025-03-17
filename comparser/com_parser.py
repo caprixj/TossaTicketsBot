@@ -6,7 +6,7 @@ import utilities.globals as glob
 from comparser.overload import Overload
 from comparser.results.com_parser_result import CommandParserResult
 from comparser.enums.param_type import ParamType
-from utilities.glob_func import eufloat
+from utilities.funcs import eufloat
 
 
 async def _is_pnreal(t: str) -> bool:
@@ -142,17 +142,17 @@ class CommandParser:
             elif param.type == ParamType.real:
                 if not await _is_real(t):
                     return await _create_invalid_cpr()
-                cpr.params[param.name] = eufloat(t)
+                cpr.params[param.name] = await eufloat(t)
             # -> nreal
             elif param.type == ParamType.nreal:
                 if not await _is_nreal(t):
                     return await _create_invalid_cpr()
-                cpr.params[param.name] = eufloat(t)
+                cpr.params[param.name] = await eufloat(t)
             # -> pnreal
             elif param.type == ParamType.pnreal:
                 if not await _is_pnreal(t):
                     return await _create_invalid_cpr()
-                cpr.params[param.name] = eufloat(t)
+                cpr.params[param.name] = await eufloat(t)
             # -> int
             elif param.type == ParamType.int:
                 if not await _is_int(t):

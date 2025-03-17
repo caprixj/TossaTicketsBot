@@ -29,10 +29,10 @@ from model.database.transactions.transaction_result import TransactionResult
 from model.database.transactions.tr_messages import TransactionResultMessages as trem
 from repository.repository_core import Repository
 from service.service_core import Service
-from utilities.callback_utils import generate_callback_data, get_callback_data
+from utilities.callback.funcs import generate_callback_data, get_callback_data
 from utilities.run_mode import RunMode
-from utilities.glob_func import get_random_permission_denied_message, get_run_mode_settings, get_db_setup_sql_script, \
-    get_formatted_name_by_member, get_fee
+from utilities.funcs import get_random_permission_denied_message, get_run_mode_settings, get_db_setup_sql_script, \
+    get_formatted_name_by_member, get_fee, scape, get_transfer_by_total
 
 service = Service()
 dp = Dispatcher()
@@ -121,7 +121,7 @@ async def sett(message: Message):
 @dp.message(Command(cl.help.name))
 async def help_(message: Message):
     await message.answer(
-        text=glob.HELP_TEXT,
+        text=await scape(glob.HELP_TEXT),
         parse_mode=ParseMode.MARKDOWN,
         link_preview_options=LinkPreviewOptions(is_disabled=True)
     )
@@ -172,24 +172,24 @@ async def infm(message: Message):
     await message.answer(response, parse_mode=ParseMode.HTML)
 
 
-def tpay_confirm_keyboard(op_id: int, sender_id: int):
+def tpay_keyboard(operation_id: int, sender_id: int, fee_incorporated: bool):
     builder = InlineKeyboardBuilder()
 
-    cd_yes = generate_callback_data(glob.TPAY_YES_CALLBACK, op_id, sender_id)
-    if cd_yes is None:
-        raise RuntimeError(glob.GENERATE_CALLBACK_DATA_ERROR_TEXT)
+    cd_yes = generate_callback_data(glob.TPAY_YES_CALLBACK, operation_id, sender_id)
     builder.row(InlineKeyboardButton(text='✅ Продовжити', callback_data=cd_yes))
 
-    cd_no = generate_callback_data(glob.TPAY_NO_CALLBACK, op_id, sender_id)
-    if cd_no is None:
-        raise RuntimeError(glob.GENERATE_CALLBACK_DATA_ERROR_TEXT)
+    cd_no = generate_callback_data(glob.TPAY_NO_CALLBACK, operation_id, sender_id)
     builder.row(InlineKeyboardButton(text='❌ Скасувати', callback_data=cd_no))
+
+    if fee_incorporated:
+        cd_fi = generate_callback_data(glob.TPAY_FEE_INCORPORATION_CALLBACK, operation_id, sender_id)
+        builder.row(InlineKeyboardButton(text='➕ Вкласти комісію', callback_data=cd_fi))
 
     return builder.as_markup()
 
 
 @dp.message(Command(cl.tpay.name))
-async def tpay(message: Message):
+async def tpay(message: Message, callback_message: Message = None, fee_incorporated: bool = False):
     chr_ = await count_handler(message, pt.pnreal, self_reply_filter=True)
 
     if not chr_.valid:
@@ -202,75 +202,113 @@ async def tpay(message: Message):
         return
 
     receiver = chr_.target_member
-    transfer = chr_.get_param(sol.COUNT)
-    fee = await get_fee(transfer)
-    total = transfer + fee
     description = chr_.get_param(sol.DESCRIPTION)
 
-    tpay_confirm_text = (f'відправник: {await get_formatted_name_by_member(sender, ping=True)}\n'
-                         f'отримувач: {await get_formatted_name_by_member(receiver, ping=True)}\n\n'
-                         f'*загальна сума: {total:.2f}*\n'
-                         f'сума переказу: {transfer:.2f}\n'
-                         f'комісія: {fee:.2f} (27%, min 1.00)\n\n'
-                         f'опис: _{description}_')
+    # t - total, x - transfer, f - fee
+    # -> (t, x, f)
+    async def calculate_transfer(x: float) -> (float, float, float):
+        if fee_incorporated:
+            t_fi = x
+            x_fi = await get_transfer_by_total(t_fi)
+            return t_fi, x_fi, t_fi - x_fi
+        else:
+            f = await get_fee(x)
+            return x + f, x, f
 
-    op_id = await service.operation_manager.register(
-        service.tpay, sender, receiver, transfer, description
+    total, transfer, fee = await calculate_transfer(chr_.get_param(sol.COUNT))
+
+    tpay_confirmation_text = (f'відправник: {await get_formatted_name_by_member(sender, ping=True)}\n'
+                              f'отримувач: {await get_formatted_name_by_member(receiver, ping=True)}\n\n'
+                              f'*загальна сума: {total:.2f}*\n'
+                              f'сума переказу: {transfer:.2f}\n'
+                              f'комісія: {fee:.2f} ({int(100 * glob.FEE_RATE)}%, min {glob.MIN_FEE:.2f})\n\n'
+                              f'опис: _{description}_')
+
+    operation_id = await service.operation_manager.register(
+        sender, receiver, transfer, description,
+        func=service.tpay,
+        command_message=message
     )
 
-    await message.answer(tpay_confirm_text, reply_markup=tpay_confirm_keyboard(op_id, sender.user_id))
+    if fee_incorporated:
+        await callback_message.edit_text(text=tpay_confirmation_text)
+        await callback_message.edit_reply_markup(
+            reply_markup=tpay_keyboard(
+                operation_id=operation_id,
+                sender_id=sender.user_id,
+                fee_incorporated=False
+            )
+        )
+    else:
+        await message.answer(
+            text=tpay_confirmation_text,
+            reply_markup=tpay_keyboard(
+                operation_id=operation_id,
+                sender_id=sender.user_id,
+                fee_incorporated=transfer > glob.MIN_FEE
+            )
+        )
 
 
 @dp.callback_query(lambda c: c.data.startswith(glob.TPAY_YES_CALLBACK))
 async def tpay_yes(callback: CallbackQuery):
-    op_id_str, sender_id_str = await get_callback_data(callback.data)
-    op_id = int(op_id_str)
-    sender_id = int(sender_id_str)
-    message_id = callback.message.message_id
+    tcd = await get_callback_data(callback.data)
 
-    if message_id in service.active_callbacks:
-        await callback.answer(glob.ALERT_CALLBACK_ACTIVE_TEXT, show_alert=True)
-        return
-
-    service.active_callbacks.append(message_id)
-
-    if callback.from_user.id != sender_id:
+    if callback.from_user.id != tcd.sender_id:
         await callback.answer(glob.ALERT_CALLBACK_YES_TEXT, show_alert=True)
         return
 
-    tr_: Optional[TransactionResult] = await service.operation_manager.run(op_id)
+    tr_: Optional[TransactionResult] = await service.operation_manager.run(tcd.operation_id)
 
     if tr_ is None:
         await callback.message.edit_reply_markup(reply_markup=None)
         await callback.message.answer(glob.SERVICE_OPERATION_NONE_RESULT_TEXT)
-        service.active_callbacks.remove(message_id)
         return
 
     if not tr_.valid:
         await callback.message.answer(tr_.message)
         await callback.message.delete()
-        service.active_callbacks.remove(message_id)
         return
 
     await callback.message.edit_reply_markup(reply_markup=None)
     await callback.message.reply(glob.TPAY_TEXT)
     await callback.answer()
-    service.active_callbacks.remove(message_id)
 
 
 @dp.callback_query(lambda c: c.data.startswith(glob.TPAY_NO_CALLBACK))
 async def tpay_no(callback: CallbackQuery):
-    op_id_str, sender_id_str = await get_callback_data(callback.data)
-    op_id = int(op_id_str)
-    sender_id = int(sender_id_str)
+    tcd = await get_callback_data(callback.data)
 
-    if callback.from_user.id != sender_id:
+    if callback.from_user.id != tcd.sender_id:
         await callback.answer(glob.ALERT_CALLBACK_NO_TEXT, show_alert=True)
         return
 
-    await service.operation_manager.cancel(op_id)
+    await service.operation_manager.cancel(tcd.operation_id)
     await callback.message.delete()
     await callback.answer()
+
+
+@dp.callback_query(lambda c: c.data.startswith(glob.TPAY_FEE_INCORPORATION_CALLBACK))
+async def tpay_fi(callback: CallbackQuery):
+    tcd = await get_callback_data(callback.data)
+
+    if callback.from_user.id != tcd.sender_id:
+        await callback.answer(glob.ALERT_CALLBACK_ACTION_TEXT, show_alert=True)
+        return
+
+    command_message = await service.operation_manager.get_command_message(tcd.operation_id)
+    if command_message is None:
+        await callback.message.edit_reply_markup(reply_markup=None)
+        await callback.message.answer(glob.SERVICE_OPERATION_NONE_RESULT_TEXT)
+        return
+
+    await service.operation_manager.cancel(tcd.operation_id)
+    await callback.answer()
+    await tpay(
+        message=command_message,
+        callback_message=callback.message,
+        fee_incorporated=True
+    )
 
 
 # [<reply>] /command
@@ -407,7 +445,6 @@ async def main():
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, stream=sys.stdout)
     asyncio.run(main())
-
 
 # @dp.message(Command(cl.db.name))
 # async def db(message: Message) -> None:

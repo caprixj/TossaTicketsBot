@@ -9,6 +9,7 @@ from pathlib import Path
 from model.database.member import Member
 from utilities.rand_globals import permission_denied_messages
 from utilities.run_mode import RunMode, RunModeSettings
+from utilities.globals import FEE_RATE as F, MIN_FEE as M
 from utilities.sql_scripts import CREATE_TABLE_MEMBERS, CREATE_TABLE_ADDT, CREATE_TABLE_DELT, CREATE_TABLE_ARTIFACTS, \
     CREATE_TABLE_TPAY
 
@@ -80,7 +81,11 @@ async def get_transaction_time() -> str:
 
 
 async def get_fee(transfer: float) -> float:
-    return max(round(0.27 * transfer, 2), 1)
+    return max(round(F * transfer, 2), M)
+
+
+async def get_transfer_by_total(t: float) -> float:
+    return t - M if F * (t - M) <= M else round(t / (F + 1), 2)
 
 
 async def get_formatted_name_by_member(member: Member, ping: bool = False) -> str:
@@ -99,7 +104,6 @@ async def get_formatted_name(
         last_name: str,
         user_id: int = 0,
         ping: bool = False) -> str:
-
     name = str()
 
     if first_name or last_name:
@@ -122,7 +126,12 @@ async def get_formatted_name(
         f'@{name}' if name == username else f'[{name}](tg://user?id={user_id})'
 
 
-def eufloat(value: str):
+async def eufloat(value: str):
     if isinstance(value, str):
         value = value.replace(",", ".")
     return float(value)
+
+
+async def scape(text: str) -> str:
+    text.replace('_', '\_')
+    return text

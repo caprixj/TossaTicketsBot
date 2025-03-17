@@ -18,7 +18,7 @@ from model.database.transactions.transaction_result import TransactionResult
 from model.database.transactions.tr_messages import TransactionResultMessages as trm
 from model.database.transactions.transaction_type import TransactionType
 from service.service_operation_manager import ServiceOperationManager
-from utilities.glob_func import get_formatted_name, get_transaction_time, get_fee
+from utilities.funcs import get_formatted_name, get_transaction_time, get_fee
 from repository.ordering_type import OrderingType
 from repository.repository_core import Repository
 from utilities.sql_scripts import RESET_TPAY_AVAILABLE
@@ -29,7 +29,6 @@ class Service:
         self.repo: Repository = repository
         self.bot: Optional[Bot] = None
         self.operation_manager: ServiceOperationManager = ServiceOperationManager()
-        self.active_callbacks: list[int] = list()
 
     async def execute_sql(self, query: str) -> (bool, str):
         # (!) NO member validation is held
