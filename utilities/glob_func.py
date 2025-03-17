@@ -79,15 +79,8 @@ async def get_transaction_time() -> str:
     return datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
 
-async def get_fee(transfer_amount: int) -> int:
-    if transfer_amount <= 10:
-        return 1
-    if transfer_amount <= 50:
-        return round(0.2 * transfer_amount) + 1
-    if transfer_amount <= 100:
-        return round(0.4 * transfer_amount) + 1
-
-    return round(0.6 * transfer_amount) + 1
+async def get_fee(transfer: int) -> int:
+    return max(round(0.37 * transfer), 1)
 
 
 async def get_formatted_name_by_member(member: Member, ping: bool = False) -> str:
@@ -121,6 +114,9 @@ async def get_formatted_name(
         name += username
     else:
         name = glob.NO_NAMES_TEXT
+
+    name.replace('[', '(')
+    name.replace(']', ')')
 
     return name if not ping else \
         f'@{name}' if name == username else f'[{name}](tg://user?id={user_id})'

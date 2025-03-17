@@ -18,7 +18,7 @@ from model.database.transactions.transaction_result import TransactionResult
 from model.database.transactions.tr_messages import TransactionResultMessages as trm
 from model.database.transactions.transaction_type import TransactionType
 from service.service_operation_manager import ServiceOperationManager
-from utilities.func import get_formatted_name, get_transaction_time, get_fee
+from utilities.glob_func import get_formatted_name, get_transaction_time, get_fee
 from repository.ordering_type import OrderingType
 from repository.repository_core import Repository
 from utilities.sql_scripts import RESET_TPAY_AVAILABLE

@@ -10,7 +10,7 @@ from comparser.enums.cpr_messages import CommandParserResultMessages as cprem
 
 
 async def _is_pnreal(t: str) -> bool:
-    p =   r'^(?!0(?:[.,]0{1,2})?$)(?:[1-9]\d*|0)(?:[.,]\d{1,2})?$'
+    p = r'^(?!0(?:[.,]0{1,2})?$)(?:[1-9]\d*|0)(?:[.,]\d{1,2})?$'
     return bool(re.match(p, t))
 
 

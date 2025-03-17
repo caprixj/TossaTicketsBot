@@ -15,7 +15,7 @@ from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.filters import Command
-from aiogram.types import Message, CallbackQuery, InlineKeyboardButton
+from aiogram.types import Message, CallbackQuery, InlineKeyboardButton, LinkPreviewOptions
 
 import comparser.standard_overloads as sol
 from comparser.results.com_handler_result import CommandHandlerResult
@@ -31,7 +31,7 @@ from repository.repository_core import Repository
 from service.service_core import Service
 from utilities.callback_utils import generate_callback_data, get_callback_data
 from utilities.run_mode import RunMode
-from utilities.func import get_random_permission_denied_message, get_run_mode_settings, get_db_setup_sql_script, \
+from utilities.glob_func import get_random_permission_denied_message, get_run_mode_settings, get_db_setup_sql_script, \
     get_formatted_name_by_member, get_fee
 
 service = Service()
@@ -120,7 +120,11 @@ async def sett(message: Message) -> None:
 
 @dp.message(Command(cl.help.name))
 async def help_(message: Message) -> None:
-    await message.answer(glob.HELP_TEXT)
+    await message.answer(
+        text=glob.HELP_TEXT,
+        parse_mode=ParseMode.MARKDOWN,
+        link_preview_options=LinkPreviewOptions(is_disabled=True)
+    )
 
 
 @dp.message(Command(cl.topt.name))
@@ -168,11 +172,6 @@ async def infm(message: Message) -> None:
     await message.answer(response, parse_mode=ParseMode.HTML)
 
 
-@dp.message(Command(cl.ttime.name))
-async def ttime(message: Message) -> None:
-    await message.answer(glob.NOT_IMPLEMENTED_TEXT)
-
-
 def tpay_confirm_keyboard(op_id: int, sender_id: int):
     builder = InlineKeyboardBuilder()
 
@@ -206,14 +205,13 @@ async def tpay(message: Message) -> None:
     transfer = chr_.get_param(sol.COUNT)
     fee = await get_fee(transfer)
     total = transfer + fee
-    fee_percentage = round(100 * fee / transfer, 1)
     description = chr_.get_param(sol.DESCRIPTION)
 
     tpay_confirm_text = (f'відправник: {await get_formatted_name_by_member(sender, ping=True)}\n'
                          f'отримувач: {await get_formatted_name_by_member(receiver, ping=True)}\n\n'
                          f'*загальна сума: {total}*\n'
                          f'сума переводу: {transfer}\n'
-                         f'комісія: {fee} ({fee_percentage}%)\n\n'
+                         f'комісія: {fee} (37%, min 1.00)\n\n'
                          f'опис: _{description}_')
 
     op_id = await service.operation_manager.register(
@@ -273,31 +271,6 @@ async def tpay_no(callback: CallbackQuery):
     await service.operation_manager.cancel(op_id)
     await callback.message.delete()
     await callback.answer()
-
-
-@dp.message(Command(cl.tkick.name))
-async def tkick(message: Message) -> None:
-    await message.answer(glob.NOT_IMPLEMENTED_TEXT)
-
-
-@dp.message(Command(cl.tmute.name))
-async def tmute(message: Message) -> None:
-    await message.answer(glob.NOT_IMPLEMENTED_TEXT)
-
-
-@dp.message(Command(cl.tban.name))
-async def tban(message: Message) -> None:
-    await message.answer(glob.NOT_IMPLEMENTED_TEXT)
-
-
-@dp.message(Command(cl.demute.name))
-async def demute(message: Message) -> None:
-    await message.answer(glob.NOT_IMPLEMENTED_TEXT)
-
-
-@dp.message(Command(cl.deban.name))
-async def deban(message: Message) -> None:
-    await message.answer(glob.NOT_IMPLEMENTED_TEXT)
 
 
 # [<reply>] /command
