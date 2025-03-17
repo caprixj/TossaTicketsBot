@@ -7,7 +7,7 @@ class AddtTransaction:
     def __init__(self,
                  addt_id: int = 0,
                  user_id: int = 0,
-                 tickets: int = 0,
+                 tickets: float = 0,
                  time: str = None,
                  description: str = None,
                  type_: TransactionType = TransactionType.unknown):

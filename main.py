@@ -23,7 +23,7 @@ from comparser.com_parser import CommandParser
 from comparser.overload import Overload
 from comparser.enums.param_type import ParamType as pt
 from comparser.enums.com_list import CommandList as cl
-from comparser.enums.cpr_messages import CommandParserResultMessages
+from comparser.results.com_parser_result import CommandParserResult
 from middleware.source_filter_middleware import SourceFilterMiddleware
 from model.database.transactions.transaction_result import TransactionResult
 from model.database.transactions.tr_messages import TransactionResultMessages as trem
@@ -47,7 +47,7 @@ async def sql(message: Message):
     result = await cp.parse()
 
     if not result.valid:
-        await _respond_invalid(message, result.error_message)
+        await _respond_invalid(message, result)
         return
 
     (executed, response) = await service.execute_sql(
@@ -138,7 +138,7 @@ async def topt(message: Message):
     cpr = await CommandParser(message, o_no_size, o_size).parse()
 
     if not cpr.valid:
-        await _respond_invalid(message, cpr.error_message)
+        await _respond_invalid(message, cpr)
         return
 
     async def _match_overload():
@@ -287,7 +287,7 @@ async def empty_handler(message: Message) -> CommandHandlerResult:
     cpr = await cp.parse()
 
     if not cpr.valid:
-        await _respond_invalid(message, cpr.error_message)
+        await _respond_invalid(message, cpr)
         return CommandHandlerResult()
 
     user = message.from_user \
@@ -331,7 +331,7 @@ async def count_handler(
     cpr = await cp.parse()
 
     if not cpr.valid:
-        await _respond_invalid(message, cpr.error_message)
+        await _respond_invalid(message, cpr)
         return CommandHandlerResult()
 
     user = message.reply_to_message.from_user if message.reply_to_message is not None else None
@@ -377,9 +377,9 @@ async def _define_service():
     service = Service(Repository(glob.rms.db_file_path))
 
 
-async def _respond_invalid(message: Message, response: CommandParserResultMessages):
+async def _respond_invalid(message: Message, cpr: CommandParserResult):
     out_message = await get_random_permission_denied_message() \
-        if response == CommandParserResultMessages.not_creator else response
+        if cpr.creator_filter_violation else glob.COM_PARSER_FAILED_TEXT
 
     await message.reply(out_message)
 

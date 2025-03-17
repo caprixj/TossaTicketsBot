@@ -57,7 +57,7 @@ class Service:
         arl = await self._get_artifact_names_by_user_id_str(member.user_id)
 
         return (f"🪪 ім'я: {name}"
-                f"\n💳 тікети: {sign}{member.tickets}"
+                f"\n💳 тікети: {sign}{member.tickets:.2f}"
                 f"\n🔮 артефакти: {arl}"
                 f"\n🔀 доступно транзакцій: {member.tpay_available}")
 
