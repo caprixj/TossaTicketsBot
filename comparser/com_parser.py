@@ -1,38 +1,52 @@
+import re
+
 from aiogram.types import Message
 
 import utilities.globals as glob
 from comparser.overload import Overload
 from comparser.results.com_parser_result import CommandParserResult
 from comparser.enums.param_type import ParamType
-from comparser.enums.cpr_error_messages import CommandParserResultErrorMessages as cprem
+from comparser.enums.cpr_messages import CommandParserResultMessages as cprem
 
 
-async def _is_pzint(t: str) -> bool:
-    return t.isdigit() and t[0] != '0' and int(t) > 0
+async def _is_pnreal(t: str) -> bool:
+    p =   r'^(?!0(?:[.,]0{1,2})?$)(?:[1-9]\d*|0)(?:[.,]\d{1,2})?$'
+    return bool(re.match(p, t))
 
 
-async def _is_zint(t: str) -> bool:
-    return (t.isdigit() or t[1:].isdigit()) and t[0] != '0'
+async def _is_nreal(t: str) -> bool:
+    p = r'^(?!-?0+(?:[.,]0{1,2})?$)-?(?:[1-9]\d*|0)(?:[.,]\d{1,2})?$'
+    return bool(re.match(p, t))
+
+
+async def _is_real(t: str) -> bool:
+    p = r'^-?(?:[1-9]\d*|0)(?:[.,]\d{1,2})?$'
+    return bool(re.match(p, t))
+
+
+async def _is_pnint(t: str) -> bool:
+    p = r'^[1-9]\d*$'
+    return bool(re.match(p, t))
+
+
+async def _is_nint(t: str) -> bool:
+    p = r'^[1-9]\d*$'
+    return bool(re.match(p, t))
 
 
 async def _is_int(t: str) -> bool:
-    t = t[1:] if t[0] == '-' else t
-    return t.isdigit() and (len(t) == 1 or (t[0] != '0' and len(t) > 1))
+    p = r'^-?\d+$'
+    return bool(re.match(p, t))
 
 
 async def _is_username(t: str) -> bool:
-    if t[0] != '@' or t[1].isdigit():
-        return False
-
-    for char in t[1:]:
-        if not (char.isalnum() or char == '_'):
-            return False
-
-    return True
+    p = r'^@[A-Za-z][A-Za-z0-9_]{4,}$'
+    return bool(re.match(p, t))
 
 
-async def _is_time(t: str) -> bool:
-    return t[-1] in ['m', 'h', 'd'] and t[:-1].isdigit()
+# async def _is_time(t: str) -> bool:
+#     p = r'^(?:(?:[1-9]\d*d\s*)?(?:[1-9]|1\d|2[0-3])h\s*)?(?:(?:[1-9]|[1-5]\d|60)m\s*)?$'
+#     return bool(re.match(p, t))
 
 
 async def _create_invalid_cpr(error_message: cprem):
@@ -124,19 +138,34 @@ class CommandParser:
                     text += self.tokens[j] + ' '
                 # set resulting param value
                 cpr.params[param.name] = text[:-1]
+            # -> real
+            elif param.type == ParamType.real:
+                if not await _is_real(t):
+                    return await _create_invalid_cpr(cprem.wrong_args)
+                cpr.params[param.name] = float(t)
+            # -> nreal
+            elif param.type == ParamType.nreal:
+                if not await _is_nreal(t):
+                    return await _create_invalid_cpr(cprem.wrong_args)
+                cpr.params[param.name] = float(t)
+            # -> pnreal
+            elif param.type == ParamType.pnreal:
+                if not await _is_pnreal(t):
+                    return await _create_invalid_cpr(cprem.wrong_args)
+                cpr.params[param.name] = float(t)
             # -> int
             elif param.type == ParamType.int:
-                if not t.isdigit():
+                if not await _is_int(t):
                     return await _create_invalid_cpr(cprem.wrong_args)
                 cpr.params[param.name] = int(t)
-            # -> zint
-            elif param.type == ParamType.zint:
-                if not await _is_zint(t):
+            # -> nint
+            elif param.type == ParamType.nint:
+                if not await _is_nint(t):
                     return await _create_invalid_cpr(cprem.wrong_args)
                 cpr.params[param.name] = int(t)
-            # -> pzint
-            elif param.type == ParamType.pzint:
-                if not await _is_pzint(t):
+            # -> pnint
+            elif param.type == ParamType.pnint:
+                if not await _is_pnint(t):
                     return await _create_invalid_cpr(cprem.wrong_args)
                 cpr.params[param.name] = int(t)
             # -> username
@@ -145,21 +174,16 @@ class CommandParser:
                     return await _create_invalid_cpr(cprem.wrong_args)
                 cpr.params[param.name] = t[1:]
             # -> time
-            elif param.type == ParamType.time:
-                if not await _is_time(t):
-                    return await _create_invalid_cpr(cprem.wrong_args)
-                cpr.params[param.name] = t
+            # elif param.type == ParamType.time:
+            #     if not await _is_time(t):
+            #         return await _create_invalid_cpr(cprem.wrong_args)
+            #     cpr.params[param.name] = t
             # -> ?
             else:
-                raise RuntimeError('Unexpected ParamType!')
+                raise RuntimeError('unexpected ParamType!')
 
             if param.optional:
                 break
 
-        # if not self.tokens and ol.params:
-        #     if not ol.params[-1].optional:
-        #         return await _create_invalid_cpr(transactions.wrong_args)
-
-        # the command overload is parsed successfully
         cpr.valid = True
         return cpr

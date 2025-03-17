@@ -47,7 +47,7 @@ class Repository(ABC):
                 member.username,
                 member.first_name,
                 member.last_name,
-                member.tickets_count
+                member.tickets
             ))
             await db.commit()
 
@@ -71,9 +71,9 @@ class Repository(ABC):
             member.user_id
         ))
 
-    async def update_tickets_count(self, member: Member) -> None:
+    async def update_tickets(self, member: Member) -> None:
         await self._execute(UPDATE_TICKETS_COUNT, (
-            member.tickets_count,
+            member.tickets,
             member.user_id
         ))
 
@@ -111,8 +111,8 @@ class Repository(ABC):
         async with aiosqlite.connect(self.db_path) as db:
             await db.execute(INSERT_ADDT, (
                 addt.user_id,
-                addt.tickets_count,
-                addt.transaction_time,
+                addt.tickets,
+                addt.time,
                 addt.description,
                 addt.type_
             ))
@@ -122,8 +122,8 @@ class Repository(ABC):
         async with aiosqlite.connect(self.db_path) as db:
             await db.execute(INSERT_DELT, (
                 delt.user_id,
-                delt.tickets_count,
-                delt.transaction_time,
+                delt.tickets,
+                delt.time,
                 delt.description,
                 delt.type_
             ))
@@ -134,9 +134,9 @@ class Repository(ABC):
             await db.execute(INSERT_TPAY, (
                 tpay.sender_id,
                 tpay.receiver_id,
-                tpay.transfer_amount,
-                tpay.fee_amount,
-                tpay.transaction_time,
+                tpay.transfer,
+                tpay.fee,
+                tpay.time,
                 tpay.description
             ))
             await db.commit()

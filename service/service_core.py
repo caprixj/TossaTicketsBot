@@ -15,7 +15,7 @@ from model.database.transactions.delt_transaction import DeltTransaction
 from comparser.enums.overload_type import OverloadType as cot
 from model.database.transactions.tpay_transaction import TpayTransaction
 from model.database.transactions.transaction_result import TransactionResult
-from model.database.transactions.tr_error_messages import TransactionResultErrorMessages as trem
+from model.database.transactions.tr_messages import TransactionResultMessages as trm
 from model.database.transactions.transaction_type import TransactionType
 from service.service_operation_manager import ServiceOperationManager
 from utilities.func import get_formatted_name, get_transaction_time, get_fee
@@ -53,61 +53,61 @@ class Service:
             ping=True
         )
 
-        sign = '+' if member.tickets_count > 0 else str()
+        sign = '+' if member.tickets > 0 else str()
         arl = await self._get_artifact_names_by_user_id_str(member.user_id)
 
         return (f"🪪 ім'я: {name}"
-                f"\n💳 тікети: {sign}{member.tickets_count}"
+                f"\n💳 тікети: {sign}{member.tickets}"
                 f"\n🔮 артефакти: {arl}"
                 f"\n🔀 доступно транзакцій: {member.tpay_available}")
 
-    async def add_tickets(self, member: Member, tickets_count: int, description: str = None) -> None:
-        member.tickets_count += tickets_count
-        transaction_time = await get_transaction_time()
+    async def add_tickets(self, member: Member, tickets: int, description: str = None) -> None:
+        member.tickets += tickets
+        time = await get_transaction_time()
 
-        await self.repo.update_tickets_count(member)
+        await self.repo.update_tickets(member)
         await self.repo.create_stat_addt(AddtTransaction(
             user_id=member.user_id,
-            tickets_count=tickets_count,
-            transaction_time=transaction_time,
+            tickets=tickets,
+            time=time,
             description=description
         ))
 
-    async def delete_tickets(self, member: Member, tickets_count: int, description: str = None) -> None:
-        member.tickets_count -= tickets_count
-        transaction_time = await get_transaction_time()
+    async def delete_tickets(self, member: Member, tickets: int, description: str = None) -> None:
+        member.tickets -= tickets
+        time = await get_transaction_time()
 
-        await self.repo.update_tickets_count(member)
+        await self.repo.update_tickets(member)
         await self.repo.create_stat_delt(DeltTransaction(
             user_id=member.user_id,
-            tickets_count=tickets_count,
-            transaction_time=transaction_time,
+            tickets=tickets,
+            time=time,
             description=description
         ))
 
-    async def set_tickets(self, member: Member, tickets_count: int, description: str = None) -> None:
-        if member.tickets_count == tickets_count:
+    async def set_tickets(self, member: Member, tickets: int, description: str = None) -> None:
+        if member.tickets == tickets:
             return
 
-        transaction_time = await get_transaction_time()
+        time = await get_transaction_time()
 
-        if tickets_count > member.tickets_count:
+        if tickets > member.tickets:
             await self.repo.create_stat_addt(AddtTransaction(
                 user_id=member.user_id,
-                tickets_count=tickets_count - member.tickets_count,
-                transaction_time=transaction_time,
+                tickets=tickets - member.tickets,
+                time=time,
                 description=description
             ))
         else:
             await self.repo.create_stat_delt(DeltTransaction(
                 user_id=member.user_id,
-                tickets_count=member.tickets_count - tickets_count,
-                transaction_time=transaction_time,
+                tickets=member.tickets - tickets,
+                time=time,
                 description=description
             ))
 
-        member.tickets_count = tickets_count
-        await self.repo.update_tickets_count(member)
+        member.tickets = tickets
+        await self.repo.update_tickets(member)
 
     async def get_tickets_top(self) -> str:
         result = f'{glob.TOPT_DESC_TEXT} (повний)\n\n'
@@ -131,8 +131,8 @@ class Service:
             else:
                 iterator = f'{i + 1}.'
 
-            sign = '+' if m.tickets_count > 0 else str()
-            result += f'{iterator} ( {sign}{m.tickets_count} )  {name[:32]}\n'
+            sign = '+' if m.tickets > 0 else str()
+            result += f'{iterator} ( {sign}{m.tickets:.2f} )  {name[:32]}\n'
 
             if i == 2:
                 result += '\n'
@@ -162,8 +162,8 @@ class Service:
             else:
                 iterator = f'{i + 1}.'
 
-            sign = '+' if m.tickets_count > 0 else str()
-            result += f'{iterator} ( {sign}{m.tickets_count} )  {name[:32]}\n'
+            sign = '+' if m.tickets > 0 else str()
+            result += f'{iterator} ( {sign}{m.tickets:.2f} )  {name[:32]}\n'
 
             if i == 2:
                 result += '\n'
@@ -176,8 +176,7 @@ class Service:
         fn = member.first_name
         ln = member.last_name
         un = member.username
-        tc = member.tickets_count
-        sign = '+' if tc > 0 else str()
+        tc = member.tickets
         arl = await self._get_artifact_names_by_user_id_str(user_id)
         ta = member.tpay_available
 
@@ -187,7 +186,7 @@ class Service:
                 f"\nпрізвище: {'-' if ln is None else ln}"
                 f"\nюзернейм: {'-' if un is None else un}"
                 f"\n\n<b>💳 активи</b>"
-                f"\nтікети: {sign}{tc}"
+                f"\nтікети: {'+' if tc > 0 else str():.2f}{tc}"
                 f"\nартефакти: {arl}"
                 f"\nдоступно транзакцій: {ta}")
 
@@ -213,47 +212,47 @@ class Service:
     async def tpay(self,
                    sender: Member,
                    receiver: Member,
-                   transfer_amount: int,
+                   transfer: int,
                    description: str = None
                    ) -> TransactionResult:
-        fee_amount = await get_fee(transfer_amount)
-        total_amount = transfer_amount + fee_amount
+        fee = await get_fee(transfer)
+        total = transfer + fee
 
-        if total_amount > sender.tickets_count:
-            return TransactionResult(trem.insufficient_funds)
+        if total > sender.tickets:
+            return TransactionResult(trm.insufficient_funds)
 
-        transaction_time = await get_transaction_time()
+        time = await get_transaction_time()
 
         # sender: -transfer -tpay_available
-        sender.tickets_count -= transfer_amount
-        await self.repo.update_tickets_count(sender)
+        sender.tickets -= transfer
+        await self.repo.update_tickets(sender)
         await self.repo.spend_tpay_available(sender)
         await self.repo.create_stat_delt(DeltTransaction(
             user_id=sender.user_id,
-            tickets_count=transfer_amount,
-            transaction_time=transaction_time,
+            tickets=transfer,
+            time=time,
             description=description,
             type_=TransactionType.tpay
         ))
 
         # sender: -fee
-        sender.tickets_count -= fee_amount
-        await self.repo.update_tickets_count(sender)
+        sender.tickets -= fee
+        await self.repo.update_tickets(sender)
         await self.repo.create_stat_delt(DeltTransaction(
             user_id=sender.user_id,
-            tickets_count=fee_amount,
-            transaction_time=transaction_time,
+            tickets=fee,
+            time=time,
             description=description,
             type_=TransactionType.tpay_fee
         ))
 
         # receiver: +transfer
-        receiver.tickets_count += transfer_amount
-        await self.repo.update_tickets_count(receiver)
+        receiver.tickets += transfer
+        await self.repo.update_tickets(receiver)
         await self.repo.create_stat_addt(AddtTransaction(
             user_id=receiver.user_id,
-            tickets_count=transfer_amount,
-            transaction_time=transaction_time,
+            tickets=transfer,
+            time=time,
             description=description,
             type_=TransactionType.tpay
         ))
@@ -262,9 +261,9 @@ class Service:
         await self.repo.create_stat_tpay(TpayTransaction(
             sender_id=sender.user_id,
             receiver_id=receiver.user_id,
-            transfer_amount=transfer_amount,
-            fee_amount=fee_amount,
-            transaction_time=transaction_time,
+            transfer=transfer,
+            fee=fee,
+            time=time,
             description=description
         ))
 
@@ -273,7 +272,6 @@ class Service:
     async def _create(self, value: Union[Member, User]) -> None:
         if isinstance(value, Member):
             await self.repo.create(value)
-
         elif isinstance(value, User):
             member = Member(
                 user_id=value.id,
@@ -282,7 +280,6 @@ class Service:
                 last_name=value.last_name
             )
             await self.repo.create(member)
-
         else:
             raise TypeError("Invalid argument type")
 

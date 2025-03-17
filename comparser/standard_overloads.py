@@ -36,16 +36,16 @@ async def username_empty(name: str = None, creator_filter: bool = False) -> Over
             .add_param(USERNAME, pt.username))
 
 
-# {<creator>} /command <user_id:pzint>
+# {<creator>} /command <user_id:pnint>
 async def user_id_empty(name: str = None, creator_filter: bool = False) -> Overload:
     return (Overload(
         type_=OverloadType.user_id,
         creator_filter=creator_filter,
         name=name)
-            .add_param(USER_ID, pt.pzint))
+            .add_param(USER_ID, pt.pnint))
 
 
-# {<creator>} <reply> /command <count:pzint> [<description:text>]
+# {<creator>} <reply> /command <count:pnint> [<description:text>]
 async def reply_count(
         count_type: pt,
         name: str = None,
@@ -59,14 +59,14 @@ async def reply_count(
             .add_param(DESCRIPTION, pt.text, optional=True))
 
 
-# {<creator>} /command <username:username> <count:pzint> [<description:text>]
+# {<creator>} /command <username:username> <count:pnint> [<description:text>]
 async def username_count(count_type: pt, name: str = None, creator_filter: bool = False) -> Overload:
     return ((await username_empty(name, creator_filter))
             .add_param(COUNT, count_type)
             .add_param(DESCRIPTION, pt.text, optional=True))
 
 
-# {<creator>} /command <user_id:pzint> <count:pzint> [<description:text>]
+# {<creator>} /command <user_id:pnint> <count:pnint> [<description:text>]
 async def user_id_count(count_type: pt, name: str = None, creator_filter: bool = False) -> Overload:
     return ((await user_id_empty(name, creator_filter))
             .add_param(COUNT, count_type)

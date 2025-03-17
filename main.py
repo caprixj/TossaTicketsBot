@@ -22,11 +22,11 @@ from comparser.results.com_handler_result import CommandHandlerResult
 from comparser.com_parser import CommandParser
 from comparser.overload import Overload
 from comparser.enums.param_type import ParamType as pt
-from comparser.enums.comlist import CommandList as cl
-from comparser.enums.cpr_error_messages import CommandParserResultErrorMessages
+from comparser.enums.com_list import CommandList as cl
+from comparser.enums.cpr_messages import CommandParserResultMessages
 from middleware.source_filter_middleware import SourceFilterMiddleware
 from model.database.transactions.transaction_result import TransactionResult
-from model.database.transactions.tr_error_messages import TransactionResultErrorMessages as trem
+from model.database.transactions.tr_messages import TransactionResultMessages as trem
 from repository.repository_core import Repository
 from service.service_core import Service
 from utilities.callback_utils import generate_callback_data, get_callback_data
@@ -36,14 +36,6 @@ from utilities.func import get_random_permission_denied_message, get_run_mode_se
 
 service = Service()
 dp = Dispatcher()
-
-
-# @dp.message(Command(cl.db.name))
-# async def db(message: Message) -> None:
-#     await service.bot.send_document(
-#         chat_id=glob.rms.group_chat_id,
-#         document=FSInputFile(glob.rms.db_file_path)
-#     )
 
 
 @dp.message(Command(cl.sql.name))
@@ -70,7 +62,7 @@ async def sql(message: Message) -> None:
 async def addt(message: Message) -> None:
     result = await count_handler(
         message=message,
-        count_type=pt.pzint,
+        count_type=pt.pnreal,
         creator_filter=True
     )
 
@@ -79,7 +71,7 @@ async def addt(message: Message) -> None:
 
     await service.add_tickets(
         member=result.target_member,
-        tickets_count=result.get_param(sol.COUNT),
+        tickets=result.get_param(sol.COUNT),
         description=result.get_param(sol.DESCRIPTION)
     )
 
@@ -90,7 +82,7 @@ async def addt(message: Message) -> None:
 async def delt(message: Message) -> None:
     result = await count_handler(
         message=message,
-        count_type=pt.pzint,
+        count_type=pt.pnreal,
         creator_filter=True
     )
 
@@ -99,7 +91,7 @@ async def delt(message: Message) -> None:
 
     await service.delete_tickets(
         member=result.target_member,
-        tickets_count=result.get_param(sol.COUNT),
+        tickets=result.get_param(sol.COUNT),
         description=result.get_param(sol.DESCRIPTION)
     )
 
@@ -110,7 +102,7 @@ async def delt(message: Message) -> None:
 async def sett(message: Message) -> None:
     result = await count_handler(
         message=message,
-        count_type=pt.int,
+        count_type=pt.real,
         creator_filter=True
     )
 
@@ -119,7 +111,7 @@ async def sett(message: Message) -> None:
 
     await service.set_tickets(
         member=result.target_member,
-        tickets_count=result.get_param(sol.COUNT),
+        tickets=result.get_param(sol.COUNT),
         description=result.get_param(sol.DESCRIPTION)
     )
 
@@ -136,8 +128,8 @@ async def topt(message: Message) -> None:
     # /topt
     o_no_size = Overload(name='no-size')
 
-    # /topt <size:zint>
-    o_size = Overload(name='size').add_param(sol.SIZE, pt.zint)
+    # /topt <size:nint>
+    o_size = Overload(name='size').add_param(sol.SIZE, pt.nint)
 
     cpr = await CommandParser(message, o_no_size, o_size).parse()
 
@@ -178,7 +170,7 @@ async def infm(message: Message) -> None:
 
 @dp.message(Command(cl.ttime.name))
 async def ttime(message: Message) -> None:
-    await message.answer('ще не реалізовано :с')
+    await message.answer(glob.NOT_IMPLEMENTED_TEXT)
 
 
 def tpay_confirm_keyboard(op_id: int, sender_id: int):
@@ -199,7 +191,7 @@ def tpay_confirm_keyboard(op_id: int, sender_id: int):
 
 @dp.message(Command(cl.tpay.name))
 async def tpay(message: Message) -> None:
-    chr_ = await count_handler(message, pt.pzint, self_reply_filter=True)
+    chr_ = await count_handler(message, pt.pnreal, self_reply_filter=True)
 
     if not chr_.valid:
         return
@@ -211,21 +203,21 @@ async def tpay(message: Message) -> None:
         return
 
     receiver = chr_.target_member
-    transfer_amount = chr_.get_param(sol.COUNT)
-    fee_amount = await get_fee(transfer_amount)
-    total_amount = transfer_amount + fee_amount
-    fee_percentage = round(100 * fee_amount / transfer_amount, 1)
+    transfer = chr_.get_param(sol.COUNT)
+    fee = await get_fee(transfer)
+    total = transfer + fee
+    fee_percentage = round(100 * fee / transfer, 1)
     description = chr_.get_param(sol.DESCRIPTION)
 
     tpay_confirm_text = (f'відправник: {await get_formatted_name_by_member(sender, ping=True)}\n'
                          f'отримувач: {await get_formatted_name_by_member(receiver, ping=True)}\n\n'
-                         f'*загальна сума: {total_amount}*\n'
-                         f'сума переводу: {transfer_amount}\n'
-                         f'комісія: {fee_amount} ({fee_percentage}%)\n\n'
+                         f'*загальна сума: {total}*\n'
+                         f'сума переводу: {transfer}\n'
+                         f'комісія: {fee} ({fee_percentage}%)\n\n'
                          f'опис: _{description}_')
 
     op_id = await service.operation_manager.register(
-        service.tpay, sender, receiver, transfer_amount, description
+        service.tpay, sender, receiver, transfer, description
     )
 
     await message.answer(tpay_confirm_text, reply_markup=tpay_confirm_keyboard(op_id, sender.user_id))
@@ -257,7 +249,7 @@ async def tpay_yes(callback: CallbackQuery):
         return
 
     if not tr_.valid:
-        await callback.message.answer(tr_.error_message)
+        await callback.message.answer(tr_.message)
         await callback.message.delete()
         service.active_callbacks.remove(message_id)
         return
@@ -310,7 +302,7 @@ async def deban(message: Message) -> None:
 
 # [<reply>] /command
 # /command <username:username>
-# /command <user_id:pzint>
+# /command <user_id:pnint>
 async def empty_handler(message: Message) -> CommandHandlerResult:
     overloads = [
         await sol.reply_empty(reply_optional=True),
@@ -340,7 +332,7 @@ async def empty_handler(message: Message) -> CommandHandlerResult:
 
 # <reply> /command <count:any> [<description:text>]
 # /command <username:username> <count:any> [<description:text>]
-# /command <user_id:pzint> <count:any> [<description:text>]
+# /command <user_id:pnint> <count:any> [<description:text>]
 async def count_handler(
         message: Message,
         count_type: pt,
@@ -352,8 +344,8 @@ async def count_handler(
             creator_filter=creator_filter,
             self_reply_filter=self_reply_filter
         ),
-        await sol.username_count(pt.pzint, creator_filter=creator_filter),
-        await sol.user_id_count(pt.pzint, creator_filter=creator_filter)
+        await sol.username_count(pt.pnint, creator_filter=creator_filter),
+        await sol.user_id_count(pt.pnint, creator_filter=creator_filter)
     ]
 
     cp = CommandParser(message, *overloads)
@@ -406,16 +398,11 @@ async def _define_service() -> None:
     service = Service(Repository(glob.rms.db_file_path))
 
 
-async def _respond_invalid(message: Message, response: CommandParserResultErrorMessages):
+async def _respond_invalid(message: Message, response: CommandParserResultMessages):
     out_message = await get_random_permission_denied_message() \
-        if response == CommandParserResultErrorMessages.not_creator else response
+        if response == CommandParserResultMessages.not_creator else response
 
     await message.reply(out_message)
-
-
-async def _schedule_events(scheduler: AsyncIOScheduler):
-    scheduler.add_job(service.reset_tpay_available, 'cron', hour=0, minute=0)
-    scheduler.start()
 
 
 async def main() -> None:
@@ -432,10 +419,20 @@ async def main() -> None:
     service.bot = Bot(token=glob.rms.bot_token, default=DefaultBotProperties(parse_mode=ParseMode.MARKDOWN))
     dp.message.middleware(SourceFilterMiddleware())
 
-    await _schedule_events(scheduler)
+    scheduler.add_job(service.reset_tpay_available, 'cron', hour=0, minute=0)
+    scheduler.start()
+
     await dp.start_polling(service.bot)
 
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, stream=sys.stdout)
     asyncio.run(main())
+
+
+# @dp.message(Command(cl.db.name))
+# async def db(message: Message) -> None:
+#     await service.bot.send_document(
+#         chat_id=glob.rms.group_chat_id,
+#         document=FSInputFile(glob.rms.db_file_path)
+#     )

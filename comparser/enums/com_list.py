@@ -6,12 +6,12 @@ class CommandList(str, Enum):
     # handler: empty
     # [<reply>] /command
     # /command <username:username>
-    # /command <user_id:pzint>
+    # /command <user_id:pnint>
 
     # handler: count
     # <reply> /command <count:any> [<description:text>]
     # /command <username:username> <count:any> [<description:text>]
-    # /command <user_id:pzint> <count:any> [<description:text>]
+    # /command <user_id:pnint> <count:any> [<description:text>]
 
     # # # # # # # # #
     # for creator
@@ -22,13 +22,13 @@ class CommandList(str, Enum):
     # /sql <query:text>
     sql = 'sql'
 
-    # handler: count:pzint
+    # handler: count:pnreal
     addt = 'addt'
 
-    # handler: count:pzint
+    # handler: count:pnreal
     delt = 'delt'
 
-    # handler: count:int
+    # handler: count:real
     sett = 'sett'
 
     # # # # # # # # #
@@ -38,7 +38,7 @@ class CommandList(str, Enum):
     help = 'help'
 
     # /topt
-    # /topt <count:zint>
+    # /topt <count:nint>
     topt = 'topt'
 
     # handler: empty
@@ -50,22 +50,22 @@ class CommandList(str, Enum):
     # handler: empty
     ttime = 'ttime'
 
-    # handler: count:pzint
+    # handler: count:pnreal
     tpay = 'tpay'
 
     # <reply> /tkick [<message:text>]
     # /tkick <username:username> [<message:text>]
-    # /tkick <user_id:pzint> [<message:text>]
+    # /tkick <user_id:pnint> [<message:text>]
     tkick = 'tkick'
 
     # <reply> /tmute <time:time> [<message:text>]
     # /tmute <username:username> <time:time> [<message:text>]
-    # /tmute <user_id:pzint> <time:time> [<message:text>]
+    # /tmute <user_id:pnint> <time:time> [<message:text>]
     tmute = 'tmute'
 
     # <reply> /tban <time:time> [<message:text>]
     # /tban <username:username> <time:time> [<message:text>]
-    # /tban <user_id:pzint> <time:time> [<message:text>]
+    # /tban <user_id:pnint> <time:time> [<message:text>]
     tban = 'tban'
 
     # /demute
