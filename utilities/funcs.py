@@ -3,8 +3,6 @@ import os
 import xml.etree.ElementTree as ET
 
 import aiosqlite
-from aiogram import Bot
-from aiogram.enums import ChatMemberStatus
 from aiogram.types import Message
 
 import utilities.globals as glob
@@ -30,7 +28,7 @@ async def _parse_pathlib(xml_path: str) -> str:
             break
 
     if back_seq_count == 0:
-        path = Path().cwd()
+        path = Path.cwd()
     else:
         path = Path.cwd().parent
         for i in range(1, back_seq_count):
@@ -39,7 +37,8 @@ async def _parse_pathlib(xml_path: str) -> str:
     for i in range(back_seq_count, len(path_split)):
         path /= path_split[i] if (i == len(path_split) - 1) else Path(path_split[i])
 
-    return str(path)
+    p = str(path)
+    return p
 
 
 async def create_databases():

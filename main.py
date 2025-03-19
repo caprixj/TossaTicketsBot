@@ -459,6 +459,8 @@ async def validate_user(message: Message) -> bool:
             await message.answer(glob.NOT_TICKETONOMICS_MEMBER_DM_TEXT)
             return False
     elif is_member:
+        await service.validate_member(message.from_user, create=False)
+    else:
         await service.validate_member(message.from_user)
 
     return True
