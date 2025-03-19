@@ -423,7 +423,20 @@ async def is_ticketonomics_member(user: User) -> bool:
     return await service.validate_member(user, create=False)
 
 
-async def _define_run_mode() -> RunMode:
+async def reset_tpay_available():
+    await service.reset_tpay_available()
+    await service.bot.send_message(
+        chat_id=glob.rms.group_chat_id,
+        text=glob.RESET_TPAY_AVAILABLE_DONE_TEXT
+    )
+
+
+async def schedule(scheduler: AsyncIOScheduler):
+    scheduler.add_job(reset_tpay_available, 'cron', hour=0, minute=1)
+    scheduler.start()
+
+
+async def define_run_mode() -> RunMode:
     if len(sys.argv) <= 1:
         return RunMode.DEFAULT
 
@@ -435,7 +448,7 @@ async def _define_run_mode() -> RunMode:
         return RunMode.PROD
 
 
-async def _define_rms(rm: RunMode) -> bool:
+async def define_rms(rm: RunMode) -> bool:
     if rm not in [RunMode.PROD, RunMode.DEV]:
         return False
 
@@ -443,31 +456,26 @@ async def _define_rms(rm: RunMode) -> bool:
     return True
 
 
-async def _define_service():
+async def define_service():
     global service
     service = Service(Repository(glob.rms.db_file_path))
 
 
-async def _schedule(scheduler: AsyncIOScheduler):
-    scheduler.add_job(service.reset_tpay_available, 'cron', hour=0, minute=51)
-    scheduler.start()
-
-
 async def main():
-    run_mode = await _define_run_mode()
-    valid_args = await _define_rms(run_mode)
+    run_mode = await define_run_mode()
+    valid_args = await define_rms(run_mode)
     scheduler = AsyncIOScheduler()
 
     if not valid_args:
         raise RuntimeError(glob.VALID_ARGS_TEXT)
 
-    await _define_service()
+    await define_service()
     await create_databases()
 
     service.bot = Bot(token=glob.rms.bot_token, default=DefaultBotProperties(parse_mode=ParseMode.MARKDOWN))
     dp.message.middleware(SourceFilterMiddleware())
 
-    await _schedule(scheduler)
+    await schedule(scheduler)
     await dp.start_polling(service.bot)
 
 
