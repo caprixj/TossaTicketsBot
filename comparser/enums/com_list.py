@@ -28,8 +28,17 @@ class CommandList(str, Enum):
     # handler: count:real
     sett = 'sett'
 
+    # /sfs <message:text>
+    sfs = 'sfs'
+
+    # /db
+    db = 'db'
+
     # # # # # # # # #
     # for all users
+
+    # /rusni
+    rusni = 'rusni'
 
     # /help
     help = 'help'

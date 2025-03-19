@@ -10,6 +10,8 @@ USER_ID = 'user_id'
 QUERY = 'query'
 SIZE = 'size'
 
+MESSAGE = 'message'
+
 
 # {<creator>} {<reply>} /command
 async def reply_empty(

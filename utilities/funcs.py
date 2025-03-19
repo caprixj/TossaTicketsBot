@@ -67,6 +67,7 @@ async def get_run_mode_settings(run_mode: RunMode) -> RunModeSettings:
                 return RunModeSettings(
                     bot_token=settings.find("bot-token").text,
                     group_chat_id=int(settings.find("group-chat-id").text),
+                    db_backup_chat_id=int(settings.find("db-backup-chat-id").text),
                     db_file_path=await _parse_pathlib(settings.find("db-file-path").text)
                 )
 

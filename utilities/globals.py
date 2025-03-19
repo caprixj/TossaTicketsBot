@@ -1,8 +1,8 @@
 from utilities.run_mode import RunModeSettings
 
 # RunModeSettings | defined in main.py | stored in config.xml
-# bot_token, group_chat_id, db_file_path
-rms = RunModeSettings()
+# bot-token, group-chat-id, db-backup-chat-id, db-file-path
+rms: RunModeSettings = RunModeSettings()
 
 CONFIG_PATH_DEV = 'config/config.xml'
 CONFIG_PATH_PROD = '../config/config.xml'
@@ -17,10 +17,14 @@ TPAY_YES_CALLBACK = 'tpay_yes'
 TPAY_NO_CALLBACK = 'tpay_no'
 TPAY_FEE_INCORPORATION_CALLBACK = 'tpay_fi'
 
+RESET_TPAY_AVAILABLE_DONE_TEXT = 'ℹ️ к-сть доступних переказів оновлено'
+DB_BACKUP_DONE_TEXT = 'ℹ️ копію бази даних збережено'
+
 ADDT_TEXT = '📈 тікети нараховано!'
 DELT_TEXT = '📉 тікети знято!'
 SETT_TEXT = '🔄 тікети перевстановлено!'
 TPAY_TEXT = '🔀 тікети переведено!'
+RUSNI_TEXT = 'пизда!'
 TOPT_DESC_TEXT = '*💸 рейтинг тікетів*'
 TOPT_ASC_TEXT = '*💩 анти-рейтинг тікетів*'
 INFM_TEXT = '<b>ℹ️ інформація про учасника</b>'
@@ -38,7 +42,6 @@ ALERT_CALLBACK_NO_TEXT = 'ви не можете скасувати цю опе�
 ALERT_CALLBACK_ACTION_TEXT = 'ви не можете здійснити цю операцію!'
 NOT_IMPLEMENTED_TEXT = 'ще не реалізовано :с'
 NOT_TICKETONOMICS_MEMBER_DM_TEXT = '❌ щоб користуватися ботом, необхідно доєднатися до спільноти чату сфс та слідувати інструкціям, описаним у команді /help'
-RESET_TPAY_AVAILABLE_DONE_TEXT = 'ℹ️ к-сть доступних переказів оновлено'
 
 HELP_TEXT = """
 ✨ *Тікето-тяночка 🇺🇦* ✨

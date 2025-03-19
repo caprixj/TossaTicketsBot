@@ -13,7 +13,7 @@ from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.filters import Command
-from aiogram.types import Message, CallbackQuery, InlineKeyboardButton, LinkPreviewOptions, User
+from aiogram.types import Message, CallbackQuery, InlineKeyboardButton, LinkPreviewOptions, User, FSInputFile
 
 import comparser.standard_overloads as sol
 from comparser.results.com_handler_result import CommandHandlerResult
@@ -125,6 +125,51 @@ async def sett(message: Message):
     )
 
     await message.answer(glob.SETT_TEXT)
+
+
+@dp.message(Command(cl.sfs.name))
+async def sfs(message: Message):
+    if not await validate_user(message):
+        return
+
+    # /sfs <message:text>
+    o = Overload(creator_filter=True).add_param(sol.MESSAGE, pt.text)
+
+    cp = CommandParser(message, o)
+    result = await cp.parse()
+
+    if not result.valid:
+        await respond_invalid(message, result)
+        return
+
+    await service.bot.send_message(
+        chat_id=glob.rms.group_chat_id,
+        text=result.params.get(sol.MESSAGE)
+    )
+
+
+@dp.message(Command(cl.db.name))
+async def db(message: Message) -> None:
+    if not await validate_user(message):
+        return
+
+    cp = CommandParser(message, Overload(creator_filter=True))
+    result = await cp.parse()
+
+    if not result.valid:
+        await respond_invalid(message, result)
+        return
+
+    await service.bot.send_document(
+        chat_id=message.chat.id,
+        document=FSInputFile(glob.rms.db_file_path)
+    )
+
+
+@dp.message(Command(cl.rusni.name))
+async def rusni(message: Message):
+    await message.answer(glob.RUSNI_TEXT)
+    await validate_user(message)
 
 
 @dp.message(Command(cl.help.name))
@@ -431,8 +476,20 @@ async def reset_tpay_available():
     )
 
 
+async def db_backup():
+    await service.bot.send_document(
+        chat_id=glob.rms.db_backup_chat_id,
+        document=FSInputFile(glob.rms.db_file_path)
+    )
+    await service.bot.send_message(
+        chat_id=glob.rms.group_chat_id,
+        text=glob.DB_BACKUP_DONE_TEXT
+    )
+
+
 async def schedule(scheduler: AsyncIOScheduler):
     scheduler.add_job(reset_tpay_available, 'cron', hour=0, minute=1)
+    scheduler.add_job(db_backup, 'cron', hour=0, minute=1)
     scheduler.start()
 
 
@@ -482,10 +539,3 @@ async def main():
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, stream=sys.stdout)
     asyncio.run(main())
-
-# @dp.message(Command(cl.db.name))
-# async def db(message: Message) -> None:
-#     await service.bot.send_document(
-#         chat_id=glob.rms.group_chat_id,
-#         document=FSInputFile(glob.rms.db_file_path)
-#     )
