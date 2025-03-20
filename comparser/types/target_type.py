@@ -1,7 +1,7 @@
 from enum import Enum
 
 
-class OverloadType(str, Enum):
+class CommandTargetType(str, Enum):
     none = 'none'
     reply = 'reply'
     username = 'username'

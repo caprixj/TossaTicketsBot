@@ -3,79 +3,76 @@ import logging
 import sys
 from typing import Optional
 
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
-
-from aiogram.utils.keyboard import InlineKeyboardBuilder
-
-import utilities.globals as glob
-
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.filters import Command
-from aiogram.types import Message, CallbackQuery, InlineKeyboardButton, LinkPreviewOptions, User, FSInputFile
+from aiogram.types import Message, CallbackQuery, InlineKeyboardButton, LinkPreviewOptions, FSInputFile
+from aiogram.utils.keyboard import InlineKeyboardBuilder
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
-import comparser.standard_overloads as sol
-from comparser.results.com_handler_result import CommandHandlerResult
-from comparser.com_parser import CommandParser
-from comparser.overload import Overload
-from comparser.enums.param_type import ParamType as pt
-from comparser.enums.com_list import CommandList as cl
+import utilities.glob as glob
+from comparser import cog
+from comparser.overload import CommandOverload, CommandOverloadGroup
+from comparser.parser import CommandParser
+from comparser.types.arg_type import Text, Real, PNReal, NInt
+from comparser.types.com_list import CommandList as cl
+from comparser.types.target_type import CommandTargetType as ctt
 from middleware.source_filter_middleware import SourceFilterMiddleware
+from model.database.transactions.tr_messages import TransactionResultErrors as tre
 from model.database.transactions.transaction_result import TransactionResult
-from model.database.transactions.tr_messages import TransactionResultMessages as trem
-from repository.repository_core import Repository
 from service.service_core import Service
 from utilities.callback.funcs import generate_callback_data, get_callback_data
-from utilities.run_mode import RunMode
 from utilities.funcs import get_run_mode_settings, get_formatted_name_by_member, get_fee, \
-    get_transfer_by_total, create_databases, respond_invalid
+    get_transfer_by_total, create_databases, reply_by_crv
+from utilities.run_mode import RunMode
 
 service = Service()
 dp = Dispatcher()
 
+""" Creator commands """
+
 
 @dp.message(Command(cl.sql.name))
 async def sql(message: Message):
-    if not await validate_user(message):
-        return
+    og = CommandOverloadGroup(
+        # /sql <query:text>
+        overloads=[CommandOverload().add(glob.QUERY_ARG, Text)],
+        creator_required=True
+    )
 
-    # /sql <query:text>
-    o = Overload(creator_filter=True).add_param(sol.QUERY, pt.text)
+    cpr = CommandParser(message, og).parse()
 
-    cp = CommandParser(message, o)
-    result = await cp.parse()
-
-    if not result.valid:
-        await respond_invalid(message, result)
+    if not cpr.valid:
+        await reply_by_crv(message, cpr)
         return
 
     (executed, response) = await service.execute_sql(
-        query=result.params.get(sol.QUERY)
+        query=cpr.args[glob.QUERY_ARG]
     )
 
-    status = glob.SQL_SUCCESS_TEXT if executed else glob.SQL_FAILED_TEXT
+    status = glob.SQL_SUCCESS if executed else glob.SQL_FAILED
     await message.reply(f'{status}\n\n{response}', parse_mode=None)
 
 
 @dp.message(Command(cl.addt.name))
 async def addt(message: Message):
-    if not await validate_user(message):
+    cpr = CommandParser(message, cog.tickets(PNReal)).parse()
+
+    if not cpr.valid:
+        await reply_by_crv(message, cpr)
         return
 
-    result = await count_handler(
-        message=message,
-        count_type=pt.pnreal,
-        creator_filter=True
-    )
+    target_member = await service.get_target_member(cpr)
 
-    if not result.valid:
+    if target_member is None:
+        await message.answer(glob.GET_MEMBER_FAILED)
         return
 
     await service.add_tickets(
-        member=result.target_member,
-        tickets=result.get_param(sol.COUNT),
-        description=result.get_param(sol.DESCRIPTION)
+        member=target_member,
+        tickets=cpr.args[glob.TICKETS_ARG],
+        description=cpr.args.get(glob.DESCRIPTION_ARG, None)
     )
 
     await message.answer(glob.ADDT_TEXT)
@@ -83,22 +80,22 @@ async def addt(message: Message):
 
 @dp.message(Command(cl.delt.name))
 async def delt(message: Message):
-    if not await validate_user(message):
+    cpr = CommandParser(message, cog.tickets(PNReal)).parse()
+
+    if not cpr.valid:
+        await reply_by_crv(message, cpr)
         return
 
-    result = await count_handler(
-        message=message,
-        count_type=pt.pnreal,
-        creator_filter=True
-    )
+    target_member = await service.get_target_member(cpr)
 
-    if not result.valid:
+    if target_member is None:
+        await message.answer(glob.GET_MEMBER_FAILED)
         return
 
     await service.delete_tickets(
-        member=result.target_member,
-        tickets=result.get_param(sol.COUNT),
-        description=result.get_param(sol.DESCRIPTION)
+        member=target_member,
+        tickets=cpr.args[glob.TICKETS_ARG],
+        description=cpr.args.get(glob.DESCRIPTION_ARG, None)
     )
 
     await message.answer(glob.DELT_TEXT)
@@ -106,22 +103,22 @@ async def delt(message: Message):
 
 @dp.message(Command(cl.sett.name))
 async def sett(message: Message):
-    if not await validate_user(message):
+    cpr = CommandParser(message, cog.tickets(Real)).parse()
+
+    if not cpr.valid:
+        await reply_by_crv(message, cpr)
         return
 
-    result = await count_handler(
-        message=message,
-        count_type=pt.real,
-        creator_filter=True
-    )
+    target_member = await service.get_target_member(cpr)
 
-    if not result.valid:
+    if target_member is None:
+        await message.answer(glob.GET_MEMBER_FAILED)
         return
 
     await service.set_tickets(
-        member=result.target_member,
-        tickets=result.get_param(sol.COUNT),
-        description=result.get_param(sol.DESCRIPTION)
+        member=target_member,
+        tickets=cpr.args[glob.TICKETS_ARG],
+        description=cpr.args.get(glob.DESCRIPTION_ARG, None)
     )
 
     await message.answer(glob.SETT_TEXT)
@@ -129,35 +126,36 @@ async def sett(message: Message):
 
 @dp.message(Command(cl.sfs.name))
 async def sfs(message: Message):
-    if not await validate_user(message):
-        return
+    og = CommandOverloadGroup(
+        # /sfs <message:text>
+        overloads=[CommandOverload().add(glob.MESSAGE_ARG, Text)],
+        creator_required=True
+    )
 
-    # /sfs <message:text>
-    o = Overload(creator_filter=True).add_param(sol.MESSAGE, pt.text)
+    cpr = CommandParser(message, og).parse()
 
-    cp = CommandParser(message, o)
-    result = await cp.parse()
-
-    if not result.valid:
-        await respond_invalid(message, result)
+    if not cpr.valid:
+        await reply_by_crv(message, cpr)
         return
 
     await service.bot.send_message(
         chat_id=glob.rms.group_chat_id,
-        text=result.params.get(sol.MESSAGE)
+        text=cpr.args[glob.MESSAGE_ARG]
     )
 
 
 @dp.message(Command(cl.db.name))
 async def db(message: Message) -> None:
-    if not await validate_user(message):
-        return
+    og = CommandOverloadGroup(
+        # /db
+        overloads=[CommandOverload()],
+        creator_required=True
+    )
 
-    cp = CommandParser(message, Overload(creator_filter=True))
-    result = await cp.parse()
+    cpr = CommandParser(message, og).parse()
 
-    if not result.valid:
-        await respond_invalid(message, result)
+    if not cpr.valid:
+        await reply_by_crv(message, cpr)
         return
 
     await service.bot.send_document(
@@ -166,18 +164,50 @@ async def db(message: Message) -> None:
     )
 
 
+""" Member commands """
+
+
+@dp.message(Command(cl.reg.name))
+async def reg(message: Message):
+    og = CommandOverloadGroup([
+        # /reg
+        CommandOverload(),
+        # <reply> /reg
+        CommandOverload(reply_required=True)
+    ])
+
+    cpr = CommandParser(message, og).parse()
+
+    if not cpr.valid:
+        await message.answer(glob.COM_PARSER_FAILED)
+        return
+
+    target_member = await service.get_target_member(cpr)
+
+    if target_member is None:
+        if cpr.overload.target_type == ctt.none:
+            await service.create_member(message.from_user)
+        elif cpr.overload.target_type == ctt.reply:
+            await service.create_member(message.reply_to_message.from_user)
+        await message.answer(glob.REG_SUCCESS)
+    else:
+        if cpr.overload.target_type == ctt.none:
+            await service.update_member(message.from_user, target_member)
+            await message.answer(glob.REG_DENIED_CTT_NONE)
+        elif cpr.overload.target_type == ctt.reply:
+            await service.update_member(message.reply_to_message.from_user, target_member)
+            await message.answer(glob.REG_DENIED_CTT_REPLY)
+
+
 @dp.message(Command(cl.rusni.name))
 async def rusni(message: Message):
-    await message.answer(glob.RUSNI_TEXT)
     await validate_user(message)
+    await message.answer(glob.RUSNI_TEXT)
 
 
 @dp.message(Command(cl.help.name))
 async def help_(message: Message):
-    if message.chat.id == glob.rms.group_chat_id:
-        if not await validate_user(message):
-            return
-
+    await validate_user(message)
     await message.answer(
         text=glob.HELP_TEXT,
         parse_mode=ParseMode.MARKDOWN,
@@ -190,24 +220,24 @@ async def topt(message: Message):
     if not await validate_user(message):
         return
 
-    # /topt
-    o_no_size = Overload(name='no-size')
+    og = CommandOverloadGroup([
+        # /topt
+        CommandOverload(),
+        # /topt <size:nint>
+        CommandOverload().add(glob.SIZE_ARG, NInt)
+    ])
 
-    # /topt <size:nint>
-    o_size = Overload(name='size').add_param(sol.SIZE, pt.nint)
-
-    cpr = await CommandParser(message, o_no_size, o_size).parse()
+    cpr = CommandParser(message, og).parse()
 
     if not cpr.valid:
-        await respond_invalid(message, cpr)
+        await message.answer(glob.COM_PARSER_FAILED)
         return
 
-    async def _match_overload():
-        return await service.get_tickets_top() if cpr.overload.name == o_no_size.name \
-            else await service.get_tickets_top_by_size(cpr.params.get(sol.SIZE))
-
-    response = await _match_overload()
-    await message.answer(response)
+    if cpr.overload is og[0]:
+        await message.answer(await service.get_tickets_top())
+    else:
+        size = cpr.args[glob.SIZE_ARG]
+        await message.answer(await service.get_tickets_top_by_size(size))
 
 
 @dp.message(Command(cl.bal.name))
@@ -215,12 +245,19 @@ async def bal(message: Message):
     if not await validate_user(message):
         return
 
-    result = await empty_handler(message)
+    cpr = CommandParser(message, cog.pure()).parse()
 
-    if not result.valid:
+    if not cpr.valid:
+        await message.answer(glob.COM_PARSER_FAILED)
         return
 
-    response = await service.get_member_balance(result.target_member)
+    target_member = await service.get_target_member(cpr)
+
+    if target_member is None:
+        await message.answer(glob.GET_MEMBER_FAILED)
+        return
+
+    response = await service.get_member_balance(target_member)
     await message.answer(response)
 
 
@@ -229,12 +266,19 @@ async def infm(message: Message):
     if not await validate_user(message):
         return
 
-    result = await empty_handler(message)
+    cpr = CommandParser(message, cog.pure()).parse()
 
-    if not result.valid:
+    if not cpr.valid:
+        await message.answer(glob.COM_PARSER_FAILED)
         return
 
-    response = await service.get_member_info(result.target_member.user_id)
+    target_member = await service.get_target_member(cpr)
+
+    if target_member is None:
+        await message.answer(glob.GET_MEMBER_FAILED)
+        return
+
+    response = await service.get_member_info(target_member.user_id)
     await message.answer(response, parse_mode=ParseMode.HTML)
 
 
@@ -259,19 +303,25 @@ async def tpay(message: Message, callback_message: Message = None, fee_incorpora
     if not await validate_user(message):
         return
 
-    chr_ = await count_handler(message, pt.pnreal, self_reply_filter=True)
+    cpr = CommandParser(message, cog.tickets(PNReal)).parse()
 
-    if not chr_.valid:
+    if not cpr.valid:
+        await message.answer(glob.COM_PARSER_FAILED)
         return
 
-    sender = await service.get_member_by_user(message.from_user)
+    receiver = await service.get_target_member(cpr)
+
+    if receiver is None:
+        await message.answer(glob.GET_MEMBER_FAILED)
+        return
+
+    sender = await service.get_member(message.from_user.id)
 
     if sender.tpay_available == 0:
-        await message.answer(trem.tpay_unavailable)
+        await message.answer(tre.tpay_unavailable)
         return
 
-    receiver = chr_.target_member
-    description = chr_.get_param(sol.DESCRIPTION)
+    description = cpr.args[glob.DESCRIPTION_ARG]
 
     # t - total, x - transfer, f - fee
     # -> (t, x, f)
@@ -284,7 +334,7 @@ async def tpay(message: Message, callback_message: Message = None, fee_incorpora
             f = await get_fee(x)
             return x + f, x, f
 
-    total, transfer, fee = await calculate_transfer(chr_.get_param(sol.COUNT))
+    total, transfer, fee = await calculate_transfer(cpr.args[glob.TICKETS_ARG])
 
     tpay_confirmation_text = (f'відправник: {await get_formatted_name_by_member(sender, ping=True)}\n'
                               f'отримувач: {await get_formatted_name_by_member(receiver, ping=True)}\n\n'
@@ -324,14 +374,14 @@ async def tpay_yes(callback: CallbackQuery):
     tcd = await get_callback_data(callback.data)
 
     if callback.from_user.id != tcd.sender_id:
-        await callback.answer(glob.ALERT_CALLBACK_YES_TEXT, show_alert=True)
+        await callback.answer(glob.ALERT_CALLBACK_YES, show_alert=True)
         return
 
     tr_: Optional[TransactionResult] = await service.operation_manager.run(tcd.operation_id)
 
     if tr_ is None:
         await callback.message.edit_reply_markup(reply_markup=None)
-        await callback.message.answer(glob.SERVICE_OPERATION_NONE_RESULT_TEXT)
+        await callback.message.answer(glob.SERVICE_OPERATION_NONE_RESULT)
         return
 
     if not tr_.valid:
@@ -349,7 +399,7 @@ async def tpay_no(callback: CallbackQuery):
     tcd = await get_callback_data(callback.data)
 
     if callback.from_user.id != tcd.sender_id:
-        await callback.answer(glob.ALERT_CALLBACK_NO_TEXT, show_alert=True)
+        await callback.answer(glob.ALERT_CALLBACK_NO, show_alert=True)
         return
 
     await service.operation_manager.cancel(tcd.operation_id)
@@ -362,13 +412,13 @@ async def tpay_fi(callback: CallbackQuery):
     tcd = await get_callback_data(callback.data)
 
     if callback.from_user.id != tcd.sender_id:
-        await callback.answer(glob.ALERT_CALLBACK_ACTION_TEXT, show_alert=True)
+        await callback.answer(glob.ALERT_CALLBACK_ACTION, show_alert=True)
         return
 
     command_message = await service.operation_manager.get_command_message(tcd.operation_id)
     if command_message is None:
         await callback.message.edit_reply_markup(reply_markup=None)
-        await callback.message.answer(glob.SERVICE_OPERATION_NONE_RESULT_TEXT)
+        await callback.message.answer(glob.SERVICE_OPERATION_NONE_RESULT)
         return
 
     await service.operation_manager.cancel(tcd.operation_id)
@@ -380,101 +430,26 @@ async def tpay_fi(callback: CallbackQuery):
     )
 
 
-# [<reply>] /command
-# /command <username:username>
-# /command <user_id:pnint>
-async def empty_handler(message: Message) -> CommandHandlerResult:
-    overloads = [
-        await sol.reply_empty(reply_optional=True),
-        await sol.username_empty(),
-        await sol.user_id_empty()
-    ]
-
-    cp = CommandParser(message, *overloads)
-    cpr = await cp.parse()
-
-    if not cpr.valid:
-        await respond_invalid(message, cpr)
-        return CommandHandlerResult()
-
-    user = message.from_user \
-        if message.reply_to_message is None \
-        else message.reply_to_message.from_user
-
-    target_member = await service.get_member_by_cpr(cpr, user)
-
-    if target_member is None:
-        await message.answer(glob.GET_MEMBER_FAILED_TEXT)
-        return CommandHandlerResult()
-
-    return CommandHandlerResult(target_member, cpr, valid=True)
-
-
-# <reply> /command <count:any> [<description:text>]
-# /command <username:username> <count:any> [<description:text>]
-# /command <user_id:pnint> <count:any> [<description:text>]
-async def count_handler(
-        message: Message,
-        count_type: pt,
-        creator_filter: bool = False,
-        self_reply_filter: bool = False) -> CommandHandlerResult:
-    overloads = [
-        await sol.reply_count(
-            count_type=count_type,
-            creator_filter=creator_filter,
-            self_reply_filter=self_reply_filter
-        ),
-        await sol.username_count(
-            count_type=count_type,
-            creator_filter=creator_filter
-        ),
-        await sol.user_id_count(
-            count_type=count_type,
-            creator_filter=creator_filter
-        )
-    ]
-
-    cp = CommandParser(message, *overloads)
-    cpr = await cp.parse()
-
-    if not cpr.valid:
-        await respond_invalid(message, cpr)
-        return CommandHandlerResult()
-
-    user = message.reply_to_message.from_user if message.reply_to_message is not None else None
-    target_member = await service.get_member_by_cpr(cpr, user)
-
-    if target_member is None:
-        await message.answer(glob.GET_MEMBER_FAILED_TEXT)
-        return CommandHandlerResult()
-
-    return CommandHandlerResult(target_member, cpr, valid=True)
+""" Side Functions """
 
 
 async def validate_user(message: Message) -> bool:
-    is_member = await is_ticketonomics_member(message.from_user)
+    member = await service.get_member(message.from_user.id)
+    member_exists = member is not None
 
-    if message.chat.type == 'private':
-        if not is_member:
-            await message.answer(glob.NOT_TICKETONOMICS_MEMBER_DM_TEXT)
-            return False
-    elif is_member:
-        await service.validate_member(message.from_user, create=False)
+    if member_exists:
+        await service.update_member(message.from_user, member)
     else:
-        await service.validate_member(message.from_user)
+        await message.reply(glob.NOT_MEMBER_ERROR)
 
-    return True
-
-
-async def is_ticketonomics_member(user: User) -> bool:
-    return await service.validate_member(user, create=False)
+    return member_exists
 
 
 async def reset_tpay_available():
     await service.reset_tpay_available()
     await service.bot.send_message(
         chat_id=glob.rms.group_chat_id,
-        text=glob.RESET_TPAY_AVAILABLE_DONE_TEXT
+        text=glob.RESET_TPAY_AVAILABLE_DONE
     )
 
 
@@ -485,7 +460,7 @@ async def db_backup():
     )
     await service.bot.send_message(
         chat_id=glob.rms.group_chat_id,
-        text=glob.DB_BACKUP_DONE_TEXT
+        text=glob.DB_BACKUP_DONE
     )
 
 
@@ -495,7 +470,7 @@ async def schedule(scheduler: AsyncIOScheduler):
     scheduler.start()
 
 
-async def define_run_mode() -> RunMode:
+def define_run_mode() -> RunMode:
     if len(sys.argv) <= 1:
         return RunMode.DEFAULT
 
@@ -507,31 +482,37 @@ async def define_run_mode() -> RunMode:
         return RunMode.PROD
 
 
-async def define_rms(rm: RunMode) -> bool:
+def define_rms(rm: RunMode) -> bool:
     if rm not in [RunMode.PROD, RunMode.DEV]:
         return False
 
-    glob.rms = await get_run_mode_settings(rm)
+    glob.rms = get_run_mode_settings(rm)
     return True
 
 
-async def define_service():
+def define_service():
     global service
-    service = Service(Repository(glob.rms.db_file_path))
+    service = Service(glob.rms.db_file_path)
 
 
 async def main():
-    run_mode = await define_run_mode()
-    valid_args = await define_rms(run_mode)
+    run_mode = define_run_mode()
+    valid_args = define_rms(run_mode)
     scheduler = AsyncIOScheduler()
 
     if not valid_args:
-        raise RuntimeError(glob.VALID_ARGS_TEXT)
+        raise RuntimeError(glob.INVALID_ARGS)
 
-    await define_service()
+    define_service()
     await create_databases()
 
-    service.bot = Bot(token=glob.rms.bot_token, default=DefaultBotProperties(parse_mode=ParseMode.MARKDOWN))
+    service.bot = Bot(
+        token=glob.rms.bot_token,
+        default=DefaultBotProperties(
+            parse_mode=ParseMode.MARKDOWN
+        )
+    )
+
     dp.message.middleware(SourceFilterMiddleware())
 
     await schedule(scheduler)

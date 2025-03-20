@@ -1,7 +1,7 @@
-import utilities.globals as glob
+import utilities.glob as glob
 
 
-permission_denied_messages = [
+crv_messages = [
     f"пизда тобі. {glob.CREATOR_USERNAME} ходь сюди",
     f"дохуя розумний? я кличу {glob.CREATOR_USERNAME}",
     f"безкоштовних тікетів не буває. ставай раком, {glob.CREATOR_USERNAME} скоро підійде",

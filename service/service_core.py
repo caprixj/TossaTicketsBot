@@ -1,27 +1,24 @@
 import copy
 from datetime import datetime
+from typing import Union, Optional
 
 from aiogram import Bot
 from aiogram.types import User
 
-import utilities.globals as glob
-import comparser.standard_overloads as sol
-
-from typing import Union, Optional
-
-from comparser.results.com_parser_result import CommandParserResult
+import utilities.glob as glob
+from comparser.parser_result import CommandParserResult
+from comparser.types.target_type import CommandTargetType as ctt
 from model.database.member import Member
 from model.database.transactions.addt_transaction import AddtTransaction
 from model.database.transactions.delt_transaction import DeltTransaction
-from comparser.enums.overload_type import OverloadType as cot
 from model.database.transactions.tpay_transaction import TpayTransaction
+from model.database.transactions.tr_messages import TransactionResultErrors as trm
 from model.database.transactions.transaction_result import TransactionResult
-from model.database.transactions.tr_messages import TransactionResultMessages as trm
 from model.database.transactions.transaction_type import TransactionType
-from service.service_operation_manager import ServiceOperationManager
-from utilities.funcs import get_formatted_name, get_fee
 from repository.ordering_type import OrderingType
 from repository.repository_core import Repository
+from service.service_operation_manager import ServiceOperationManager
+from utilities.funcs import get_formatted_name, get_fee
 from utilities.sql_scripts import RESET_TPAY_AVAILABLE
 
 
@@ -30,21 +27,13 @@ async def _get_transaction_time() -> str:
 
 
 class Service:
-    def __init__(self, repository: Repository = None):
-        self.repo: Repository = repository
+    def __init__(self, db_file_path: str = None):
+        self.repo = Repository(db_file_path) if db_file_path else None
         self.bot: Optional[Bot] = None
-        self.operation_manager: ServiceOperationManager = ServiceOperationManager()
+        self.operation_manager = ServiceOperationManager()
 
     async def execute_sql(self, query: str) -> (bool, str):
         return await self.repo.execute_external(query)
-
-    async def validate_member(self, user: User, create: bool = True) -> bool:
-        if await self._member_exists_by_user_id(user.id):
-            await self._update_member_info(user)
-            return True
-        elif create:
-            await self._create(user)
-        return False
 
     async def reset_tpay_available(self) -> (bool, str):
         return await self.repo.execute_external(RESET_TPAY_AVAILABLE)
@@ -119,7 +108,7 @@ class Service:
         await self.repo.update_tickets(member)
 
     async def get_tickets_top(self) -> str:
-        result = f'{glob.TOPT_DESC_TEXT} (повний)\n\n'
+        result = f'{glob.TOPT_DESC} (повний)\n\n'
         members = await self.repo.get_members_by_tickets()
 
         for i, m in enumerate(members):
@@ -149,7 +138,7 @@ class Service:
         return result
 
     async def get_tickets_top_by_size(self, size: int) -> str:
-        result = f'{glob.TOPT_DESC_TEXT if size > 0 else glob.TOPT_ASC_TEXT}\n\n'
+        result = f'{glob.TOPT_DESC if size > 0 else glob.TOPT_ASC}\n\n'
         order = OrderingType.DESC if size > 0 else OrderingType.ASC
         members = await self.repo.get_members_by_tickets_limited(order, abs(size))
 
@@ -199,23 +188,45 @@ class Service:
                 f"\nартефакти: {arl}"
                 f"\nдоступно транзакцій: {ta}")
 
-    async def get_member_by_user(self, user: User) -> Optional[Member]:
-        member = await self.repo.read_by_user_id(user.id)
+    async def get_member(self, user_id: int) -> Optional[Member]:
+        return await self.repo.read_by_user_id(user_id)
 
-        if member is not None:
-            await self._update_member_info(user)
-        else:
-            await self._create(user)
+    async def get_target_member(self, cpr: CommandParserResult) -> Optional[Member]:
+        if cpr.overload.target_type == ctt.none:
+            user_id = cpr.message.from_user.id
+            return await self.repo.read_by_user_id(user_id)
+        elif cpr.overload.target_type == ctt.reply:
+            user_id = cpr.message.reply_to_message.from_user.id
+            return await self.repo.read_by_user_id(user_id)
+        elif cpr.overload.target_type == ctt.username:
+            return await self.repo.read_by_username(cpr.args[glob.USERNAME_ARG])
+        elif cpr.overload.target_type == ctt.user_id:
+            return await self.repo.read_by_user_id(cpr.args[glob.USER_ID_ARG])
 
-        return await self.repo.read_by_user_id(user.id)
+    async def member_exists(self, user_id: int) -> bool:
+        return await self.repo.read_by_user_id(user_id) is not None
 
-    async def get_member_by_cpr(self, cpr: CommandParserResult, user: User) -> Optional[Member]:
-        if cpr.overload.type == cot.reply:
-            return await self.repo.read_by_user_id(user.id)
-        elif cpr.overload.type == cot.username:
-            return await self.repo.read_by_username(cpr.params.get(sol.USERNAME))
-        elif cpr.overload.type == cot.user_id:
-            return await self.repo.read_by_user_id(cpr.params.get(sol.USER_ID))
+    async def update_member(self, user: User, member: Member = None):
+        if member is None:
+            member = await self.repo.read_by_user_id(user.id)
+
+        updated_member = copy.deepcopy(member)
+        changed = False
+
+        if member.username != user.username:
+            changed = True
+            updated_member.username = user.username
+
+        if member.first_name != user.first_name:
+            changed = True
+            updated_member.first_name = user.first_name
+
+        if member.last_name != user.last_name:
+            changed = True
+            updated_member.last_name = user.last_name
+
+        if changed:
+            await self.repo.update_names(updated_member)
 
     async def tpay(self,
                    sender: Member,
@@ -277,7 +288,7 @@ class Service:
 
         return TransactionResult(valid=True)
 
-    async def _create(self, value: Union[Member, User]) -> None:
+    async def create_member(self, value: Union[Member, User]) -> None:
         if isinstance(value, Member):
             await self.repo.create(value)
         elif isinstance(value, User):
@@ -289,33 +300,7 @@ class Service:
             )
             await self.repo.create(member)
         else:
-            raise TypeError("Invalid argument type")
-
-    async def _member_exists_by_user_id(self, user_id: int) -> bool:
-        return await self.repo.read_by_user_id(user_id) is not None
-
-    # async def _member_exists_by_username(self, username: str) -> bool:
-    #     return await self.repo.read_by_username(username) is not None
-
-    async def _update_member_info(self, user: User) -> None:
-        old_member = await self.repo.read_by_user_id(user.id)
-        updated_member = copy.deepcopy(old_member)
-        changed = False
-
-        if old_member.username != user.username:
-            changed = True
-            updated_member.username = user.username
-
-        if old_member.first_name != user.first_name:
-            changed = True
-            updated_member.first_name = user.first_name
-
-        if old_member.last_name != user.last_name:
-            changed = True
-            updated_member.last_name = user.last_name
-
-        if changed:
-            await self.repo.update_names(updated_member)
+            raise TypeError()
 
     async def _get_artifact_names_by_user_id_str(self, user_id: int) -> str:
         arl = str()

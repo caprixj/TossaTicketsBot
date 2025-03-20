@@ -1,6 +1,7 @@
-import aiosqlite
 from abc import ABC
 from typing import Optional
+
+import aiosqlite
 
 from model.database.member import Member
 from model.database.transactions.addt_transaction import AddtTransaction

@@ -1,23 +1,22 @@
-import random
 import os
+import random
 import xml.etree.ElementTree as ET
+from pathlib import Path
 
 import aiosqlite
 from aiogram.types import Message
 
-import utilities.globals as glob
-from pathlib import Path
-
-from comparser.results.com_parser_result import CommandParserResult
+import utilities.glob as glob
+from comparser.parser_result import CommandParserResult
 from model.database.member import Member
-from utilities.rand_globals import permission_denied_messages
+from utilities.glob import FEE_RATE as F, MIN_FEE as M
+from utilities.rand_globals import crv_messages
 from utilities.run_mode import RunMode, RunModeSettings
-from utilities.globals import FEE_RATE as F, MIN_FEE as M
 from utilities.sql_scripts import CREATE_TABLE_MEMBERS, CREATE_TABLE_ADDT, CREATE_TABLE_DELT, CREATE_TABLE_ARTIFACTS, \
     CREATE_TABLE_TPAY
 
 
-async def _parse_pathlib(xml_path: str) -> str:
+def _parse_pathlib(xml_path: str) -> str:
     path_split = xml_path.split('/')
     back_seq_count = 0
 
@@ -49,9 +48,9 @@ async def create_databases():
             await db.commit()
 
 
-async def get_run_mode_settings(run_mode: RunMode) -> RunModeSettings:
-    config_path_dev = await _parse_pathlib(glob.CONFIG_PATH_DEV)
-    config_path_prod = await _parse_pathlib(glob.CONFIG_PATH_PROD)
+def get_run_mode_settings(run_mode: RunMode) -> RunModeSettings:
+    config_path_dev = _parse_pathlib(glob.CONFIG_PATH_DEV)
+    config_path_prod = _parse_pathlib(glob.CONFIG_PATH_PROD)
 
     paths = [config_path_dev, config_path_prod]
 
@@ -67,7 +66,7 @@ async def get_run_mode_settings(run_mode: RunMode) -> RunModeSettings:
                     bot_token=settings.find("bot-token").text,
                     group_chat_id=int(settings.find("group-chat-id").text),
                     db_backup_chat_id=int(settings.find("db-backup-chat-id").text),
-                    db_file_path=await _parse_pathlib(settings.find("db-file-path").text)
+                    db_file_path=_parse_pathlib(settings.find("db-file-path").text)
                 )
 
         raise ValueError(f"No settings found with name '{run_mode.value}'")
@@ -75,8 +74,8 @@ async def get_run_mode_settings(run_mode: RunMode) -> RunModeSettings:
     raise IOError("All provided paths do not exist!")
 
 
-async def get_random_permission_denied_message() -> str:
-    return permission_denied_messages[random.randint(0, len(permission_denied_messages) - 1)]
+def get_random_crv_message() -> str:
+    return crv_messages[random.randint(0, len(crv_messages) - 1)]
 
 
 async def get_db_setup_sql_script() -> list[str]:
@@ -126,7 +125,7 @@ async def get_formatted_name(
     elif username:
         name += username
     else:
-        name = glob.NO_NAMES_TEXT
+        name = '-'
 
     name.replace('[', '(')
     name.replace(']', ')')
@@ -135,8 +134,8 @@ async def get_formatted_name(
         f'@{name}' if name == username else f'[{name}](tg://user?id={user_id})'
 
 
-async def respond_invalid(message: Message, cpr: CommandParserResult):
-    out_message = await get_random_permission_denied_message() \
-        if cpr.creator_filter_violation else glob.COM_PARSER_FAILED_TEXT
+async def reply_by_crv(message: Message, cpr: CommandParserResult):
+    out = get_random_crv_message() \
+        if cpr.creator_required_violation else glob.COM_PARSER_FAILED
 
-    await message.reply(out_message)
+    await message.reply(out)
