@@ -327,7 +327,7 @@ async def tpay(message: Message, callback_message: Message = None, fee_incorpora
         await message.answer(tre.tpay_unavailable)
         return
 
-    description = cpr.args[glob.DESCRIPTION_ARG]
+    description = cpr.args.get(glob.DESCRIPTION_ARG, None)
 
     # t - total, x - transfer, f - fee
     # -> (t, x, f)
