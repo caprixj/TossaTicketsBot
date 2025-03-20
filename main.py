@@ -167,6 +167,11 @@ async def db(message: Message) -> None:
 """ Member commands """
 
 
+@dp.message(Command('lymik'))
+async def lymik(message: Message):
+    await service.get_tickets_top()
+
+
 @dp.message(Command(cl.reg.name))
 async def reg(message: Message):
     og = CommandOverloadGroup([
