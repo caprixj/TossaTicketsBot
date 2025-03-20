@@ -471,7 +471,15 @@ async def db_backup():
 
 
 async def schedule(scheduler: AsyncIOScheduler):
-    scheduler.add_job(reset_tpay_available, 'cron', hour=0, minute=1)
+    scheduler.add_job(reset_tpay_available, 'cron', hour=0, minute=26)
+    scheduler.add_job(reset_tpay_available, 'cron', hour=0, minute=27)
+    scheduler.add_job(reset_tpay_available, 'cron', hour=0, minute=28)
+    scheduler.add_job(reset_tpay_available, 'cron', hour=0, minute=29)
+    scheduler.add_job(reset_tpay_available, 'cron', hour=0, minute=30)
+    scheduler.add_job(reset_tpay_available, 'cron', hour=0, minute=40)
+    scheduler.add_job(reset_tpay_available, 'cron', hour=0, minute=50)
+    scheduler.add_job(reset_tpay_available, 'cron', hour=1, minute=20)
+    scheduler.add_job(reset_tpay_available, 'cron', hour=1, minute=21)
     scheduler.add_job(db_backup, 'cron', hour=0, minute=1)
     scheduler.start()
 
