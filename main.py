@@ -21,7 +21,7 @@ from comparser.types.target_type import CommandTargetType as ctt
 from middleware.source_filter_middleware import SourceFilterMiddleware
 from model.database.transactions.tr_messages import TransactionResultErrors as tre
 from model.database.transactions.transaction_result import TransactionResult
-from service.service_core import Service
+from service.service_core import Service, _get_transaction_time
 from utilities.callback.funcs import generate_callback_data, get_callback_data
 from utilities.funcs import get_run_mode_settings, get_formatted_name_by_member, get_fee, \
     get_transfer_by_total, create_databases, reply_by_crv
@@ -170,6 +170,7 @@ async def db(message: Message) -> None:
 @dp.message(Command('lymik'))
 async def lymik(message: Message):
     await service.get_tickets_top()
+    print(f'lymik - {_get_transaction_time()}')
 
 
 @dp.message(Command(cl.reg.name))

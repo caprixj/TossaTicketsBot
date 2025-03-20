@@ -22,7 +22,7 @@ from utilities.funcs import get_formatted_name, get_fee
 from utilities.sql_scripts import RESET_TPAY_AVAILABLE
 
 
-async def _get_transaction_time() -> str:
+def _get_transaction_time() -> str:
     return datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
 
@@ -57,7 +57,7 @@ class Service:
 
     async def add_tickets(self, member: Member, tickets: int, description: str = None) -> None:
         member.tickets += tickets
-        time = await _get_transaction_time()
+        time = _get_transaction_time()
 
         await self.repo.update_tickets(member)
         await self.repo.create_stat_addt(AddtTransaction(
@@ -70,7 +70,7 @@ class Service:
 
     async def delete_tickets(self, member: Member, tickets: int, description: str = None) -> None:
         member.tickets -= tickets
-        time = await _get_transaction_time()
+        time = _get_transaction_time()
 
         await self.repo.update_tickets(member)
         await self.repo.create_stat_delt(DeltTransaction(
@@ -85,7 +85,7 @@ class Service:
         if member.tickets == tickets:
             return
 
-        time = await _get_transaction_time()
+        time = _get_transaction_time()
 
         if tickets > member.tickets:
             await self.repo.create_stat_addt(AddtTransaction(
@@ -240,7 +240,7 @@ class Service:
         if total > sender.tickets:
             return TransactionResult(trm.insufficient_funds)
 
-        time = await _get_transaction_time()
+        time = _get_transaction_time()
 
         # sender: -transfer -tpay_available
         sender.tickets -= transfer
