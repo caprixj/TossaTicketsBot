@@ -25,7 +25,7 @@ def pure() -> CommandOverloadGroup:
 # <creator> /command <username:username> <tickets:xreal> <description:text256>
 # <creator> /command <user_id:userid> <tickets:xreal>
 # <creator> /command <user_id:userid> <tickets:xreal> <description:text256>
-def tickets(arg_type: Type[CommandArgumentType]) -> CommandOverloadGroup:
+def tickets(arg_type: Type[CommandArgumentType], creator_required: bool) -> CommandOverloadGroup:
     return CommandOverloadGroup([
         CommandOverload(reply_required=True, no_self_reply_required=True)
         .add('tickets', arg_type),
@@ -51,4 +51,4 @@ def tickets(arg_type: Type[CommandArgumentType]) -> CommandOverloadGroup:
         .add('user_id', UserID)
         .add('tickets', arg_type)
         .add('description', Text256)
-    ], creator_required=True)
+    ], creator_required=creator_required)

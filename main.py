@@ -57,7 +57,7 @@ async def sql(message: Message):
 
 @dp.message(Command(cl.addt.name))
 async def addt(message: Message):
-    cpr = CommandParser(message, cog.tickets(PNReal)).parse()
+    cpr = CommandParser(message, cog.tickets(PNReal, creator_required=True)).parse()
 
     if not cpr.valid:
         await reply_by_crv(message, cpr)
@@ -80,7 +80,7 @@ async def addt(message: Message):
 
 @dp.message(Command(cl.delt.name))
 async def delt(message: Message):
-    cpr = CommandParser(message, cog.tickets(PNReal)).parse()
+    cpr = CommandParser(message, cog.tickets(PNReal, creator_required=True)).parse()
 
     if not cpr.valid:
         await reply_by_crv(message, cpr)
@@ -103,7 +103,7 @@ async def delt(message: Message):
 
 @dp.message(Command(cl.sett.name))
 async def sett(message: Message):
-    cpr = CommandParser(message, cog.tickets(Real)).parse()
+    cpr = CommandParser(message, cog.tickets(Real, creator_required=True)).parse()
 
     if not cpr.valid:
         await reply_by_crv(message, cpr)
@@ -309,7 +309,7 @@ async def tpay(message: Message, callback_message: Message = None, fee_incorpora
     if not await validate_user(message):
         return
 
-    cpr = CommandParser(message, cog.tickets(PNReal)).parse()
+    cpr = CommandParser(message, cog.tickets(PNReal, creator_required=False)).parse()
 
     if not cpr.valid:
         await message.answer(glob.COM_PARSER_FAILED)
