@@ -24,6 +24,7 @@ SIZE_ARG = 'size'
 TPAY_YES_CALLBACK = 'tpay_yes'
 TPAY_NO_CALLBACK = 'tpay_no'
 TPAY_FEE_INCORPORATION_CALLBACK = 'tpay_fi'
+HELP_DEL_CALLBACK = 'help_del'
 
 RESET_TPAY_AVAILABLE_DONE = 'ℹ️ к-сть доступних переказів оновлено'
 DB_BACKUP_DONE = 'ℹ️ копію бази даних збережено'

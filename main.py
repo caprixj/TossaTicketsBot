@@ -19,13 +19,12 @@ from comparser.types.arg_type import Text, Real, PNReal, NInt
 from comparser.types.com_list import CommandList as cl
 from comparser.types.target_type import CommandTargetType as ctt
 from middleware.source_filter_middleware import SourceFilterMiddleware
-from model.database.member import Member
 from model.database.transactions.tr_messages import TransactionResultErrors as tre
 from model.database.transactions.transaction_result import TransactionResult
-from service.service_core import Service, _get_transaction_time
+from service.service_core import Service
 from utilities.callback.funcs import generate_callback_data, get_callback_data
 from utilities.funcs import get_run_mode_settings, get_formatted_name_by_member, get_fee, \
-    get_transfer_by_total, create_databases, reply_by_crv
+    get_transfer_by_total, create_databases, reply_by_crv, get_transaction_time
 from utilities.run_mode import RunMode
 
 service = Service()
@@ -168,12 +167,6 @@ async def db(message: Message) -> None:
 """ Member commands """
 
 
-@dp.message(Command('lymik'))
-async def lymik(message: Message):
-    await service.get_tickets_top()
-    print(f'lymik - {_get_transaction_time()}')
-
-
 @dp.message(Command(cl.reg.name))
 async def reg(message: Message):
     og = CommandOverloadGroup([
@@ -218,8 +211,14 @@ async def help_(message: Message):
     await message.answer(
         text=glob.HELP_TEXT,
         parse_mode=ParseMode.MARKDOWN,
-        link_preview_options=LinkPreviewOptions(is_disabled=True)
+        link_preview_options=LinkPreviewOptions(is_disabled=True),
+        reply_markup=help_keyboard()
     )
+
+
+@dp.callback_query(lambda c: c.data.startswith(glob.HELP_DEL_CALLBACK))
+async def help_del(callback: CallbackQuery):
+    await callback.message.delete()
 
 
 @dp.message(Command(cl.topt.name))
@@ -287,22 +286,6 @@ async def infm(message: Message):
 
     response = await service.get_member_info(target_member.user_id)
     await message.answer(response, parse_mode=ParseMode.HTML)
-
-
-def tpay_keyboard(operation_id: int, sender_id: int, fee_incorporated: bool):
-    builder = InlineKeyboardBuilder()
-
-    cd_yes = generate_callback_data(glob.TPAY_YES_CALLBACK, operation_id, sender_id)
-    builder.row(InlineKeyboardButton(text='✅ Продовжити', callback_data=cd_yes))
-
-    cd_no = generate_callback_data(glob.TPAY_NO_CALLBACK, operation_id, sender_id)
-    builder.row(InlineKeyboardButton(text='❌ Скасувати', callback_data=cd_no))
-
-    if fee_incorporated:
-        cd_fi = generate_callback_data(glob.TPAY_FEE_INCORPORATION_CALLBACK, operation_id, sender_id)
-        builder.row(InlineKeyboardButton(text='➕ Вкласти комісію', callback_data=cd_fi))
-
-    return builder.as_markup()
 
 
 @dp.message(Command(cl.tpay.name))
@@ -437,6 +420,31 @@ async def tpay_fi(callback: CallbackQuery):
     )
 
 
+""" Keyboard Markups """
+
+
+def tpay_keyboard(operation_id: int, sender_id: int, fee_incorporated: bool):
+    builder = InlineKeyboardBuilder()
+
+    cd_yes = generate_callback_data(glob.TPAY_YES_CALLBACK, operation_id, sender_id)
+    builder.row(InlineKeyboardButton(text='✅ Продовжити', callback_data=cd_yes))
+
+    cd_no = generate_callback_data(glob.TPAY_NO_CALLBACK, operation_id, sender_id)
+    builder.row(InlineKeyboardButton(text='❌ Скасувати', callback_data=cd_no))
+
+    if fee_incorporated:
+        cd_fi = generate_callback_data(glob.TPAY_FEE_INCORPORATION_CALLBACK, operation_id, sender_id)
+        builder.row(InlineKeyboardButton(text='➕ Вкласти комісію', callback_data=cd_fi))
+
+    return builder.as_markup()
+
+
+def help_keyboard():
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text='Видалити', callback_data=glob.HELP_DEL_CALLBACK))
+    return builder.as_markup()
+
+
 """ Side Functions """
 
 
@@ -489,7 +497,7 @@ async def db_backup():
 async def schedule_test():
     await service.bot.send_message(
         chat_id=glob.rms.db_backup_chat_id,
-        text=_get_transaction_time()
+        text=get_transaction_time()
     )
 
 

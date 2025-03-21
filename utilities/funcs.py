@@ -1,6 +1,7 @@
 import os
 import random
 import xml.etree.ElementTree as ET
+from datetime import datetime
 from pathlib import Path
 
 import aiosqlite
@@ -139,3 +140,7 @@ async def reply_by_crv(message: Message, cpr: CommandParserResult):
         if cpr.creator_required_violation else glob.COM_PARSER_FAILED
 
     await message.reply(out)
+
+
+def get_transaction_time() -> str:
+    return datetime.now().strftime('%Y-%m-%d %H:%M:%S')
