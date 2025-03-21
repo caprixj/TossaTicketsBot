@@ -49,6 +49,7 @@ ALERT_CALLBACK_NO = 'ви не можете скасувати цю операц
 ALERT_CALLBACK_ACTION = 'ви не можете здійснити цю операцію!'
 NOT_IMPLEMENTED = 'ще не реалізовано :с'
 NOT_MEMBER_ERROR = '❌ щоб користуватися ботом, необхідно бути учасником чату сфс та відправити команду /reg. детальніші інструкції шукай на /help'
+TARGET_NOT_MEMBER_ERROR = '❌ відхилено! вказаний користувач не є учасником тікетономіки'
 
 INVALID_ARGS = 'THE PROGRAM WAS STARTED WITH INVALID COMMAND ARGUMENTS!'
 NO_OVERLOADS_ERROR = 'PARSING WITHOUT OVERLOADS IN COMMAND PARSER!'

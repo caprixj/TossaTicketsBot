@@ -7,7 +7,7 @@ from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.filters import Command
-from aiogram.types import Message, CallbackQuery, InlineKeyboardButton, LinkPreviewOptions, FSInputFile
+from aiogram.types import Message, CallbackQuery, InlineKeyboardButton, LinkPreviewOptions, FSInputFile, User
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
@@ -19,6 +19,7 @@ from comparser.types.arg_type import Text, Real, PNReal, NInt
 from comparser.types.com_list import CommandList as cl
 from comparser.types.target_type import CommandTargetType as ctt
 from middleware.source_filter_middleware import SourceFilterMiddleware
+from model.database.member import Member
 from model.database.transactions.tr_messages import TransactionResultErrors as tre
 from model.database.transactions.transaction_result import TransactionResult
 from service.service_core import Service, _get_transaction_time
@@ -207,13 +208,13 @@ async def reg(message: Message):
 
 @dp.message(Command(cl.rusni.name))
 async def rusni(message: Message):
-    await validate_user(message)
+    await validate_message(message)
     await message.answer(glob.RUSNI_TEXT)
 
 
 @dp.message(Command(cl.help.name))
 async def help_(message: Message):
-    await validate_user(message)
+    await validate_message(message)
     await message.answer(
         text=glob.HELP_TEXT,
         parse_mode=ParseMode.MARKDOWN,
@@ -223,7 +224,7 @@ async def help_(message: Message):
 
 @dp.message(Command(cl.topt.name))
 async def topt(message: Message):
-    if not await validate_user(message):
+    if not await validate_message(message):
         return
 
     og = CommandOverloadGroup([
@@ -248,7 +249,7 @@ async def topt(message: Message):
 
 @dp.message(Command(cl.bal.name))
 async def bal(message: Message):
-    if not await validate_user(message):
+    if not await validate_message(message):
         return
 
     cpr = CommandParser(message, cog.pure()).parse()
@@ -269,7 +270,7 @@ async def bal(message: Message):
 
 @dp.message(Command(cl.infm.name))
 async def infm(message: Message):
-    if not await validate_user(message):
+    if not await validate_message(message):
         return
 
     cpr = CommandParser(message, cog.pure()).parse()
@@ -306,7 +307,7 @@ def tpay_keyboard(operation_id: int, sender_id: int, fee_incorporated: bool):
 
 @dp.message(Command(cl.tpay.name))
 async def tpay(message: Message, callback_message: Message = None, fee_incorporated: bool = False):
-    if not await validate_user(message):
+    if not await validate_message(message):
         return
 
     cpr = CommandParser(message, cog.tickets(PNReal, creator_required=False)).parse()
@@ -439,14 +440,29 @@ async def tpay_fi(callback: CallbackQuery):
 """ Side Functions """
 
 
-async def validate_user(message: Message) -> bool:
-    member = await service.get_member(message.from_user.id)
+async def validate_message(message: Message) -> bool:
+    user_is_member = await validate_user(message.from_user)
+
+    if not user_is_member:
+        await message.reply(glob.NOT_MEMBER_ERROR)
+
+    if message.reply_to_message is not None:
+        reply_user_is_member = await validate_user(message.reply_to_message.from_user)
+
+        if not reply_user_is_member:
+            await message.reply(glob.TARGET_NOT_MEMBER_ERROR)
+
+        return user_is_member and reply_user_is_member
+
+    return user_is_member
+
+
+async def validate_user(user: User) -> bool:
+    member = await service.get_member(user.id)
     member_exists = member is not None
 
     if member_exists:
-        await service.update_member(message.from_user, member)
-    else:
-        await message.reply(glob.NOT_MEMBER_ERROR)
+        await service.update_member(user, member)
 
     return member_exists
 
@@ -478,11 +494,8 @@ async def schedule_test():
 
 
 async def schedule(scheduler: AsyncIOScheduler):
-    for i in range(0, 144):
-        h = int(10 * i / 60)
-        m = 10 * i % 60
-        scheduler.add_job(schedule_test, 'cron', hour=h, minute=m)
-
+    scheduler.add_job(reset_tpay_available, 'cron', hour=0, minute=1, misfire_grace_time=3600)
+    scheduler.add_job(db_backup, 'cron', hour=0, minute=1, misfire_grace_time=3600)
     scheduler.start()
 
 
