@@ -470,32 +470,19 @@ async def db_backup():
     )
 
 
+async def schedule_test():
+    await service.bot.send_message(
+        chat_id=glob.rms.db_backup_chat_id,
+        text=_get_transaction_time()
+    )
+
+
 async def schedule(scheduler: AsyncIOScheduler):
-    scheduler.add_job(reset_tpay_available, 'cron', hour=1, minute=00)
-    scheduler.add_job(reset_tpay_available, 'cron', hour=1, minute=5)
-    scheduler.add_job(reset_tpay_available, 'cron', hour=1, minute=10)
-    scheduler.add_job(reset_tpay_available, 'cron', hour=1, minute=15)
-    scheduler.add_job(reset_tpay_available, 'cron', hour=1, minute=20)
-    scheduler.add_job(reset_tpay_available, 'cron', hour=1, minute=25)
-    scheduler.add_job(reset_tpay_available, 'cron', hour=1, minute=30)
-    scheduler.add_job(reset_tpay_available, 'cron', hour=1, minute=35)
-    scheduler.add_job(reset_tpay_available, 'cron', hour=1, minute=40)
-    scheduler.add_job(reset_tpay_available, 'cron', hour=1, minute=45)
-    scheduler.add_job(reset_tpay_available, 'cron', hour=1, minute=50)
-    scheduler.add_job(reset_tpay_available, 'cron', hour=1, minute=55)
-    scheduler.add_job(reset_tpay_available, 'cron', hour=2, minute=00)
-    scheduler.add_job(reset_tpay_available, 'cron', hour=2, minute=5)
-    scheduler.add_job(reset_tpay_available, 'cron', hour=2, minute=10)
-    scheduler.add_job(reset_tpay_available, 'cron', hour=2, minute=15)
-    scheduler.add_job(reset_tpay_available, 'cron', hour=2, minute=20)
-    scheduler.add_job(reset_tpay_available, 'cron', hour=2, minute=25)
-    scheduler.add_job(reset_tpay_available, 'cron', hour=2, minute=30)
-    scheduler.add_job(reset_tpay_available, 'cron', hour=2, minute=35)
-    scheduler.add_job(reset_tpay_available, 'cron', hour=2, minute=40)
-    scheduler.add_job(reset_tpay_available, 'cron', hour=2, minute=45)
-    scheduler.add_job(reset_tpay_available, 'cron', hour=2, minute=50)
-    scheduler.add_job(reset_tpay_available, 'cron', hour=2, minute=55)
-    scheduler.add_job(db_backup, 'cron', hour=0, minute=1)
+    for i in range(0, 144):
+        h = int(10 * i / 60)
+        m = 10 * i % 60
+        scheduler.add_job(schedule_test, 'cron', hour=h, minute=m)
+
     scheduler.start()
 
 
