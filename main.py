@@ -15,7 +15,7 @@ import utilities.glob as glob
 from comparser import cog
 from comparser.overload import CommandOverload, CommandOverloadGroup
 from comparser.parser import CommandParser
-from comparser.types.arg_type import Text, Real, PNReal, NInt
+from model.ticketonomics_types import Text, Real, PNReal, NInt, SID
 from comparser.types.com_list import CommandList as cl
 from comparser.types.target_type import CommandTargetType as ctt
 from middleware.source_filter_middleware import SourceFilterMiddleware
@@ -23,8 +23,8 @@ from model.database.transactions.tr_messages import TransactionResultErrors as t
 from model.database.transactions.transaction_result import TransactionResult
 from service.service_core import Service
 from utilities.callback.funcs import generate_callback_data, get_callback_data
-from utilities.funcs import get_run_mode_settings, get_formatted_name_by_member, get_fee, \
-    get_transfer_by_total, create_databases, reply_by_crv, get_transaction_time
+from utilities.funcs import (get_run_mode_settings, get_fee, get_transfer_by_total, create_databases, reply_by_crv,
+                             get_formatted_name)
 from utilities.run_mode import RunMode
 
 service = Service()
@@ -69,7 +69,7 @@ async def addt(message: Message):
         await message.answer(glob.GET_MEMBER_FAILED)
         return
 
-    await service.add_tickets(
+    await service.addt(
         member=target_member,
         tickets=cpr.args[glob.TICKETS_ARG],
         description=cpr.args.get(glob.DESCRIPTION_ARG, None)
@@ -92,7 +92,7 @@ async def delt(message: Message):
         await message.answer(glob.GET_MEMBER_FAILED)
         return
 
-    await service.delete_tickets(
+    await service.delt(
         member=target_member,
         tickets=cpr.args[glob.TICKETS_ARG],
         description=cpr.args.get(glob.DESCRIPTION_ARG, None)
@@ -115,7 +115,7 @@ async def sett(message: Message):
         await message.answer(glob.GET_MEMBER_FAILED)
         return
 
-    await service.set_tickets(
+    await service.sett(
         member=target_member,
         tickets=cpr.args[glob.TICKETS_ARG],
         description=cpr.args.get(glob.DESCRIPTION_ARG, None)
@@ -162,6 +162,43 @@ async def db(message: Message) -> None:
         chat_id=message.chat.id,
         document=FSInputFile(glob.rms.db_file_path)
     )
+
+
+@dp.message(Command(cl.award.name))
+async def award(message: Message):
+    if not await validate_message(message):
+        return
+
+    og = cog.a1_any(a1_name=glob.AWARD_ID_ARG, a1_type=SID, creator_required=True)
+    cpr = CommandParser(message, og).parse()
+
+    if not cpr.valid:
+        await message.answer(glob.COM_PARSER_FAILED)
+        return
+
+    target_member = await service.get_target_member(cpr)
+
+    if target_member is None:
+        await message.answer(glob.GET_MEMBER_FAILED)
+        return
+
+    award_ = await service.get_award(cpr)
+
+    if award_ is None:
+        await message.answer(glob.GET_AWARD_FAILED)
+        return
+
+    if await service.issue_award(award_, target_member):
+        await service.pay_award(member=target_member, payment=award_.payment)
+        award_text = (f"{glob.AWARD_SUCCESS}"
+                      f"\n\n<b>{award_.name}</b>"
+                      f"\n\nid: {award_.award_id}"
+                      f"\nвиплата: {award_.payment:.2f}"
+                      f"\nвидано: {await service.get_award_issue_date(target_member.user_id)}"
+                      f"\n\nісторія: <i>{award_.description}</i>")
+        await message.answer(award_text, parse_mode=ParseMode.HTML)
+    else:
+        await message.answer(glob.AWARD_DUPLICATE)
 
 
 """ Member commands """
@@ -240,10 +277,10 @@ async def topt(message: Message):
         return
 
     if cpr.overload is og[0]:
-        await message.answer(await service.get_tickets_top())
+        await message.answer(await service.topt())
     else:
         size = cpr.args[glob.SIZE_ARG]
-        await message.answer(await service.get_tickets_top_by_size(size))
+        await message.answer(await service.topt_sized(size))
 
 
 @dp.message(Command(cl.bal.name))
@@ -263,7 +300,12 @@ async def bal(message: Message):
         await message.answer(glob.GET_MEMBER_FAILED)
         return
 
-    response = await service.get_member_balance(target_member)
+    name = await get_formatted_name(member=target_member, ping=True)
+    sign = '+' if target_member.tickets > 0 else str()
+    response = (f"🪪 ім'я: {name}"
+                f"\n💳 тікети: {sign}{target_member.tickets:.2f}"
+                f"\n🔀 доступно транзакцій: {target_member.tpay_available}")
+
     await message.answer(response)
 
 
@@ -284,7 +326,7 @@ async def infm(message: Message):
         await message.answer(glob.GET_MEMBER_FAILED)
         return
 
-    response = await service.get_member_info(target_member.user_id)
+    response = await service.infm(target_member.user_id)
     await message.answer(response, parse_mode=ParseMode.HTML)
 
 
@@ -326,8 +368,8 @@ async def tpay(message: Message, callback_message: Message = None, fee_incorpora
 
     total, transfer, fee = await calculate_transfer(cpr.args[glob.TICKETS_ARG])
 
-    tpay_confirmation_text = (f'відправник: {await get_formatted_name_by_member(sender, ping=True)}\n'
-                              f'отримувач: {await get_formatted_name_by_member(receiver, ping=True)}\n\n'
+    tpay_confirmation_text = (f'відправник: {await get_formatted_name(sender, ping=True)}\n'
+                              f'отримувач: {await get_formatted_name(receiver, ping=True)}\n\n'
                               f'*загальна сума: {total:.2f}*\n'
                               f'сума переказу: {transfer:.2f}\n'
                               f'комісія: {fee:.2f} ({int(100 * glob.FEE_RATE)}%, min {glob.MIN_FEE:.2f})\n\n'
@@ -441,7 +483,7 @@ def tpay_keyboard(operation_id: int, sender_id: int, fee_incorporated: bool):
 
 def help_keyboard():
     builder = InlineKeyboardBuilder()
-    builder.row(InlineKeyboardButton(text='Видалити', callback_data=glob.HELP_DEL_CALLBACK))
+    builder.row(InlineKeyboardButton(text='🗑 Видалити', callback_data=glob.HELP_DEL_CALLBACK))
     return builder.as_markup()
 
 
@@ -491,13 +533,6 @@ async def db_backup():
     await service.bot.send_message(
         chat_id=glob.rms.group_chat_id,
         text=glob.DB_BACKUP_DONE
-    )
-
-
-async def schedule_test():
-    await service.bot.send_message(
-        chat_id=glob.rms.db_backup_chat_id,
-        text=get_transaction_time()
     )
 
 

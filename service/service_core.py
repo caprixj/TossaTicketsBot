@@ -1,5 +1,4 @@
 import copy
-from datetime import datetime
 from typing import Union, Optional
 
 from aiogram import Bot
@@ -8,6 +7,7 @@ from aiogram.types import User
 import utilities.glob as glob
 from comparser.parser_result import CommandParserResult
 from comparser.types.target_type import CommandTargetType as ctt
+from model.database.award import Award
 from model.database.member import Member
 from model.database.transactions.addt_transaction import AddtTransaction
 from model.database.transactions.delt_transaction import DeltTransaction
@@ -31,53 +31,45 @@ class Service:
     async def execute_sql(self, query: str) -> (bool, str):
         return await self.repo.execute_external(query)
 
-    async def reset_tpay_available(self) -> (bool, str):
-        return await self.repo.execute_external(RESET_TPAY_AVAILABLE)
+    """ Functional """
 
-    async def get_member_balance(self, member: Member) -> str:
-        name = await get_formatted_name(
-            user_id=member.user_id,
-            username=member.username,
-            first_name=member.first_name,
-            last_name=member.last_name,
-            ping=True
-        )
+    # async def _get_artifact_names(self, user_id: int) -> str:
+    #     arl = str()
+    #     for ar in await self.repo.get_artifact_names(user_id):
+    #         arl += f'«{ar}», '
+    #
+    #     return arl[:-2] if arl else '-'
 
-        sign = '+' if member.tickets > 0 else str()
-        arl = await self._get_artifact_names_by_user_id_str(member.user_id)
-
-        return (f"🪪 ім'я: {name}"
-                f"\n💳 тікети: {sign}{member.tickets:.2f}"
-                f"\n🔮 артефакти: {arl}"
-                f"\n🔀 доступно транзакцій: {member.tpay_available}")
-
-    async def add_tickets(self, member: Member, tickets: int, description: str = None) -> None:
+    async def _add_tickets(self, member: Member, tickets: float, transaction_type: TransactionType,
+                           description: str = None) -> None:
         member.tickets += tickets
         time = get_transaction_time()
 
-        await self.repo.update_tickets(member)
+        await self.repo.update_member_tickets(member)
         await self.repo.create_stat_addt(AddtTransaction(
             user_id=member.user_id,
             tickets=tickets,
             time=time,
             description=description,
-            type_=TransactionType.creator
+            type_=transaction_type
         ))
 
-    async def delete_tickets(self, member: Member, tickets: int, description: str = None) -> None:
+    async def _delete_tickets(self, member: Member, tickets: float, transaction_type: TransactionType,
+                              description: str = None) -> None:
         member.tickets -= tickets
         time = get_transaction_time()
 
-        await self.repo.update_tickets(member)
+        await self.repo.update_member_tickets(member)
         await self.repo.create_stat_delt(DeltTransaction(
             user_id=member.user_id,
             tickets=tickets,
             time=time,
             description=description,
-            type_=TransactionType.creator
+            type_=transaction_type
         ))
 
-    async def set_tickets(self, member: Member, tickets: int, description: str = None) -> None:
+    async def _set_tickets(self, member: Member, tickets: float, transaction_type: TransactionType,
+                           description: str = None) -> None:
         if member.tickets == tickets:
             return
 
@@ -89,7 +81,7 @@ class Service:
                 tickets=tickets - member.tickets,
                 time=time,
                 description=description,
-                type_=TransactionType.creator
+                type_=transaction_type
             ))
         else:
             await self.repo.create_stat_delt(DeltTransaction(
@@ -97,22 +89,24 @@ class Service:
                 tickets=member.tickets - tickets,
                 time=time,
                 description=description,
-                type_=TransactionType.creator
+                type_=transaction_type
             ))
 
         member.tickets = tickets
-        await self.repo.update_tickets(member)
+        await self.repo.update_member_tickets(member)
 
-    async def get_tickets_top(self) -> str:
+    """ Interfaces """
+
+    async def topt(self) -> str:
         result = f'{glob.TOPT_DESC} (повний)\n\n'
         members = await self.repo.get_members_by_tickets()
 
         for i, m in enumerate(members):
-            name = await get_formatted_name(
+            name = await get_formatted_name(Member(
                 username=m.username,
                 first_name=m.first_name,
                 last_name=m.last_name
-            )
+            ))
 
             iterator = str()
             if i < 3:
@@ -133,17 +127,17 @@ class Service:
 
         return result
 
-    async def get_tickets_top_by_size(self, size: int) -> str:
+    async def topt_sized(self, size: int) -> str:
         result = f'{glob.TOPT_DESC if size > 0 else glob.TOPT_ASC}\n\n'
         order = OrderingType.DESC if size > 0 else OrderingType.ASC
         members = await self.repo.get_members_by_tickets_limited(order, abs(size))
 
         for i, m in enumerate(members):
-            name = await get_formatted_name(
+            name = await get_formatted_name(Member(
                 username=m.username,
                 first_name=m.first_name,
                 last_name=m.last_name
-            )
+            ))
 
             iterator = str()
             if i < 3 and order == OrderingType.DESC:
@@ -164,72 +158,33 @@ class Service:
 
         return result
 
-    async def get_member_info(self, user_id: int) -> str:
-        member = await self.repo.read_by_user_id(user_id)
+    async def infm(self, user_id: int) -> str:
+        member = await self.repo.get_member_by_user_id(user_id)
 
-        fn = member.first_name
-        ln = member.last_name
-        un = member.username
-        tc = member.tickets
-        arl = await self._get_artifact_names_by_user_id_str(user_id)
-        ta = member.tpay_available
-
-        return (f"{glob.INFM_TEXT}\n"
-                f"\nід: {member.user_id}"
-                f"\nім'я: {'-' if fn is None else fn}"
-                f"\nпрізвище: {'-' if ln is None else ln}"
-                f"\nюзернейм: {'-' if un is None else un}"
+        return (f"{glob.INFM_TEXT}"
+                f"\n\n<b>🪪 персональні дані</b>"
+                f"\nid: {member.user_id}"
+                f"\nім'я: {'-' if member.first_name is None else member.first_name}"
+                f"\nпрізвище: {'-' if member.last_name is None else member.last_name}"
+                f"\nюзернейм: {'-' if member.username is None else member.username}"
+                f"\n\n<b>💎 колекція</b>"
+                f"\nартефактів: {await self.repo.get_artifacts_count(user_id)}"
+                f"\nнагород: {await self.repo.get_awards_count(user_id)}"
                 f"\n\n<b>💳 активи</b>"
-                f"\nтікети: {'+' if tc > 0 else str()}{tc:.2f}"
-                f"\nартефакти: {arl}"
-                f"\nдоступно транзакцій: {ta}")
+                f"\nтікети: {'+' if member.tickets > 0 else str()}{member.tickets:.2f}"
+                f"\nдоступно транзакцій: {member.tpay_available}")
 
-    async def get_member(self, user_id: int) -> Optional[Member]:
-        return await self.repo.read_by_user_id(user_id)
+    async def addt(self, member: Member, tickets: float, description: str = None) -> None:
+        await self._add_tickets(member, tickets, TransactionType.creator, description)
 
-    async def get_target_member(self, cpr: CommandParserResult) -> Optional[Member]:
-        if cpr.overload.target_type == ctt.none:
-            user_id = cpr.message.from_user.id
-            return await self.repo.read_by_user_id(user_id)
-        elif cpr.overload.target_type == ctt.reply:
-            user_id = cpr.message.reply_to_message.from_user.id
-            return await self.repo.read_by_user_id(user_id)
-        elif cpr.overload.target_type == ctt.username:
-            return await self.repo.read_by_username(cpr.args[glob.USERNAME_ARG])
-        elif cpr.overload.target_type == ctt.user_id:
-            return await self.repo.read_by_user_id(cpr.args[glob.USER_ID_ARG])
+    async def delt(self, member: Member, tickets: float, description: str = None) -> None:
+        await self._delete_tickets(member, tickets, TransactionType.creator, description)
 
-    async def member_exists(self, user_id: int) -> bool:
-        return await self.repo.read_by_user_id(user_id) is not None
+    async def sett(self, member: Member, tickets: float, description: str = None) -> None:
+        await self._set_tickets(member, tickets, TransactionType.creator, description)
 
-    async def update_member(self, user: User, member: Member = None):
-        if member is None:
-            member = await self.repo.read_by_user_id(user.id)
-
-        updated_member = copy.deepcopy(member)
-        changed = False
-
-        if member.username != user.username:
-            changed = True
-            updated_member.username = user.username
-
-        if member.first_name != user.first_name:
-            changed = True
-            updated_member.first_name = user.first_name
-
-        if member.last_name != user.last_name:
-            changed = True
-            updated_member.last_name = user.last_name
-
-        if changed:
-            await self.repo.update_names(updated_member)
-
-    async def tpay(self,
-                   sender: Member,
-                   receiver: Member,
-                   transfer: int,
-                   description: str = None
-                   ) -> TransactionResult:
+    async def tpay(self, sender: Member, receiver: Member, transfer: float,
+                   description: str = None) -> TransactionResult:
         fee = await get_fee(transfer)
         total = transfer + fee
 
@@ -240,7 +195,7 @@ class Service:
 
         # sender: -transfer -tpay_available
         sender.tickets -= transfer
-        await self.repo.update_tickets(sender)
+        await self.repo.update_member_tickets(sender)
         await self.repo.spend_tpay_available(sender)
         await self.repo.create_stat_delt(DeltTransaction(
             user_id=sender.user_id,
@@ -252,7 +207,7 @@ class Service:
 
         # sender: -fee
         sender.tickets -= fee
-        await self.repo.update_tickets(sender)
+        await self.repo.update_member_tickets(sender)
         await self.repo.create_stat_delt(DeltTransaction(
             user_id=sender.user_id,
             tickets=fee,
@@ -263,7 +218,7 @@ class Service:
 
         # receiver: +transfer
         receiver.tickets += transfer
-        await self.repo.update_tickets(receiver)
+        await self.repo.update_member_tickets(receiver)
         await self.repo.create_stat_addt(AddtTransaction(
             user_id=receiver.user_id,
             tickets=transfer,
@@ -284,9 +239,40 @@ class Service:
 
         return TransactionResult(valid=True)
 
+    async def issue_award(self, award: Award, member: Member) -> bool:
+        return await self.repo.create_award_member(award, member)
+
+    async def pay_award(self, member: Member, payment: float):
+        await self._add_tickets(member, payment, TransactionType.award)
+
+    """ Get """
+
+    async def get_member(self, user_id: int) -> Optional[Member]:
+        return await self.repo.get_member_by_user_id(user_id)
+
+    async def get_target_member(self, cpr: CommandParserResult) -> Optional[Member]:
+        if cpr.overload.target_type == ctt.none:
+            user_id = cpr.message.from_user.id
+            return await self.repo.get_member_by_user_id(user_id)
+        elif cpr.overload.target_type == ctt.reply:
+            user_id = cpr.message.reply_to_message.from_user.id
+            return await self.repo.get_member_by_user_id(user_id)
+        elif cpr.overload.target_type == ctt.username:
+            return await self.repo.get_member_by_username(cpr.args[glob.USERNAME_ARG])
+        elif cpr.overload.target_type == ctt.user_id:
+            return await self.repo.get_member_by_user_id(cpr.args[glob.USER_ID_ARG])
+
+    async def get_award(self, cpr: CommandParserResult) -> Optional[Award]:
+        return await self.repo.get_award(cpr.args[glob.AWARD_ID_ARG])
+
+    async def get_award_issue_date(self, user_id: int) -> str:
+        return await self.repo.get_award_addt_time(user_id)
+
+    """ Member """
+
     async def create_member(self, value: Union[Member, User]) -> None:
         if isinstance(value, Member):
-            await self.repo.create(value)
+            await self.repo.create_member(value)
         elif isinstance(value, User):
             member = Member(
                 user_id=value.id,
@@ -294,13 +280,33 @@ class Service:
                 first_name=value.first_name,
                 last_name=value.last_name
             )
-            await self.repo.create(member)
+            await self.repo.create_member(member)
         else:
             raise TypeError()
 
-    async def _get_artifact_names_by_user_id_str(self, user_id: int) -> str:
-        arl = str()
-        for ar in await self.repo.get_artifact_names_by_user_id(user_id):
-            arl += f'«{ar}», '
+    async def update_member(self, user: User, member: Member = None):
+        if member is None:
+            member = await self.repo.get_member_by_user_id(user.id)
 
-        return arl[:-2] if arl else '-'
+        updated_member = copy.deepcopy(member)
+        changed = False
+
+        if member.username != user.username:
+            changed = True
+            updated_member.username = user.username
+
+        if member.first_name != user.first_name:
+            changed = True
+            updated_member.first_name = user.first_name
+
+        if member.last_name != user.last_name:
+            changed = True
+            updated_member.last_name = user.last_name
+
+        if changed:
+            await self.repo.update_member_names(updated_member)
+
+    """ Other """
+
+    async def reset_tpay_available(self) -> (bool, str):
+        return await self.repo.execute_external(RESET_TPAY_AVAILABLE)

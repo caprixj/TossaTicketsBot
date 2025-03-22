@@ -8,13 +8,13 @@ class CommandList(str, Enum):
     # /sql <query:text>
     sql = 'sql'
 
-    # cog: count-pnreal
+    # cog: tickets-pnreal
     addt = 'addt'
 
-    # cog: count-pnreal
+    # cog: tickets-pnreal
     delt = 'delt'
 
-    # cog: count-real
+    # cog: tickets-real
     sett = 'sett'
 
     # /sfs <message:text>
@@ -22,6 +22,9 @@ class CommandList(str, Enum):
 
     # /db
     db = 'db'
+
+    # cog: a1_any
+    award = 'award'
 
     # # # # # # # # #
     # for all users
@@ -45,5 +48,5 @@ class CommandList(str, Enum):
     # cog: pure
     infm = 'infm'
 
-    # cog: count-pnreal
+    # cog: tickets-pnreal
     tpay = 'tpay'

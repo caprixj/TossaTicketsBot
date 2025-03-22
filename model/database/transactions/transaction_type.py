@@ -6,3 +6,4 @@ class TransactionType(str, Enum):
     creator = 'creator'
     tpay = 'tpay'
     tpay_fee = 'tpay_fee'
+    award = 'award'

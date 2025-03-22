@@ -1,4 +1,6 @@
 import re
+from typing import Type
+
 
 # time type
 # r'^(?:(?:[1-9]\d*d\s*)?(?:[1-9]|1\d|2[0-3])h\s*)?(?:(?:[1-9]|[1-5]\d|60)m\s*)?$'
@@ -10,7 +12,8 @@ def _eufloat(value: str):
     return float(value)
 
 
-class CommandArgumentType:
+
+class TicketonomicsType:
     def __init__(self, data: str):
         self.data = data
 
@@ -19,7 +22,7 @@ class CommandArgumentType:
 
 
 # any string
-class Text(CommandArgumentType):
+class Text(TicketonomicsType):
     def __init__(self, data: str):
         super().__init__(data)
 
@@ -28,7 +31,7 @@ class Text(CommandArgumentType):
 
 
 # any string <= 64 chars
-class Text64(CommandArgumentType):
+class Text64(TicketonomicsType):
     def __init__(self, data: str):
         super().__init__(data)
 
@@ -40,7 +43,7 @@ class Text64(CommandArgumentType):
 
 
 # any string <= 256 chars
-class Text256(CommandArgumentType):
+class Text256(TicketonomicsType):
     def __init__(self, data: str):
         super().__init__(data)
 
@@ -51,8 +54,20 @@ class Text256(CommandArgumentType):
             raise ValueError()
 
 
+# any string <= 512 chars
+class Text512(TicketonomicsType):
+    def __init__(self, data: str):
+        super().__init__(data)
+
+    def cast(self) -> str:
+        if len(self.data) <= 512:
+            return self.data
+        else:
+            raise ValueError()
+
+
 # all double
-class Real(CommandArgumentType):
+class Real(TicketonomicsType):
     def __init__(self, data: str):
         super().__init__(data)
         self.pattern = r'^-?(?:[1-9]\d*|0)(?:[.,]\d{1,2})?$'
@@ -65,7 +80,7 @@ class Real(CommandArgumentType):
 
 
 # all double except zero
-class NReal(CommandArgumentType):
+class NReal(TicketonomicsType):
     def __init__(self, data: str):
         super().__init__(data)
         self.pattern = r'^(?!-?0+(?:[.,]0{1,2})?$)-?(?:[1-9]\d*|0)(?:[.,]\d{1,2})?$'
@@ -78,7 +93,7 @@ class NReal(CommandArgumentType):
 
 
 # all positive double except zero
-class PNReal(CommandArgumentType):
+class PNReal(TicketonomicsType):
     def __init__(self, data: str):
         super().__init__(data)
         self.pattern = r'^(?!0(?:[.,]0{1,2})?$)(?:[1-9]\d*|0)(?:[.,]\d{1,2})?$'
@@ -91,7 +106,7 @@ class PNReal(CommandArgumentType):
 
 
 # all integer
-class Int(CommandArgumentType):
+class Int(TicketonomicsType):
     def __init__(self, data: str):
         super().__init__(data)
         self.pattern = r'^-?\d+$'
@@ -104,7 +119,7 @@ class Int(CommandArgumentType):
 
 
 # all integer except zero
-class NInt(CommandArgumentType):
+class NInt(TicketonomicsType):
     def __init__(self, data: str):
         super().__init__(data)
         self.pattern = r'^-?[1-9]\d*$'
@@ -117,7 +132,7 @@ class NInt(CommandArgumentType):
 
 
 # all positive integers except zero
-class PNInt(CommandArgumentType):
+class PNInt(TicketonomicsType):
     def __init__(self, data: str):
         super().__init__(data)
         self.pattern = r'^[1-9]\d*$'
@@ -138,7 +153,7 @@ class UserID(PNInt):
 
 
 # @ + text (+ some rules)
-class Username(CommandArgumentType):
+class Username(TicketonomicsType):
     def __init__(self, data: str):
         super().__init__(data)
         self.pattern = r'^@[A-Za-z_][A-Za-z0-9_]{4,}$'
@@ -148,3 +163,23 @@ class Username(CommandArgumentType):
             return self.data[1:]
         else:
             raise ValueError()
+
+
+# string id
+class SID(TicketonomicsType):
+    def __init__(self, data: str):
+        super().__init__(data)
+        self.pattern = r'^[a-z]([a-z0-9]{2,15})$'
+
+    def cast(self) -> str:
+        if bool(re.match(self.pattern, self.data)):
+            return self.data
+        else:
+            raise ValueError()
+
+
+def xreal(arg_type: Type[TicketonomicsType]) -> bool:
+    return arg_type in [
+        Real, NReal, PNReal,
+        Int, NInt, PNInt
+    ]

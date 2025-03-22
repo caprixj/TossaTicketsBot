@@ -14,7 +14,7 @@ from utilities.glob import FEE_RATE as F, MIN_FEE as M
 from utilities.rand_globals import crv_messages
 from utilities.run_mode import RunMode, RunModeSettings
 from utilities.sql_scripts import CREATE_TABLE_MEMBERS, CREATE_TABLE_ADDT, CREATE_TABLE_DELT, CREATE_TABLE_ARTIFACTS, \
-    CREATE_TABLE_TPAY
+    CREATE_TABLE_TPAY, CREATE_TABLE_AWARDS, CREATE_TABLE_AWARD_MEMBER
 
 
 def _parse_pathlib(xml_path: str) -> str:
@@ -85,7 +85,9 @@ async def get_db_setup_sql_script() -> list[str]:
         CREATE_TABLE_ARTIFACTS,
         CREATE_TABLE_ADDT,
         CREATE_TABLE_DELT,
-        CREATE_TABLE_TPAY
+        CREATE_TABLE_TPAY,
+        CREATE_TABLE_AWARDS,
+        CREATE_TABLE_AWARD_MEMBER
     ]
 
 
@@ -97,34 +99,19 @@ async def get_transfer_by_total(t: float) -> float:
     return t - M if F * (t - M) <= M else round(t / (F + 1), 2)
 
 
-async def get_formatted_name_by_member(member: Member, ping: bool = False) -> str:
-    return await get_formatted_name(
-        username=member.username,
-        first_name=member.first_name,
-        last_name=member.last_name,
-        user_id=member.user_id,
-        ping=ping
-    )
-
-
-async def get_formatted_name(
-        username: str,
-        first_name: str,
-        last_name: str,
-        user_id: int = 0,
-        ping: bool = False) -> str:
+async def get_formatted_name(member: Member, ping: bool = False) -> str:
     name = str()
 
-    if first_name or last_name:
+    if member.first_name or member.last_name:
         fn_not_empty = False
-        if first_name:
+        if member.first_name:
             fn_not_empty = True
-            name += first_name
-        if last_name:
-            name += ' ' if fn_not_empty else ''
-            name += last_name
-    elif username:
-        name += username
+            name += member.first_name
+        if member.last_name:
+            name += ' ' if fn_not_empty else str()
+            name += member.last_name
+    elif member.username:
+        name += member.username
     else:
         name = '-'
 
@@ -132,7 +119,7 @@ async def get_formatted_name(
     name.replace(']', ')')
 
     return name if not ping else \
-        f'@{name}' if name == username else f'[{name}](tg://user?id={user_id})'
+        f'@{name}' if name == member.username else f'[{name}](tg://user?id={member.user_id})'
 
 
 async def reply_by_crv(message: Message, cpr: CommandParserResult):

@@ -1,6 +1,6 @@
 from typing import Type, List
 
-from comparser.types.arg_type import CommandArgumentType, Username, UserID
+from model.ticketonomics_types import TicketonomicsType, Username, UserID
 from comparser.types.target_type import CommandTargetType as ctt
 from utilities import glob
 
@@ -18,7 +18,7 @@ class CommandOverload:
         self.schema = {}
         self.target_type = ctt.reply if reply_required else ctt.none
 
-    def add(self, name: str, arg_type: Type[CommandArgumentType]):
+    def add(self, name: str, arg_type: Type[TicketonomicsType]):
         if arg_type == Username:
             if self.target_type != ctt.none:
                 raise RuntimeError(glob.DOUBLE_TARGETING_ERROR)
