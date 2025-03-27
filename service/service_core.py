@@ -6,6 +6,7 @@ import resources.const.glob as glob
 from command.parser.results.parser_result import CommandParserResult
 from command.parser.types.target_type import CommandTargetType as ctt
 from model.database.award import Award
+from model.database.award_member import AwardMemberJunction
 from model.database.member import Member
 from model.database.addt_transaction import AddtTransaction
 from model.database.delt_transaction import DeltTransaction
@@ -17,8 +18,8 @@ from model.types.transaction_type import TransactionType
 from repository.ordering_type import OrderingType
 from repository import repository_core as repo
 from service.operation_manager import ServiceOperationManager
-from resources.funcs.funcs import get_formatted_name, get_fee, get_transaction_time
-from sql.scripts import RESET_TPAY_AVAILABLE
+from resources.funcs.funcs import get_formatted_name, get_fee, get_current_datetime
+from resources.sql.scripts import RESET_TPAY_AVAILABLE
 
 operation_manager: ServiceOperationManager = ServiceOperationManager()
 
@@ -26,7 +27,7 @@ operation_manager: ServiceOperationManager = ServiceOperationManager()
 async def _add_tickets(member: Member, tickets: float, transaction_type: TransactionType,
                        description: str = None) -> None:
     member.tickets += tickets
-    time = get_transaction_time()
+    time = get_current_datetime()
 
     await repo.update_member_tickets(member)
     await repo.create_stat_addt(AddtTransaction(
@@ -41,7 +42,7 @@ async def _add_tickets(member: Member, tickets: float, transaction_type: Transac
 async def _delete_tickets(member: Member, tickets: float, transaction_type: TransactionType,
                           description: str = None) -> None:
     member.tickets -= tickets
-    time = get_transaction_time()
+    time = get_current_datetime()
 
     await repo.update_member_tickets(member)
     await repo.create_stat_delt(DeltTransaction(
@@ -58,7 +59,7 @@ async def _set_tickets(member: Member, tickets: float, transaction_type: Transac
     if member.tickets == tickets:
         return
 
-    time = get_transaction_time()
+    time = get_current_datetime()
 
     if tickets > member.tickets:
         await repo.create_stat_addt(AddtTransaction(
@@ -187,7 +188,7 @@ async def tpay(sender: Member, receiver: Member, transfer: float, description: s
     if total > sender.tickets:
         return TransactionResult(trm.insufficient_funds)
 
-    time = get_transaction_time()
+    time = get_current_datetime()
 
     # sender: -transfer -tpay_available
     sender.tickets -= transfer
@@ -240,12 +241,12 @@ async def mytpay(user_id: int) -> MytpayResult:
     return await repo.get_transaction_stats(user_id)
 
 
-async def issue_award(award: Award, member: Member) -> bool:
-    return await repo.create_award_member(award, member)
+async def issue_award(am: AwardMemberJunction) -> bool:
+    return await repo.create_award_member(am)
 
 
-async def pay_award(member: Member, payment: float):
-    await _add_tickets(member, payment, TransactionType.award)
+async def pay_award(member: Member, payment: float, description: str):
+    await _add_tickets(member, payment, TransactionType.award, description)
 
 
 """ Get """
@@ -272,8 +273,8 @@ async def get_award(cpr: CommandParserResult) -> Optional[Award]:
     return await repo.get_award(cpr.args[glob.AWARD_ID_ARG])
 
 
-async def get_award_issue_date(user_id: int) -> str:
-    return await repo.get_award_addt_time(user_id)
+# async def get_award_issue_date(user_id: int) -> str:
+#     return await repo.get_award_addt_time(user_id)
 
 
 """ Member """

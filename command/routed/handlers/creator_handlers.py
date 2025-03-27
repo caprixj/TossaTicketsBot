@@ -3,9 +3,11 @@ import random
 from aiogram import Router
 from aiogram.enums import ParseMode
 from aiogram.filters import Command
-from aiogram.types import Message, FSInputFile
+from aiogram.types import Message
 
 import resources.const.glob as glob
+from model.database.award_member import AwardMemberJunction
+from resources.funcs import funcs
 from service import service_core as service
 from command.parser.core import cog
 from command.parser.core.overload import CommandOverload, CommandOverloadGroup
@@ -175,13 +177,22 @@ async def award(message: Message):
         await message.answer(glob.GET_AWARD_FAILED)
         return
 
-    if await service.issue_award(award_, target_member):
-        await service.pay_award(member=target_member, payment=award_.payment)
+    am = AwardMemberJunction(
+        award_id=award_.award_id,
+        owner_id=target_member.user_id
+    )
+
+    if await service.issue_award(am):
+        await service.pay_award(
+            member=target_member,
+            payment=award_.payment,
+            description=award_.award_id
+        )
         award_text = (f"{glob.AWARD_SUCCESS}"
                       f"\n\n<b>{award_.name}</b>"
                       f"\n\nid: {award_.award_id}"
                       f"\nвиплата: {award_.payment:.2f} тікетів"
-                      f"\nвидано: {await service.get_award_issue_date(target_member.user_id)}"
+                      f"\nвидано: {am.issue_date}"
                       f"\n\nісторія: <i>{award_.description}</i>")
         await message.answer(award_text, parse_mode=ParseMode.HTML)
     else:

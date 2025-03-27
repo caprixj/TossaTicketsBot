@@ -33,6 +33,7 @@ CREATE_TABLE_AWARD_MEMBER = """
     CREATE TABLE IF NOT EXISTS award_member (
         award_id TEXT,
         owner_id INTEGER,
+        issue_date TEXT NOT NULL,
         PRIMARY KEY (award_id, owner_id),
         FOREIGN KEY (award_id)
             REFERENCES awards (award_id)
@@ -99,7 +100,6 @@ INSERT_TPAY = "INSERT INTO tpay (sender_id, receiver_id, transfer, fee, time, de
 SELECT_TPAY_BY_SENDER_OR_RECEIVER = "SELECT * FROM tpay WHERE sender_id = ? OR receiver_id = ?"
 SELECT_ADDT_TYPE_NOT_TPAY = "SELECT * FROM addt WHERE user_id = ? AND type_ NOT IN (?, ?)"
 SELECT_DELT_TYPE_NOT_TPAY = "SELECT * FROM delt WHERE user_id = ? AND type_ NOT IN (?, ?)"
-SELECT_AWARD_ADDT_TIME_BY_USER_ID = "SELECT time FROM addt WHERE type_ = 'award' AND user_id = ?"
 SELECT_MEMBER_BY_USER_ID = "SELECT * FROM members WHERE user_id = ?"
 SELECT_MEMBER_BY_USERNAME = "SELECT * FROM members WHERE username = ?"
 SELECT_AWARD = "SELECT * FROM awards WHERE award_id = ?"

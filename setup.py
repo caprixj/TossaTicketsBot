@@ -7,7 +7,7 @@ from pathlib import Path
 
 import resources.const.glob as glob
 from model.types.run_mode import RunMode, RunModeSettings
-from sql import scripts
+from resources.sql import scripts
 
 
 def define_run_mode() -> RunMode:

@@ -4,7 +4,7 @@ from model.database.member import Member
 from resources.const.glob import FEE_RATE as F, MIN_FEE as M
 
 
-def get_transaction_time() -> str:
+def get_current_datetime() -> str:
     return datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
 

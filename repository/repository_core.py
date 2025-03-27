@@ -6,6 +6,7 @@ from aiosqlite import Cursor
 
 from model.database.artifact import Artifact
 from model.database.award import Award
+from model.database.award_member import AwardMemberJunction
 from model.database.member import Member
 from model.database.addt_transaction import AddtTransaction
 from model.database.delt_transaction import DeltTransaction
@@ -14,7 +15,7 @@ from model.results.mytpay_result import MytpayResult
 from model.types.transaction_type import TransactionType
 from repository.ordering_type import OrderingType
 from resources.const import glob
-from sql import scripts
+from resources.sql import scripts
 
 
 async def _get_unique_members(cursor: Cursor, user_id: int, tpays: List[TpayTransaction]) -> List[Member]:
@@ -127,12 +128,12 @@ async def create_award(award: Award):
         await db.commit()
 
 
-async def create_award_member(award: Award, member: Member) -> bool:
+async def create_award_member(am: AwardMemberJunction) -> bool:
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
         try:
             await db.execute(scripts.INSERT_AWARD_MEMBER, (
-                award.award_id,
-                member.user_id
+                am.award_id,
+                am.owner_id
             ))
             await db.commit()
             return True
@@ -208,11 +209,11 @@ async def get_awards_count(user_id: int) -> int:
         return int(row[0]) if row else 0
 
 
-async def get_award_addt_time(user_id: int) -> str:
-    async with aiosqlite.connect(glob.rms.db_file_path) as db:
-        cursor = await db.execute(scripts.SELECT_AWARD_ADDT_TIME_BY_USER_ID, (user_id,))
-        row = await cursor.fetchone()
-        return row[0] if row else 'not found'
+# async def get_award_addt_time(user_id: int) -> str:
+#     async with aiosqlite.connect(glob.rms.db_file_path) as db:
+#         cursor = await db.execute(scripts.SELECT_AWARD_ADDT_TIME_BY_USER_ID, (user_id,))
+#         row = await cursor.fetchone()
+#         return row[0] if row else 'not found'
 
 
 async def get_transaction_stats(user_id: int) -> MytpayResult:
