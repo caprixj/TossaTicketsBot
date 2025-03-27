@@ -2,7 +2,7 @@ from aiogram import BaseMiddleware
 from aiogram.enums import ContentType
 from aiogram.types import Message
 
-import utilities.glob as glob
+import resources.const.glob as glob
 
 
 async def _is_accepted_content_type(event: Message) -> bool:

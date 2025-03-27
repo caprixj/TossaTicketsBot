@@ -4,22 +4,23 @@ from typing import Union, Optional
 from aiogram import Bot
 from aiogram.types import User
 
-import utilities.glob as glob
-from comparser.parser_result import CommandParserResult
-from comparser.types.target_type import CommandTargetType as ctt
+import resources.const.glob as glob
+from command.parser.results.parser_result import CommandParserResult
+from command.parser.types.target_type import CommandTargetType as ctt
 from model.database.award import Award
 from model.database.member import Member
-from model.database.transactions.addt_transaction import AddtTransaction
-from model.database.transactions.delt_transaction import DeltTransaction
-from model.database.transactions.tpay_transaction import TpayTransaction
-from model.database.transactions.tr_messages import TransactionResultErrors as trm
-from model.database.transactions.transaction_result import TransactionResult
-from model.database.transactions.transaction_type import TransactionType
+from model.database.addt_transaction import AddtTransaction
+from model.database.delt_transaction import DeltTransaction
+from model.database.tpay_transaction import TpayTransaction
+from model.results.mytpay_result import MytpayResult
+from model.types.transaction_result_errors import TransactionResultErrors as trm
+from model.results.transaction_result import TransactionResult
+from model.types.transaction_type import TransactionType
 from repository.ordering_type import OrderingType
 from repository.repository_core import Repository
-from service.service_operation_manager import ServiceOperationManager
-from utilities.funcs import get_formatted_name, get_fee, get_transaction_time
-from utilities.sql_scripts import RESET_TPAY_AVAILABLE
+from service.operation_manager import ServiceOperationManager
+from resources.funcs.funcs import get_formatted_name, get_fee, get_transaction_time
+from sql.scripts import RESET_TPAY_AVAILABLE
 
 
 class Service:
@@ -31,14 +32,7 @@ class Service:
     async def execute_sql(self, query: str) -> (bool, str):
         return await self.repo.execute_external(query)
 
-    """ Functional """
-
-    # async def _get_artifact_names(self, user_id: int) -> str:
-    #     arl = str()
-    #     for ar in await self.repo.get_artifact_names(user_id):
-    #         arl += f'«{ar}», '
-    #
-    #     return arl[:-2] if arl else '-'
+    """ Private """
 
     async def _add_tickets(self, member: Member, tickets: float, transaction_type: TransactionType,
                            description: str = None) -> None:
@@ -102,7 +96,7 @@ class Service:
         members = await self.repo.get_members_by_tickets()
 
         for i, m in enumerate(members):
-            name = await get_formatted_name(Member(
+            name = get_formatted_name(Member(
                 username=m.username,
                 first_name=m.first_name,
                 last_name=m.last_name
@@ -133,7 +127,7 @@ class Service:
         members = await self.repo.get_members_by_tickets_limited(order, abs(size))
 
         for i, m in enumerate(members):
-            name = await get_formatted_name(Member(
+            name = get_formatted_name(Member(
                 username=m.username,
                 first_name=m.first_name,
                 last_name=m.last_name
@@ -238,6 +232,9 @@ class Service:
         ))
 
         return TransactionResult(valid=True)
+
+    async def mytpay(self, user_id: int) -> MytpayResult:
+        return await self.repo.get_transaction_stats(user_id)
 
     async def issue_award(self, award: Award, member: Member) -> bool:
         return await self.repo.create_award_member(award, member)

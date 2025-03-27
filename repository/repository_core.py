@@ -3,32 +3,56 @@ from sqlite3 import IntegrityError
 from typing import Optional, List
 
 import aiosqlite
+from aiosqlite import Cursor
 
 from model.database.artifact import Artifact
 from model.database.award import Award
 from model.database.member import Member
-from model.database.transactions.addt_transaction import AddtTransaction
-from model.database.transactions.delt_transaction import DeltTransaction
-from model.database.transactions.tpay_transaction import TpayTransaction
+from model.database.addt_transaction import AddtTransaction
+from model.database.delt_transaction import DeltTransaction
+from model.database.tpay_transaction import TpayTransaction
+from model.results.mytpay_result import MytpayResult
+from model.types.transaction_type import TransactionType
 from repository.ordering_type import OrderingType
-from utilities.sql_scripts import SELECT_TOPT, SELECT_TOPTALL, INSERT_MEMBER, INSERT_DELT, INSERT_ADDT, \
+from sql.scripts import SELECT_TOPT, SELECT_TOPTALL, INSERT_MEMBER, INSERT_DELT, INSERT_ADDT, \
     UPDATE_TICKETS_COUNT, UPDATE_MEMBER, SELECT_MEMBER_BY_USER_ID, SELECT_MEMBER_BY_USERNAME, \
     INSERT_TPAY, UPDATE_TPAY_AVAILABLE, INSERT_AWARD, SELECT_AWARD, INSERT_AWARD_MEMBER, \
     SELECT_AWARDS_BY_OWNER_ID, SELECT_AWARDS_COUNT_BY_OWNER_ID, SELECT_ARTIFACTS_COUNT_BY_OWNER_ID, \
-    SELECT_ARTIFACTS_BY_OWNER_ID, SELECT_AWARD_ADDT_TIME_BY_USER_ID
+    SELECT_ARTIFACTS_BY_OWNER_ID, SELECT_AWARD_ADDT_TIME_BY_USER_ID, SELECT_TPAY_BY_SENDER_OR_RECEIVER, \
+    SELECT_ADDT_TYPE_NOT_TPAY, SELECT_DELT_TYPE_NOT_TPAY
+
+
+async def _get_unique_members(cursor: Cursor, user_id: int, tpays: List[TpayTransaction]) -> List[Member]:
+    unique_ids = set()
+    unique_members = list()
+
+    for tt in tpays:
+        if tt.sender_id != user_id:
+            unique_ids.add(tt.sender_id)
+        if tt.receiver_id != user_id:
+            unique_ids.add(tt.receiver_id)
+
+    for member_id in unique_ids:
+        await cursor.execute(SELECT_MEMBER_BY_USER_ID, (member_id,))
+        row = await cursor.fetchone()
+        unique_members.append(Member(*row) if row else None)
+
+    return unique_members
 
 
 class Repository(ABC):
     def __init__(self, db_path: str = None):
         self.db_path = db_path
 
-    """ Execute """
+    """ Private """
 
     async def _execute(self, query: str, params: tuple = ()):
         async with aiosqlite.connect(self.db_path) as db:
             cursor = await db.execute(query, params)
             await db.commit()
             return cursor
+
+    """ Execute """
 
     async def execute_external(self, query: str) -> (bool, str):
         try:
@@ -154,8 +178,8 @@ class Repository(ABC):
     async def get_artifacts_count(self, user_id: int) -> int:
         async with aiosqlite.connect(self.db_path) as db:
             cursor = await db.execute(SELECT_ARTIFACTS_COUNT_BY_OWNER_ID, (user_id, ))
-            rows = await cursor.fetchall()
-            return int(rows[0][0]) if rows else 0
+            row = await cursor.fetchone()
+            return int(row[0]) if row else 0
 
     async def get_award(self, award_id: str) -> Optional[Award]:
         async with aiosqlite.connect(self.db_path) as db:
@@ -172,14 +196,44 @@ class Repository(ABC):
     async def get_awards_count(self, user_id: int) -> int:
         async with aiosqlite.connect(self.db_path) as db:
             cursor = await db.execute(SELECT_AWARDS_COUNT_BY_OWNER_ID, (user_id,))
-            rows = await cursor.fetchall()
-            return int(rows[0][0]) if rows else 0
+            row = await cursor.fetchone()
+            return int(row[0]) if row else 0
 
     async def get_award_addt_time(self, user_id: int) -> str:
         async with aiosqlite.connect(self.db_path) as db:
             cursor = await db.execute(SELECT_AWARD_ADDT_TIME_BY_USER_ID, (user_id,))
-            rows = await cursor.fetchall()
-            return rows[0][0] if rows else 'not found'
+            row = await cursor.fetchone()
+            return row[0] if row else 'not found'
+
+    async def get_transaction_stats(self, user_id: int) -> MytpayResult:
+        async with aiosqlite.connect(self.db_path) as db:
+            cursor = await db.cursor()
+
+            # tpays
+            await cursor.execute(SELECT_TPAY_BY_SENDER_OR_RECEIVER, (user_id, user_id))
+            tpays = await cursor.fetchall()
+            tpays = [TpayTransaction(*row) for row in tpays]
+
+            # addts
+            await cursor.execute(
+                SELECT_ADDT_TYPE_NOT_TPAY,
+                (user_id, TransactionType.tpay, TransactionType.tpay_fee)
+            )
+            addts = await cursor.fetchall()
+            addts = [AddtTransaction(*row) for row in addts]
+
+            # delts
+            await cursor.execute(
+                SELECT_DELT_TYPE_NOT_TPAY,
+                (user_id, TransactionType.tpay, TransactionType.tpay_fee)
+            )
+            delts = await cursor.fetchall()
+            delts = [DeltTransaction(*row) for row in delts]
+
+            # unique_tpay_members
+            unique_tpay_members = await _get_unique_members(cursor, user_id, tpays)
+
+            return MytpayResult(user_id, tpays, addts, delts, unique_tpay_members)
 
     """ Update """
 

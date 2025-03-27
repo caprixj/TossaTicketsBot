@@ -1,4 +1,4 @@
-from model.ticketonomics_types import SID, Text64, Text512
+from model.types.ticketonomics_types import SID, Text64, Text512
 
 
 class Award:
