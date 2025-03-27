@@ -6,7 +6,7 @@ from aiogram.filters import Command
 from aiogram.types import Message, FSInputFile
 
 import resources.const.glob as glob
-from copula import service
+from service import service_core as service
 from command.parser.core import cog
 from command.parser.core.overload import CommandOverload, CommandOverloadGroup
 from command.parser.core.parser import CommandParser
@@ -111,49 +111,49 @@ async def sett(message: Message):
     await message.answer(glob.SETT_TEXT)
 
 
-@router.message(Command(cl.sfs.name))
-async def sfs(message: Message):
-    og = CommandOverloadGroup(
-        # /sfs <message:text>
-        overloads=[CommandOverload().add(glob.MESSAGE_ARG, Text)],
-        creator_required=True
-    )
-
-    cpr = CommandParser(message, og).parse()
-
-    if not cpr.valid:
-        await _reply_by_crv(message, cpr)
-        return
-
-    await service.bot.send_message(
-        chat_id=glob.rms.group_chat_id,
-        text=cpr.args[glob.MESSAGE_ARG]
-    )
-
-
-@router.message(Command(cl.db.name))
-async def db(message: Message) -> None:
-    og = CommandOverloadGroup(
-        # /db
-        overloads=[CommandOverload()],
-        creator_required=True
-    )
-
-    cpr = CommandParser(message, og).parse()
-
-    if not cpr.valid:
-        await _reply_by_crv(message, cpr)
-        return
-
-    await service.bot.send_document(
-        chat_id=message.chat.id,
-        document=FSInputFile(glob.rms.db_file_path)
-    )
+# @router.page_message(Command(cl.sfs.name))
+# async def sfs(page_message: Message):
+#     og = CommandOverloadGroup(
+#         # /sfs <page_message:text>
+#         overloads=[CommandOverload().add(glob.MESSAGE_ARG, Text)],
+#         creator_required=True
+#     )
+#
+#     cpr = CommandParser(page_message, og).parse()
+#
+#     if not cpr.valid:
+#         await _reply_by_crv(page_message, cpr)
+#         return
+#
+#     await service.bot.send_message(
+#         chat_id=glob.rms.group_chat_id,
+#         text=cpr.args[glob.MESSAGE_ARG]
+#     )
+#
+#
+# @router.page_message(Command(cl.db.name))
+# async def db(page_message: Message) -> None:
+#     og = CommandOverloadGroup(
+#         # /db
+#         overloads=[CommandOverload()],
+#         creator_required=True
+#     )
+#
+#     cpr = CommandParser(page_message, og).parse()
+#
+#     if not cpr.valid:
+#         await _reply_by_crv(page_message, cpr)
+#         return
+#
+#     await service.bot.send_document(
+#         chat_id=page_message.chat.id,
+#         document=FSInputFile(glob.rms.db_file_path)
+#     )
 
 
 @router.message(Command(cl.award.name))
 async def award(message: Message):
-    if not await validate_message(service, message):
+    if not await validate_message(message):
         return
 
     og = cog.a1_any(a1_name=glob.AWARD_ID_ARG, a1_type=SID, creator_required=True)

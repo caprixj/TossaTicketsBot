@@ -55,7 +55,7 @@ async def mytpay(result: MytpayResult, title: str) -> List[str]:
 
     for delt in result.delts:
         row = (f"✨🔻 | id: {delt.delt_id}"
-               f" | <b>{delt.tickets:.2f}</b>"
+               f" | <b>-{delt.tickets:.2f}</b>"
                f" | {delt.time}"
                f" | опис: <i>{delt.description}</i>")
         rows.append((row, delt.time))

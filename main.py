@@ -1,47 +1,48 @@
 import asyncio
 import logging
 import sys
+from typing import Union
 
-from aiogram import Bot
+from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 import setup
 import scheduling
-import copula
 import resources.const.glob as glob
 from middleware.source_filter_middleware import SourceFilterMiddleware
-from service.service_core import Service
 
 from router_loader import get_routers
 
+dp = Dispatcher()
 for router in get_routers():
-    copula.dp.include_router(router)
+    dp.include_router(router)
+
+bot: Union[Bot, None] = None
 
 
 async def main():
+    global bot
     run_mode = setup.define_run_mode()
     valid_args = setup.define_rms(run_mode)
-    scheduler = AsyncIOScheduler()
 
     if not valid_args:
         raise RuntimeError(glob.INVALID_ARGS)
 
-    copula.service = Service(glob.rms.db_file_path)
     await setup.create_databases()
 
-    copula.service.bot = Bot(
+    bot = Bot(
         token=glob.rms.bot_token,
         default=DefaultBotProperties(
             parse_mode=ParseMode.MARKDOWN
         )
     )
 
-    copula.dp.message.middleware(SourceFilterMiddleware())
+    dp.message.middleware(SourceFilterMiddleware())
 
-    await scheduling.schedule(scheduler)
-    await copula.dp.start_polling(copula.service.bot)
+    await scheduling.schedule(bot)
+    await dp.start_polling(bot)
 
 
 if __name__ == "__main__":

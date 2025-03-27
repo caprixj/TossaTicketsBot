@@ -5,7 +5,7 @@ from aiogram import Router
 from aiogram.exceptions import TelegramRetryAfter
 from aiogram.types import CallbackQuery
 
-from copula import service
+from service import service_core as service
 import resources.const.glob as glob
 from command.routed.handlers.public_handlers import tpay
 from components.paged_viewer.paged_viewer import PagedViewer, keep_paged_viewer
@@ -43,13 +43,16 @@ async def mytpay_forward(callback: CallbackQuery):
 
 @router.callback_query(lambda c: c.data.startswith(glob.MYTPAY_HIDE_CALLBACK))
 async def mytpay_hide(callback: CallbackQuery):
-    tcd = await get_callback_data(callback.data)
+    data = await get_callback_data(callback.data)
 
-    if callback.from_user.id != tcd.sender_id:
+    if callback.from_user.id != data.sender_id:
         await callback.answer(glob.ALERT_CALLBACK_ACTION, show_alert=True)
         return
 
-    await service.operation_manager.cancel(tcd.operation_id)
+    viewer: PagedViewer = await service.operation_manager.run(data.operation_id)
+
+    await service.operation_manager.cancel(data.operation_id)
+    await viewer.start_message.delete()
     await callback.message.delete()
     await callback.answer()
 
@@ -74,7 +77,10 @@ async def mytpay_page_move(callback: CallbackQuery, move: str):
     )
 
     try:
-        await callback.message.edit_text(viewer.get_page())
+        await callback.message.edit_text(
+            text=viewer.get_page(),
+            parse_mode=viewer.parse_mode
+        )
         await callback.message.edit_reply_markup(
             reply_markup=viewer.reply_markup(
                 operation_id=data.operation_id,

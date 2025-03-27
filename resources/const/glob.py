@@ -14,14 +14,14 @@ FEE_RATE = 0.27  # F
 MIN_FEE = 1      # M
 
 PAGE_ROW_CHAR_LIMIT = 25
-PAGE_ROWS_COUNT_LIMIT = 30
+PAGE_ROWS_COUNT_LIMIT = 40
 
 TICKETS_ARG = 'tickets'
 DESCRIPTION_ARG = 'description'
 USERNAME_ARG = 'username'
 USER_ID_ARG = 'operation_id'
 QUERY_ARG = 'query'
-MESSAGE_ARG = 'message'
+MESSAGE_ARG = 'page_message'
 SIZE_ARG = 'size'
 AWARD_ID_ARG = 'award_id'
 PAGE_ARG = 'page'
@@ -39,7 +39,12 @@ RESET_TPAY_AVAILABLE_DONE = 'ℹ️ к-сть доступних переказ�
 DB_BACKUP_DONE = 'ℹ️ копію бази даних збережено'
 
 MYTPAY_TITLE = '📊 Історія надходжень та витрат (тікети)'
-MYTPAY_START_MESSAGE = 'MYTPAY_START_MESSAGE (not implemented)'
+MYTPAY_START_TEXT = """
+🔹 - вхідні перекази
+🔻 - вихідні перекази
+🔀 - переказ за tpay
+✨ - переказ за addt/delt/sett
+"""
 
 ADDT_TEXT = '📈 тікети нараховано!'
 DELT_TEXT = '📉 тікети знято!'

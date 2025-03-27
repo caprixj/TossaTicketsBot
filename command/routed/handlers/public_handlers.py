@@ -6,7 +6,7 @@ from aiogram.filters import Command
 from aiogram.types import Message, LinkPreviewOptions
 
 import resources.const.glob as glob
-from copula import service
+from service import service_core as service
 from command.routed.handlers.validations import validate_message
 from command.routed.keyboards.keyboards import tpay_keyboard, help_keyboard
 from command.parser.core import cog
@@ -57,13 +57,13 @@ async def reg(message: Message):
 
 @router.message(Command(cl.rusni.name))
 async def rusni(message: Message):
-    await validate_message(service, message)
+    await validate_message(message)
     await message.answer(glob.RUSNI_TEXT)
 
 
 @router.message(Command(cl.help.name))
 async def help_(message: Message):
-    await validate_message(service, message)
+    await validate_message(message)
     await message.answer(
         text=glob.HELP_TEXT,
         parse_mode=ParseMode.MARKDOWN,
@@ -74,7 +74,7 @@ async def help_(message: Message):
 
 @router.message(Command(cl.mytpay.name))
 async def mytpay(message: Message):
-    if not await validate_message(service, message):
+    if not await validate_message(message):
         return
 
     og = CommandOverloadGroup([
@@ -92,10 +92,10 @@ async def mytpay(message: Message):
 
     viewer = PagedViewer(
         title=glob.MYTPAY_TITLE,
-        start_message=glob.MYTPAY_START_MESSAGE,
+        start_text=glob.MYTPAY_START_TEXT,
         data_extractor=functools.partial(service.mytpay, message.from_user.id),
         page_generator=page_generators.mytpay,
-        message=message,
+        page_message=message,
         parse_mode=ParseMode.HTML
     )
 
@@ -108,7 +108,7 @@ async def mytpay(message: Message):
 
 @router.message(Command(cl.topt.name))
 async def topt(message: Message):
-    if not await validate_message(service, message):
+    if not await validate_message(message):
         return
 
     og = CommandOverloadGroup([
@@ -133,7 +133,7 @@ async def topt(message: Message):
 
 @router.message(Command(cl.bal.name))
 async def bal(message: Message):
-    if not await validate_message(service, message):
+    if not await validate_message(message):
         return
 
     cpr = CommandParser(message, cog.pure()).parse()
@@ -159,7 +159,7 @@ async def bal(message: Message):
 
 @router.message(Command(cl.infm.name))
 async def infm(message: Message):
-    if not await validate_message(service, message):
+    if not await validate_message(message):
         return
 
     cpr = CommandParser(message, cog.pure()).parse()
@@ -180,7 +180,7 @@ async def infm(message: Message):
 
 @router.message(Command(cl.tpay.name))
 async def tpay(message: Message, callback_message: Message = None, fee_incorporated: bool = False):
-    if not await validate_message(service, message):
+    if not await validate_message(message):
         return
 
     cpr = CommandParser(message, cog.tickets(PNReal, creator_required=False)).parse()

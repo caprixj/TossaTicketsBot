@@ -17,7 +17,7 @@ class CommandList(str, Enum):
     # cog: tickets-real
     sett = 'sett'
 
-    # /sfs <message:text>
+    # /sfs <page_message:text>
     sfs = 'sfs'
 
     # /db

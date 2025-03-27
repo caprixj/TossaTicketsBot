@@ -1,5 +1,5 @@
 import functools
-from typing import Callable, List
+from typing import Callable, List, Union
 
 from aiogram.enums import ParseMode
 from aiogram.types import InlineKeyboardMarkup, Message, InlineKeyboardButton
@@ -10,32 +10,35 @@ from command.routed.callbacks.callback_data import generate_callback_data
 
 
 class PagedViewer:
-    def __init__(self, title: str, start_message: str, data_extractor: functools.partial, page_generator: Callable,
-                 message: Message, parse_mode: ParseMode = ParseMode.MARKDOWN):
+    def __init__(self, title: str, start_text: str, data_extractor: functools.partial, page_generator: Callable,
+                 page_message: Message, parse_mode: ParseMode = ParseMode.MARKDOWN):
         self.title = title
-        self.start_message = start_message
+        self.start_text = start_text
         self.data_extractor = data_extractor
         self.page_generator = page_generator
-        self.message = message
+        self.page_message = page_message
         self.parse_mode = parse_mode
 
         self.current_page_number: int = 1
         self.pages: List[str] = []
 
+        self.start_message: Union[Message, None] = None
+
     async def view(self, operation_id: int):
         data = await self.data_extractor()
         self.pages = await self.page_generator(data, self.title)
 
-        await self.message.answer(
-            text=self.start_message,
+        self.start_message = await self.page_message.answer(
+            text=self.start_text,
             parse_mode=self.parse_mode
         )
-        await self.message.answer(
+
+        await self.page_message.answer(
             text=self.pages[0],
             parse_mode=self.parse_mode,
             reply_markup=self.reply_markup(
                 operation_id=operation_id,
-                sender_id=self.message.from_user.id
+                sender_id=self.page_message.from_user.id
             )
         )
 
