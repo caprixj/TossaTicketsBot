@@ -5,7 +5,7 @@ from model.types.run_mode import RunModeSettings
 rms: RunModeSettings = RunModeSettings()
 
 CONFIG_PATH_DEV = 'config/config.xml'
-CONFIG_PATH_PROD = '../../config/config.xml'
+CONFIG_PATH_PROD = '../config/config.xml'
 
 CREATOR_USER_ID = 825549745
 CREATOR_USERNAME = '@capri_xj'
