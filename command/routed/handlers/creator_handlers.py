@@ -183,15 +183,20 @@ async def award(message: Message):
     )
 
     if await service.issue_award(am):
-        await service.pay_award(
-            member=target_member,
-            payment=award_.payment,
-            description=award_.award_id
-        )
+        if award_.payment > 0:
+            await service.pay_award(
+                member=target_member,
+                payment=award_.payment,
+                description=award_.award_id
+            )
+
+        payment = f'\nвиплата: {award_.payment:.2f} тікетів' \
+            if award_.payment > 0 else str()
+
         award_text = (f"{glob.AWARD_SUCCESS}"
                       f"\n\n<b>{award_.name}</b>"
                       f"\n\nid: {award_.award_id}"
-                      f"\nвиплата: {award_.payment:.2f} тікетів"
+                      f"{payment}"
                       f"\nвидано: {am.issue_date}"
                       f"\n\nісторія: <i>{award_.description}</i>")
         await message.answer(award_text, parse_mode=ParseMode.HTML)

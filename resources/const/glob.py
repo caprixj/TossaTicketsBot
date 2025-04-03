@@ -102,6 +102,6 @@ _Май на увазі, що бот хоститься на телефоні р
 
 *✉️ Маєш питання?*
 
-• Підтримка: @capri\_xj
+• Автор: t.me/capri\_xj
 • GitHub: github.com/caprixj/TossaTicketsBot
 """
