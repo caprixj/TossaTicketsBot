@@ -41,6 +41,9 @@ class CommandList(str, Enum):
     # /mytpay
     mytpay = 'mytpay'
 
+    # /myaward
+    myaward = 'myaward'
+
     # /topt
     # /topt <count:nint>
     topt = 'topt'

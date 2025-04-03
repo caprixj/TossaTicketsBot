@@ -30,21 +30,27 @@ TPAY_YES_CALLBACK = 'tpay_yes'
 TPAY_NO_CALLBACK = 'tpay_no'
 TPAY_FEE_INCORPORATION_CALLBACK = 'tpay_fi'
 HELP_DEL_CALLBACK = 'help_del'
-MYTPAY_BACK_CALLBACK = 'mytpay_back'
-MYTPAY_FORWARD_CALLBACK = 'mytpay_forward'
-MYTPAY_HIDE_CALLBACK = 'mytpay_hide'
 DECORATIVE_KEYBOARD_BUTTON = 'decorative'
 
-RESET_TPAY_AVAILABLE_DONE = 'ℹ️ к-сть доступних переказів оновлено'
-DB_BACKUP_DONE = 'ℹ️ копію бази даних збережено'
-
 MYTPAY_TITLE = '📊 Історія надходжень та витрат (тікети)'
+MYTPAY_BACK_CALLBACK = 'mytpay_back'
+MYTPAY_FORWARD_CALLBACK = 'mytpay_forward'
+MYTPAY_HIDE_CALLBACK = 'myaward_hide'
+
+MYAWARD_TITLE = '<b>📯 Дошка нагород</b>'
+MYAWARD_BACK_CALLBACK = 'myaward_back'
+MYAWARD_FORWARD_CALLBACK = 'myaward_forward'
+MYAWARD_HIDE_CALLBACK = 'myaward_hide'
+
 MYTPAY_START_TEXT = """
 🔹 - вхідні перекази
 🔻 - вихідні перекази
 🔀 - переказ за tpay
 ✨ - переказ за addt/delt/sett
 """
+
+RESET_TPAY_AVAILABLE_DONE = 'ℹ️ к-сть доступних переказів оновлено'
+DB_BACKUP_DONE = 'ℹ️ копію бази даних збережено'
 
 ADDT_TEXT = '📈 тікети нараховано!'
 DELT_TEXT = '📉 тікети знято!'

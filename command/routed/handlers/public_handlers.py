@@ -77,24 +77,31 @@ async def mytpay(message: Message):
     if not await validate_message(message):
         return
 
-    og = CommandOverloadGroup([
-        # /mytpay
-        CommandOverload(oid='pure'),
-        # /mytpay <page:nint>
-        # CommandOverload(oid='page').add(name=glob.PAGE_ARG, arg_type=NInt)
-    ])
+    viewer = PagedViewer(
+        title=glob.MYTPAY_TITLE,
+        data_extractor=functools.partial(service.mytpay, message.from_user.id),
+        page_generator=page_generators.mytpay,
+        page_message=message,
+        start_text=glob.MYTPAY_START_TEXT,
+        parse_mode=ParseMode.HTML
+    )
 
-    cpr = CommandParser(message, og).parse()
+    operation_id = await service.operation_manager.register(
+        func=functools.partial(keep_paged_viewer, viewer)
+    )
 
-    if not cpr.valid:
-        await message.answer(glob.COM_PARSER_FAILED)
+    await viewer.view(operation_id)
+
+
+@router.message(Command(cl.myaward.name))
+async def myaward(message: Message):
+    if not await validate_message(message):
         return
 
     viewer = PagedViewer(
-        title=glob.MYTPAY_TITLE,
-        start_text=glob.MYTPAY_START_TEXT,
-        data_extractor=functools.partial(service.mytpay, message.from_user.id),
-        page_generator=page_generators.mytpay,
+        title=glob.MYAWARD_TITLE,
+        data_extractor=functools.partial(service.myaward, message.from_user.id),
+        page_generator=page_generators.myaward,
         page_message=message,
         parse_mode=ParseMode.HTML
     )

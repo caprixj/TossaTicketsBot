@@ -1,5 +1,5 @@
 import copy
-from typing import Union, Optional
+from typing import Union, Optional, List
 from aiogram.types import User
 
 import resources.const.glob as glob
@@ -11,6 +11,7 @@ from model.database.member import Member
 from model.database.addt_transaction import AddtTransaction
 from model.database.delt_transaction import DeltTransaction
 from model.database.tpay_transaction import TpayTransaction
+from model.results.award_record import AwardRecord
 from model.results.mytpay_result import MytpayResult
 from model.types.transaction_result_errors import TransactionResultErrors as trm
 from model.results.transaction_result import TransactionResult
@@ -239,6 +240,10 @@ async def tpay(sender: Member, receiver: Member, transfer: float, description: s
 
 async def mytpay(user_id: int) -> MytpayResult:
     return await repo.get_transaction_stats(user_id)
+
+
+async def myaward(user_id: int) -> Optional[List[AwardRecord]]:
+    return await repo.get_awards(user_id)
 
 
 async def issue_award(am: AwardMemberJunction) -> bool:

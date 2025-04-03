@@ -1,14 +1,12 @@
-import functools
 from typing import Optional
 
 from aiogram import Router
-from aiogram.exceptions import TelegramRetryAfter
 from aiogram.types import CallbackQuery
 
 from service import service_core as service
 import resources.const.glob as glob
 from command.routed.handlers.public_handlers import tpay
-from components.paged_viewer.paged_viewer import PagedViewer, keep_paged_viewer
+from components.paged_viewer.paged_viewer import pmove, phide
 from model.results.transaction_result import TransactionResult
 from command.routed.callbacks.callback_data import get_callback_data
 
@@ -33,63 +31,35 @@ async def help_del(callback: CallbackQuery):
 
 @router.callback_query(lambda c: c.data.startswith(glob.MYTPAY_BACK_CALLBACK))
 async def mytpay_back(callback: CallbackQuery):
-    await mytpay_page_move(callback, glob.MYTPAY_BACK_CALLBACK)
+    await pmove(callback, glob.MYTPAY_BACK_CALLBACK)
 
 
 @router.callback_query(lambda c: c.data.startswith(glob.MYTPAY_FORWARD_CALLBACK))
 async def mytpay_forward(callback: CallbackQuery):
-    await mytpay_page_move(callback, glob.MYTPAY_FORWARD_CALLBACK)
+    await pmove(callback, glob.MYTPAY_FORWARD_CALLBACK)
 
 
 @router.callback_query(lambda c: c.data.startswith(glob.MYTPAY_HIDE_CALLBACK))
 async def mytpay_hide(callback: CallbackQuery):
-    data = await get_callback_data(callback.data)
-
-    if callback.from_user.id != data.sender_id:
-        await callback.answer(glob.ALERT_CALLBACK_ACTION, show_alert=True)
-        return
-
-    viewer: PagedViewer = await service.operation_manager.run(data.operation_id)
-
-    await service.operation_manager.cancel(data.operation_id)
-    await viewer.start_message.delete()
-    await callback.message.delete()
-    await callback.answer()
+    await phide(callback)
 
 
-async def mytpay_page_move(callback: CallbackQuery, move: str):
-    data = await get_callback_data(callback.data)
+""" /myaward """
 
-    if callback.from_user.id != data.sender_id:
-        await callback.answer(glob.ALERT_CALLBACK_ACTION, show_alert=True)
-        return
 
-    viewer: PagedViewer = await service.operation_manager.run(data.operation_id)
+@router.callback_query(lambda c: c.data.startswith(glob.MYAWARD_BACK_CALLBACK))
+async def myaward_back(callback: CallbackQuery):
+    await pmove(callback, glob.MYAWARD_BACK_CALLBACK)
 
-    if move == glob.MYTPAY_BACK_CALLBACK:
-        viewer.page_back()
-    else:
-        viewer.page_forward()
 
-    await service.operation_manager.register(
-        func=functools.partial(keep_paged_viewer, viewer),
-        operation_id=data.operation_id
-    )
+@router.callback_query(lambda c: c.data.startswith(glob.MYAWARD_FORWARD_CALLBACK))
+async def myaward_forward(callback: CallbackQuery):
+    await pmove(callback, glob.MYAWARD_FORWARD_CALLBACK)
 
-    try:
-        await callback.message.edit_text(
-            text=viewer.get_page(),
-            parse_mode=viewer.parse_mode
-        )
-        await callback.message.edit_reply_markup(
-            reply_markup=viewer.reply_markup(
-                operation_id=data.operation_id,
-                sender_id=data.sender_id
-            )
-        )
-        await callback.answer()
-    except TelegramRetryAfter as _:
-        await callback.answer(glob.CALLBACK_FLOOD_CONTROL, show_alert=True)
+
+@router.callback_query(lambda c: c.data.startswith(glob.MYAWARD_HIDE_CALLBACK))
+async def myaward_hide(callback: CallbackQuery):
+    await phide(callback)
 
 
 """ /tpay """

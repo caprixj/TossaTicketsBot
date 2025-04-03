@@ -124,14 +124,15 @@ SELECT_TOPT = """
     LEFT JOIN delt d ON m.user_id = d.user_id
     GROUP BY m.user_id, m.username, m.first_name, m.last_name, m.tickets
     ORDER BY m.tickets $, MAX(COALESCE(a.time, d.time)) $
-    LIMIT ?;
+    LIMIT ?
 """
 
-SELECT_AWARDS_BY_OWNER_ID = """
-    SELECT a.*
+SELECT_AWARD_RECORDS_BY_OWNER_ID = """
+    SELECT a.*, am.issue_date
     FROM awards a
     JOIN award_member am ON a.award_id = am.award_id
     WHERE am.owner_id = ?
+    ORDER BY am.issue_date ASC
 """
 
 UPDATE_MEMBER = "UPDATE members SET username = ?, first_name = ?, last_name = ? WHERE user_id = ?"

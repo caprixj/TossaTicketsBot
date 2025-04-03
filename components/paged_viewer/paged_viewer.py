@@ -2,16 +2,18 @@ import functools
 from typing import Callable, List, Union
 
 from aiogram.enums import ParseMode
-from aiogram.types import InlineKeyboardMarkup, Message, InlineKeyboardButton
+from aiogram.exceptions import TelegramRetryAfter
+from aiogram.types import InlineKeyboardMarkup, Message, InlineKeyboardButton, CallbackQuery
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
+from service import service_core as service
 from resources.const import glob
-from command.routed.callbacks.callback_data import generate_callback_data
+from command.routed.callbacks.callback_data import generate_callback_data, get_callback_data
 
 
 class PagedViewer:
-    def __init__(self, title: str, start_text: str, data_extractor: functools.partial, page_generator: Callable,
-                 page_message: Message, parse_mode: ParseMode = ParseMode.MARKDOWN):
+    def __init__(self, title: str, data_extractor: functools.partial, page_generator: Callable, page_message: Message,
+                 start_text: str = None, parse_mode: ParseMode = ParseMode.MARKDOWN):
         self.title = title
         self.start_text = start_text
         self.data_extractor = data_extractor
@@ -28,10 +30,11 @@ class PagedViewer:
         data = await self.data_extractor()
         self.pages = await self.page_generator(data, self.title)
 
-        self.start_message = await self.page_message.answer(
-            text=self.start_text,
-            parse_mode=self.parse_mode
-        )
+        if self.has_start_message():
+            self.start_message = await self.page_message.answer(
+                text=self.start_text,
+                parse_mode=self.parse_mode
+            )
 
         await self.page_message.answer(
             text=self.pages[0],
@@ -41,6 +44,9 @@ class PagedViewer:
                 sender_id=self.page_message.from_user.id
             )
         )
+
+    def has_start_message(self):
+        return self.start_text is not None
 
     def get_page(self):
         return self.pages[self.current_page_number - 1]
@@ -75,3 +81,58 @@ class PagedViewer:
 
 async def keep_paged_viewer(viewer: PagedViewer) -> PagedViewer:
     return viewer
+
+
+async def phide(callback: CallbackQuery):
+    data = await get_callback_data(callback.data)
+
+    if callback.from_user.id != data.sender_id:
+        await callback.answer(glob.ALERT_CALLBACK_ACTION, show_alert=True)
+        return
+
+    viewer: PagedViewer = await service.operation_manager.run(data.operation_id)
+
+    await service.operation_manager.cancel(data.operation_id)
+
+    if viewer.has_start_message():
+        await viewer.start_message.delete()
+
+    await callback.message.delete()
+    await callback.answer()
+
+
+async def pmove(callback: CallbackQuery, move: str):
+    data = await get_callback_data(callback.data)
+
+    if callback.from_user.id != data.sender_id:
+        await callback.answer(glob.ALERT_CALLBACK_ACTION, show_alert=True)
+        return
+
+    viewer: PagedViewer = await service.operation_manager.run(data.operation_id)
+
+    if move.endswith('back'):
+        viewer.page_back()
+    elif move.endswith('forward'):
+        viewer.page_forward()
+    else:
+        raise RuntimeError('pmove(callback: CallbackQuery, move: str): invalid move')
+
+    await service.operation_manager.register(
+        func=functools.partial(keep_paged_viewer, viewer),
+        operation_id=data.operation_id
+    )
+
+    try:
+        await callback.message.edit_text(
+            text=viewer.get_page(),
+            parse_mode=viewer.parse_mode
+        )
+        await callback.message.edit_reply_markup(
+            reply_markup=viewer.reply_markup(
+                operation_id=data.operation_id,
+                sender_id=data.sender_id
+            )
+        )
+        await callback.answer()
+    except TelegramRetryAfter as _:
+        await callback.answer(glob.CALLBACK_FLOOD_CONTROL, show_alert=True)

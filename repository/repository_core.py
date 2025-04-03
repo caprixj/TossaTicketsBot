@@ -11,6 +11,7 @@ from model.database.member import Member
 from model.database.addt_transaction import AddtTransaction
 from model.database.delt_transaction import DeltTransaction
 from model.database.tpay_transaction import TpayTransaction
+from model.results.award_record import AwardRecord
 from model.results.mytpay_result import MytpayResult
 from model.types.transaction_type import TransactionType
 from repository.ordering_type import OrderingType
@@ -195,11 +196,11 @@ async def get_award(award_id: str) -> Optional[Award]:
         return Award(*row) if row else None
 
 
-async def get_awards(user_id: int) -> List[Award]:
+async def get_awards(user_id: int) -> Optional[List[AwardRecord]]:
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
-        cursor = await db.execute(scripts.SELECT_AWARDS_BY_OWNER_ID, (user_id,))
+        cursor = await db.execute(scripts.SELECT_AWARD_RECORDS_BY_OWNER_ID, (user_id,))
         rows = await cursor.fetchall()
-        return [Award(*row) for row in rows]
+        return [AwardRecord(Award(*row[:-1]), row[-1]) for row in rows]
 
 
 async def get_awards_count(user_id: int) -> int:

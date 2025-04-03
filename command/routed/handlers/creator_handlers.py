@@ -190,15 +190,15 @@ async def award(message: Message):
                 description=award_.award_id
             )
 
-        payment = f'\nвиплата: {award_.payment:.2f} тікетів' \
+        payment = f'\nвиплата: <b>{award_.payment:.2f} tc</b>' \
             if award_.payment > 0 else str()
 
         award_text = (f"{glob.AWARD_SUCCESS}"
                       f"\n\n<b>{award_.name}</b>"
-                      f"\n\nid: {award_.award_id}"
+                      f"\n\nid: <b>{award_.award_id}</b>"
                       f"{payment}"
-                      f"\nвидано: {am.issue_date}"
-                      f"\n\nісторія: <i>{award_.description}</i>")
+                      f"\nвидано: <b>{am.issue_date}</b>"
+                      f"\n\n<b>історія</b>: <i>{award_.description}</i>")
         await message.answer(award_text, parse_mode=ParseMode.HTML)
     else:
         await message.answer(glob.AWARD_DUPLICATE)
