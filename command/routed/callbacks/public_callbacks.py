@@ -6,7 +6,7 @@ from aiogram.types import CallbackQuery
 from service import service_core as service
 import resources.const.glob as glob
 from command.routed.handlers.public_handlers import tpay
-from components.paged_viewer.paged_viewer import pmove, phide
+from component.paged_viewer.paged_viewer import pmove, phide
 from model.results.transaction_result import TransactionResult
 from command.routed.callbacks.callback_data import get_callback_data
 
@@ -18,48 +18,30 @@ async def decorative_keyboard_button(callback: CallbackQuery):
     await callback.answer()
 
 
+""" paged viewer """
+
+
+@router.callback_query(lambda c: c.data.startswith(glob.BACK_CALLBACK))
+async def back(callback: CallbackQuery):
+    await pmove(callback, glob.BACK_CALLBACK)
+
+
+@router.callback_query(lambda c: c.data.startswith(glob.FORWARD_CALLBACK))
+async def forward(callback: CallbackQuery):
+    await pmove(callback, glob.FORWARD_CALLBACK)
+
+
+@router.callback_query(lambda c: c.data.startswith(glob.HIDE_CALLBACK))
+async def hide(callback: CallbackQuery):
+    await phide(callback)
+
+
 """ /help """
 
 
 @router.callback_query(lambda c: c.data.startswith(glob.HELP_DEL_CALLBACK))
 async def help_del(callback: CallbackQuery):
     await callback.message.delete()
-
-
-""" /mytpay """
-
-
-@router.callback_query(lambda c: c.data.startswith(glob.MYTPAY_BACK_CALLBACK))
-async def mytpay_back(callback: CallbackQuery):
-    await pmove(callback, glob.MYTPAY_BACK_CALLBACK)
-
-
-@router.callback_query(lambda c: c.data.startswith(glob.MYTPAY_FORWARD_CALLBACK))
-async def mytpay_forward(callback: CallbackQuery):
-    await pmove(callback, glob.MYTPAY_FORWARD_CALLBACK)
-
-
-@router.callback_query(lambda c: c.data.startswith(glob.MYTPAY_HIDE_CALLBACK))
-async def mytpay_hide(callback: CallbackQuery):
-    await phide(callback)
-
-
-""" /myaward """
-
-
-@router.callback_query(lambda c: c.data.startswith(glob.MYAWARD_BACK_CALLBACK))
-async def myaward_back(callback: CallbackQuery):
-    await pmove(callback, glob.MYAWARD_BACK_CALLBACK)
-
-
-@router.callback_query(lambda c: c.data.startswith(glob.MYAWARD_FORWARD_CALLBACK))
-async def myaward_forward(callback: CallbackQuery):
-    await pmove(callback, glob.MYAWARD_FORWARD_CALLBACK)
-
-
-@router.callback_query(lambda c: c.data.startswith(glob.MYAWARD_HIDE_CALLBACK))
-async def myaward_hide(callback: CallbackQuery):
-    await phide(callback)
 
 
 """ /tpay """

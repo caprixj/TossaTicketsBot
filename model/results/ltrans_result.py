@@ -8,7 +8,7 @@ from model.database.member import Member
 
 
 @dataclass
-class MytpayResult:
+class LTransResult:
     user_id: int
     tpays: List[TpayTransaction]
     addts: List[AddtTransaction]

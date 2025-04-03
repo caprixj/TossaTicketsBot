@@ -12,7 +12,7 @@ from model.database.addt_transaction import AddtTransaction
 from model.database.delt_transaction import DeltTransaction
 from model.database.tpay_transaction import TpayTransaction
 from model.results.award_record import AwardRecord
-from model.results.mytpay_result import MytpayResult
+from model.results.ltrans_result import LTransResult
 from model.types.transaction_type import TransactionType
 from repository.ordering_type import OrderingType
 from resources.const import glob
@@ -217,7 +217,7 @@ async def get_awards_count(user_id: int) -> int:
 #         return row[0] if row else 'not found'
 
 
-async def get_transaction_stats(user_id: int) -> MytpayResult:
+async def get_transaction_stats(user_id: int) -> LTransResult:
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
         cursor = await db.cursor()
 
@@ -245,7 +245,7 @@ async def get_transaction_stats(user_id: int) -> MytpayResult:
         # unique_tpay_members
         unique_tpay_members = await _get_unique_members(cursor, user_id, tpays)
 
-        return MytpayResult(user_id, tpays, addts, delts, unique_tpay_members)
+        return LTransResult(user_id, tpays, addts, delts, unique_tpay_members)
 
 
 """ Update """

@@ -12,7 +12,7 @@ from model.database.addt_transaction import AddtTransaction
 from model.database.delt_transaction import DeltTransaction
 from model.database.tpay_transaction import TpayTransaction
 from model.results.award_record import AwardRecord
-from model.results.mytpay_result import MytpayResult
+from model.results.ltrans_result import LTransResult
 from model.types.transaction_result_errors import TransactionResultErrors as trm
 from model.results.transaction_result import TransactionResult
 from model.types.transaction_type import TransactionType
@@ -238,11 +238,11 @@ async def tpay(sender: Member, receiver: Member, transfer: float, description: s
     return TransactionResult(valid=True)
 
 
-async def mytpay(user_id: int) -> MytpayResult:
+async def ltrans(user_id: int) -> LTransResult:
     return await repo.get_transaction_stats(user_id)
 
 
-async def myaward(user_id: int) -> Optional[List[AwardRecord]]:
+async def laward(user_id: int) -> Optional[List[AwardRecord]]:
     return await repo.get_awards(user_id)
 
 

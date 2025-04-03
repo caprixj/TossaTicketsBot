@@ -12,8 +12,8 @@ from command.routed.keyboards.keyboards import tpay_keyboard, help_keyboard
 from command.parser.core import cog
 from command.parser.core.overload import CommandOverload, CommandOverloadGroup
 from command.parser.core.parser import CommandParser
-from components.paged_viewer import page_generators
-from components.paged_viewer.paged_viewer import PagedViewer, keep_paged_viewer
+from component.paged_viewer import page_generators
+from component.paged_viewer.paged_viewer import PagedViewer, keep_paged_viewer
 from model.types.ticketonomics_types import PNReal, NInt
 from command.parser.types.com_list import CommandList as cl
 from command.parser.types.target_type import CommandTargetType as ctt
@@ -72,17 +72,17 @@ async def help_(message: Message):
     )
 
 
-@router.message(Command(cl.mytpay.name))
-async def mytpay(message: Message):
+@router.message(Command(cl.ltrans.name))
+async def ltrans(message: Message):
     if not await validate_message(message):
         return
 
     viewer = PagedViewer(
-        title=glob.MYTPAY_TITLE,
-        data_extractor=functools.partial(service.mytpay, message.from_user.id),
-        page_generator=page_generators.mytpay,
+        title=glob.LTRANS_TITLE,
+        data_extractor=functools.partial(service.ltrans, message.from_user.id),
+        page_generator=page_generators.ltrans,
         page_message=message,
-        start_text=glob.MYTPAY_START_TEXT,
+        start_text=glob.LTRANS_START_TEXT,
         parse_mode=ParseMode.HTML
     )
 
@@ -93,15 +93,27 @@ async def mytpay(message: Message):
     await viewer.view(operation_id)
 
 
-@router.message(Command(cl.myaward.name))
-async def myaward(message: Message):
+@router.message(Command(cl.laward.name))
+async def laward(message: Message):
     if not await validate_message(message):
         return
 
+    cpr = CommandParser(message, cog.pure()).parse()
+
+    if not cpr.valid:
+        await message.answer(glob.COM_PARSER_FAILED)
+        return
+
+    target_member = await service.get_target_member(cpr)
+
+    if target_member is None:
+        await message.answer(glob.GET_MEMBER_FAILED)
+        return
+
     viewer = PagedViewer(
-        title=glob.MYAWARD_TITLE,
-        data_extractor=functools.partial(service.myaward, message.from_user.id),
-        page_generator=page_generators.myaward,
+        title=glob.LAWARD_TITLE,
+        data_extractor=functools.partial(service.laward, target_member.user_id),
+        page_generator=page_generators.laward,
         page_message=message,
         parse_mode=ParseMode.HTML
     )
