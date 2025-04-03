@@ -225,7 +225,7 @@ async def xltrans(message: Message):
 
     viewer = PagedViewer(
         title=glob.LTRANS_TITLE,
-        data_extractor=functools.partial(service.ltrans, message.from_user.id),
+        data_extractor=functools.partial(service.ltrans, target_member.user_id),
         page_generator=page_generators.ltrans,
         page_message=message,
         start_text=glob.LTRANS_START_TEXT,
