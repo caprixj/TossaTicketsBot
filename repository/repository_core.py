@@ -215,7 +215,7 @@ async def get_total_tickets(skip_negative: bool = True) -> float:
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
         cursor = await db.execute(query)
         row = await cursor.fetchone()
-        return int(row[0]) if row else 0
+        return float(row[0]) if row else 0
 
 
 # async def get_award_addt_time(user_id: int) -> str:

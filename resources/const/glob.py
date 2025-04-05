@@ -35,6 +35,7 @@ DECORATIVE_KEYBOARD_BUTTON = 'decorative'
 
 HELP_HIDE_CALLBACK = 'help_hide'
 AWARD_HIDE_CALLBACK = 'award_hide'
+TOPT_HIDE_CALLBACK = 'topt_hide'
 
 PV_BACK_CALLBACK = 'pv_back'
 PV_FORWARD_CALLBACK = 'pv_forward'

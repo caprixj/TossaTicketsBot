@@ -83,9 +83,21 @@ async def ltrans(message: Message):
     if not await validate_message(message):
         return
 
+    cpr = CommandParser(message, cog.pure()).parse()
+
+    if not cpr.valid:
+        await message.answer(glob.COM_PARSER_FAILED)
+        return
+
+    target_member = await service.get_target_member(cpr)
+
+    if target_member is None:
+        await message.answer(glob.GET_MEMBER_FAILED)
+        return
+
     viewer = PagedViewer(
         title=glob.LTRANS_TITLE,
-        data_extractor=functools.partial(service.ltrans, message.from_user.id),
+        data_extractor=functools.partial(service.ltrans, target_member.user_id),
         page_generator=page_generators.ltrans,
         page_message=message,
         start_text=glob.LTRANS_START_TEXT,
@@ -154,15 +166,27 @@ async def topt(message: Message):
         return
 
     if cpr.overload.oid == 'pure':
-        await message.answer(await service.topt())
+        await message.answer(
+            text=await service.topt(),
+            reply_markup=hide_keyboard(glob.TOPT_HIDE_CALLBACK)
+        )
     elif cpr.overload.oid == 'size':
         size = cpr.args[glob.SIZE_ARG]
-        await message.answer(await service.topt(size=size))
+        await message.answer(
+            text=await service.topt(size=size),
+            reply_markup=hide_keyboard(glob.TOPT_HIDE_CALLBACK)
+        )
     elif cpr.overload.oid == 'percent':
-        await message.answer(await service.topt(percent=True))
+        await message.answer(
+            text=await service.topt(percent=True),
+            reply_markup=hide_keyboard(glob.TOPT_HIDE_CALLBACK)
+        )
     else:  # cpr.overload.oid == 'percent-size'
         size = cpr.args[glob.SIZE_ARG]
-        await message.answer(await service.topt(size, percent=True))
+        await message.answer(
+            text=await service.topt(size, percent=True),
+            reply_markup=hide_keyboard(glob.TOPT_HIDE_CALLBACK)
+        )
 
 
 @router.message(Command(cl.bal.name))

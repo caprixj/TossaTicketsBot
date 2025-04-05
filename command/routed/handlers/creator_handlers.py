@@ -116,46 +116,6 @@ async def sett(message: Message):
     await message.answer(glob.SETT_TEXT)
 
 
-# @router.page_message(Command(cl.sfs.name))
-# async def sfs(page_message: Message):
-#     og = CommandOverloadGroup(
-#         # /sfs <page_message:text>
-#         overloads=[CommandOverload().add(glob.MESSAGE_ARG, Text)],
-#         creator_required=True
-#     )
-#
-#     cpr = CommandParser(page_message, og).parse()
-#
-#     if not cpr.valid:
-#         await _reply_by_crv(page_message, cpr)
-#         return
-#
-#     await service.bot.send_message(
-#         chat_id=glob.rms.group_chat_id,
-#         text=cpr.args[glob.MESSAGE_ARG]
-#     )
-#
-#
-# @router.page_message(Command(cl.db.name))
-# async def db(page_message: Message) -> None:
-#     og = CommandOverloadGroup(
-#         # /db
-#         overloads=[CommandOverload()],
-#         creator_required=True
-#     )
-#
-#     cpr = CommandParser(page_message, og).parse()
-#
-#     if not cpr.valid:
-#         await _reply_by_crv(page_message, cpr)
-#         return
-#
-#     await service.bot.send_document(
-#         chat_id=page_message.chat.id,
-#         document=FSInputFile(glob.rms.db_file_path)
-#     )
-
-
 @router.message(Command(cl.award.name))
 async def award(message: Message):
     if not await validate_message(message):
@@ -210,39 +170,6 @@ async def award(message: Message):
         )
     else:
         await message.answer(glob.AWARD_DUPLICATE)
-
-
-@router.message(Command(cl.xltrans.name))
-async def xltrans(message: Message):
-    if not await validate_message(message):
-        return
-
-    cpr = CommandParser(message, cog.pure()).parse()
-
-    if not cpr.valid:
-        await message.answer(glob.COM_PARSER_FAILED)
-        return
-
-    target_member = await service.get_target_member(cpr)
-
-    if target_member is None:
-        await message.answer(glob.GET_MEMBER_FAILED)
-        return
-
-    viewer = PagedViewer(
-        title=glob.LTRANS_TITLE,
-        data_extractor=functools.partial(service.ltrans, target_member.user_id),
-        page_generator=page_generators.ltrans,
-        page_message=message,
-        start_text=glob.LTRANS_START_TEXT,
-        parse_mode=ParseMode.HTML
-    )
-
-    operation_id = await service.operation_manager.register(
-        func=functools.partial(keep_paged_viewer, viewer)
-    )
-
-    await viewer.view(operation_id)
 
 
 """ Private """

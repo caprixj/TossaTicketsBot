@@ -47,6 +47,12 @@ async def help_hide(callback: CallbackQuery):
 @router.callback_query(lambda c: c.data.startswith(glob.AWARD_HIDE_CALLBACK))
 async def award_hide(callback: CallbackQuery):
     await callback.message.delete()
+    await callback.message.delete()
+
+
+@router.callback_query(lambda c: c.data.startswith(glob.TOPT_HIDE_CALLBACK))
+async def topt_hide(callback: CallbackQuery):
+    await callback.message.delete()
 
 
 """ /tpay """

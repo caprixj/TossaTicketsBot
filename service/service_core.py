@@ -96,13 +96,14 @@ async def topt(size: int = 0, percent: bool = False) -> str:
     if sized:
         order = OrderingType.DESC if size > 0 else OrderingType.ASC
         members = await repo.get_members_by_tickets_limited(order, abs(size))
-        result = f'{glob.TOPT_DESC if size > 0 else glob.TOPT_ASC}\n\n'
+        result = f'{glob.TOPT_DESC if size > 0 else glob.TOPT_ASC}'
     else:
         order = str()
         members = await repo.get_members_by_tickets()
-        result = f'{glob.TOPT_DESC} (повний)\n\n'
+        result = f'{glob.TOPT_DESC} (повний)'
 
     total_tickets = await repo.get_total_tickets(skip_negative=True)
+    result += f"\nобсяг тікетономіки: {total_tickets:.2f} tc\n\n"
 
     for i, m in enumerate(members):
         name = get_formatted_name(Member(

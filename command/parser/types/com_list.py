@@ -26,9 +26,6 @@ class CommandList(str, Enum):
     # cog: a1_any
     award = 'award'
 
-    # cog: pure
-    xltrans = 'xltrans'
-
     # # # # # # # # #
     # for all users
 
@@ -41,7 +38,7 @@ class CommandList(str, Enum):
     # /help
     help = 'help'
 
-    # /ltrans
+    # cog: pure
     ltrans = 'ltrans'
 
     # /laward
@@ -49,6 +46,8 @@ class CommandList(str, Enum):
 
     # /topt
     # /topt <count:nint>
+    # /topt %
+    # /topt % <count:nint>
     topt = 'topt'
 
     # cog: pure
