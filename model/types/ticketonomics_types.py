@@ -21,7 +21,7 @@ class TicketonomicsType:
 
 
 # any string
-class Text(TicketonomicsType):
+class BaseText(TicketonomicsType):
     def __init__(self, data: str):
         super().__init__(data)
 

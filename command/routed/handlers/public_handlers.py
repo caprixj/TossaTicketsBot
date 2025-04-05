@@ -6,6 +6,7 @@ from aiogram.filters import Command
 from aiogram.types import Message, LinkPreviewOptions
 
 import resources.const.glob as glob
+from model.types.router_filters import TextFilter
 from service import service_core as service
 from command.routed.handlers.validations import validate_message
 from command.routed.keyboards.keyboards import tpay_keyboard, help_keyboard
@@ -21,6 +22,11 @@ from model.types.transaction_result_errors import TransactionResultErrors as tre
 from resources.funcs import funcs
 
 router = Router()
+
+
+@router.message(TextFilter('да', ignore_case=True))
+async def da(message: Message):
+    await message.answer('пизда!')
 
 
 @router.message(Command(cl.reg.name))

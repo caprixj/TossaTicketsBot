@@ -16,7 +16,7 @@ from command.parser.core.overload import CommandOverload, CommandOverloadGroup
 from command.parser.core.parser import CommandParser
 from command.parser.results.parser_result import CommandParserResult
 from command.routed.handlers.validations import validate_message
-from model.types.ticketonomics_types import Text, Real, PNReal, SID
+from model.types.ticketonomics_types import BaseText, Real, PNReal, SID
 from command.parser.types.com_list import CommandList as cl
 
 from resources.const.rands import crv_messages
@@ -28,7 +28,7 @@ router = Router()
 async def sql(message: Message):
     og = CommandOverloadGroup(
         # /sql <query:text>
-        overloads=[CommandOverload().add(glob.QUERY_ARG, Text)],
+        overloads=[CommandOverload().add(glob.QUERY_ARG, BaseText)],
         creator_required=True
     )
 
