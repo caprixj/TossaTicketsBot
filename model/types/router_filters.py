@@ -8,5 +8,8 @@ class TextFilter(Filter):
         self.ignore_case = ignore_case
 
     async def __call__(self, message: Message) -> bool:
-        return message.text.lower() == self.text.lower() \
-            if self.ignore_case else message.text == self.text
+        if message.text:
+            return message.text.lower() == self.text.lower() \
+                if self.ignore_case else message.text == self.text
+        else:
+            return False
