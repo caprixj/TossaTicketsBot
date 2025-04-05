@@ -21,26 +21,31 @@ async def decorative_keyboard_button(callback: CallbackQuery):
 """ paged viewer """
 
 
-@router.callback_query(lambda c: c.data.startswith(glob.BACK_CALLBACK))
-async def back(callback: CallbackQuery):
-    await pmove(callback, glob.BACK_CALLBACK)
+@router.callback_query(lambda c: c.data.startswith(glob.PV_BACK_CALLBACK))
+async def pv_back(callback: CallbackQuery):
+    await pmove(callback, glob.PV_BACK_CALLBACK)
 
 
-@router.callback_query(lambda c: c.data.startswith(glob.FORWARD_CALLBACK))
-async def forward(callback: CallbackQuery):
-    await pmove(callback, glob.FORWARD_CALLBACK)
+@router.callback_query(lambda c: c.data.startswith(glob.PV_FORWARD_CALLBACK))
+async def pv_forward(callback: CallbackQuery):
+    await pmove(callback, glob.PV_FORWARD_CALLBACK)
 
 
-@router.callback_query(lambda c: c.data.startswith(glob.HIDE_CALLBACK))
-async def hide(callback: CallbackQuery):
+@router.callback_query(lambda c: c.data.startswith(glob.PV_HIDE_CALLBACK))
+async def pv_hide(callback: CallbackQuery):
     await phide(callback)
 
 
-""" /help """
+""" hide callbacks """
 
 
-@router.callback_query(lambda c: c.data.startswith(glob.HELP_DEL_CALLBACK))
-async def help_del(callback: CallbackQuery):
+@router.callback_query(lambda c: c.data.startswith(glob.HELP_HIDE_CALLBACK))
+async def help_hide(callback: CallbackQuery):
+    await callback.message.delete()
+
+
+@router.callback_query(lambda c: c.data.startswith(glob.AWARD_HIDE_CALLBACK))
+async def award_hide(callback: CallbackQuery):
     await callback.message.delete()
 
 

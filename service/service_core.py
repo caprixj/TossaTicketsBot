@@ -90,9 +90,19 @@ async def execute_sql(query: str) -> (bool, str):
 """ Interfaces """
 
 
-async def topt() -> str:
-    result = f'{glob.TOPT_DESC} (повний)\n\n'
-    members = await repo.get_members_by_tickets()
+async def topt(size: int = 0, percent: bool = False) -> str:
+    sized = size != 0
+
+    if sized:
+        order = OrderingType.DESC if size > 0 else OrderingType.ASC
+        members = await repo.get_members_by_tickets_limited(order, abs(size))
+        result = f'{glob.TOPT_DESC if size > 0 else glob.TOPT_ASC}\n\n'
+    else:
+        order = str()
+        members = await repo.get_members_by_tickets()
+        result = f'{glob.TOPT_DESC} (повний)\n\n'
+
+    total_tickets = await repo.get_total_tickets(skip_negative=True)
 
     for i, m in enumerate(members):
         name = get_formatted_name(Member(
@@ -102,7 +112,7 @@ async def topt() -> str:
         ))
 
         iterator = str()
-        if i < 3:
+        if i < 3 and (not sized or order == OrderingType.DESC):
             if i == 0:
                 iterator = '🥇'
             elif i == 1:
@@ -112,40 +122,14 @@ async def topt() -> str:
         else:
             iterator = f'{i + 1}.'
 
-        sign = '+' if m.tickets > 0 else str()
-        result += f'{iterator} ( {sign}{m.tickets:.2f} )  {name[:32]}\n'
-
-        if i == 2:
-            result += '\n'
-
-    return result
-
-
-async def topt_sized(size: int) -> str:
-    result = f'{glob.TOPT_DESC if size > 0 else glob.TOPT_ASC}\n\n'
-    order = OrderingType.DESC if size > 0 else OrderingType.ASC
-    members = await repo.get_members_by_tickets_limited(order, abs(size))
-
-    for i, m in enumerate(members):
-        name = get_formatted_name(Member(
-            username=m.username,
-            first_name=m.first_name,
-            last_name=m.last_name
-        ))
-
-        iterator = str()
-        if i < 3 and order == OrderingType.DESC:
-            if i == 0:
-                iterator = '🥇'
-            elif i == 1:
-                iterator = '🥈'
-            elif i == 2:
-                iterator = '🥉'
+        if percent:
+            value = f'{m.tickets / total_tickets * 100:.2f}%' \
+                if m.tickets > 0 else 'bankrupt'
         else:
-            iterator = f'{i + 1}.'
+            sign = '+' if m.tickets > 0 else str()
+            value = f'{sign}{m.tickets:.2f}'
 
-        sign = '+' if m.tickets > 0 else str()
-        result += f'{iterator} ( {sign}{m.tickets:.2f} )  {name[:32]}\n'
+        result += f'{iterator} ( {value} )  {name[:32]}\n'
 
         if i == 2:
             result += '\n'

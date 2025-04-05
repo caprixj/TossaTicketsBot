@@ -210,6 +210,14 @@ async def get_awards_count(user_id: int) -> int:
         return int(row[0]) if row else 0
 
 
+async def get_total_tickets(skip_negative: bool = True) -> float:
+    query = f"{scripts.SELECT_TOTAL_TICKETS_COUNT} {'WHERE tickets > 0' if skip_negative else str()}"
+    async with aiosqlite.connect(glob.rms.db_file_path) as db:
+        cursor = await db.execute(query)
+        row = await cursor.fetchone()
+        return int(row[0]) if row else 0
+
+
 # async def get_award_addt_time(user_id: int) -> str:
 #     async with aiosqlite.connect(glob.rms.db_file_path) as db:
 #         cursor = await db.execute(scripts.SELECT_AWARD_ADDT_TIME_BY_USER_ID, (user_id,))

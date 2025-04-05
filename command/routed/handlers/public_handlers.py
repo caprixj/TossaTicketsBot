@@ -9,7 +9,7 @@ import resources.const.glob as glob
 from model.types.router_filters import TextFilter
 from service import service_core as service
 from command.routed.handlers.validations import validate_message
-from command.routed.keyboards.keyboards import tpay_keyboard, help_keyboard
+from command.routed.keyboards.keyboards import tpay_keyboard, hide_keyboard
 from command.parser.core import cog
 from command.parser.core.overload import CommandOverload, CommandOverloadGroup
 from command.parser.core.parser import CommandParser
@@ -74,7 +74,7 @@ async def help_(message: Message):
         text=glob.HELP_TEXT,
         parse_mode=ParseMode.MARKDOWN,
         link_preview_options=LinkPreviewOptions(is_disabled=True),
-        reply_markup=help_keyboard()
+        reply_markup=hide_keyboard(glob.HELP_HIDE_CALLBACK)
     )
 
 
@@ -140,7 +140,11 @@ async def topt(message: Message):
         # /topt
         CommandOverload(oid='pure'),
         # /topt <size:nint>
-        CommandOverload(oid='size').add(glob.SIZE_ARG, NInt)
+        CommandOverload(oid='size').add(glob.SIZE_ARG, NInt),
+        # /topt <%>
+        CommandOverload(oid='percent').add_percent(),
+        # /topt <%> <size:nint>
+        CommandOverload(oid='percent-size').add_percent().add(glob.SIZE_ARG, NInt),
     ])
 
     cpr = CommandParser(message, og).parse()
@@ -151,9 +155,14 @@ async def topt(message: Message):
 
     if cpr.overload.oid == 'pure':
         await message.answer(await service.topt())
-    else:
+    elif cpr.overload.oid == 'size':
         size = cpr.args[glob.SIZE_ARG]
-        await message.answer(await service.topt_sized(size))
+        await message.answer(await service.topt(size=size))
+    elif cpr.overload.oid == 'percent':
+        await message.answer(await service.topt(percent=True))
+    else:  # cpr.overload.oid == 'percent-size'
+        size = cpr.args[glob.SIZE_ARG]
+        await message.answer(await service.topt(size, percent=True))
 
 
 @router.message(Command(cl.bal.name))

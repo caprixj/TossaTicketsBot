@@ -25,16 +25,20 @@ MESSAGE_ARG = 'page_message'
 SIZE_ARG = 'size'
 AWARD_ID_ARG = 'award_id'
 PAGE_ARG = 'page'
+PERCENT_ARG = 'percent'
 
 TPAY_YES_CALLBACK = 'tpay_yes'
 TPAY_NO_CALLBACK = 'tpay_no'
 TPAY_FEE_INCORPORATION_CALLBACK = 'tpay_fi'
-HELP_DEL_CALLBACK = 'help_del'
+
 DECORATIVE_KEYBOARD_BUTTON = 'decorative'
 
-BACK_CALLBACK = 'back_callback'
-FORWARD_CALLBACK = 'forward_callback'
-HIDE_CALLBACK = 'hide_callback'
+HELP_HIDE_CALLBACK = 'help_hide'
+AWARD_HIDE_CALLBACK = 'award_hide'
+
+PV_BACK_CALLBACK = 'pv_back'
+PV_FORWARD_CALLBACK = 'pv_forward'
+PV_HIDE_CALLBACK = 'pv_hide'
 
 LAWARD_TITLE = '<b>📯 Дошка нагород</b>'
 LTRANS_TITLE = '📊 Історія надходжень та витрат (тікети)'

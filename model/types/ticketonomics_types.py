@@ -65,6 +65,17 @@ class Text512(TicketonomicsType):
             raise ValueError()
 
 
+class PercentSpecialArgument(TicketonomicsType):
+    def __init__(self, data: str):
+        super().__init__(data)
+
+    def cast(self) -> str:
+        if self.data == '%':
+            return self.data
+        else:
+            raise ValueError()
+
+
 # all double
 class Real(TicketonomicsType):
     def __init__(self, data: str):

@@ -62,8 +62,8 @@ class PagedViewer:
     def reply_markup(self, operation_id: int, sender_id: int) -> InlineKeyboardMarkup:
         builder = InlineKeyboardBuilder()
 
-        back = generate_callback_data(glob.BACK_CALLBACK, operation_id, sender_id)
-        forward = generate_callback_data(glob.FORWARD_CALLBACK, operation_id, sender_id)
+        back = generate_callback_data(glob.PV_BACK_CALLBACK, operation_id, sender_id)
+        forward = generate_callback_data(glob.PV_FORWARD_CALLBACK, operation_id, sender_id)
         builder.row(
             InlineKeyboardButton(text='<<', callback_data=back),
             InlineKeyboardButton(
@@ -73,7 +73,7 @@ class PagedViewer:
             InlineKeyboardButton(text='>>', callback_data=forward),
         )
 
-        hide = generate_callback_data(glob.HIDE_CALLBACK, operation_id, sender_id)
+        hide = generate_callback_data(glob.PV_HIDE_CALLBACK, operation_id, sender_id)
         builder.row(InlineKeyboardButton(text='🗑 Приховати', callback_data=hide))
 
         return builder.as_markup()
@@ -110,9 +110,9 @@ async def pmove(callback: CallbackQuery, move: str):
 
     viewer: PagedViewer = await service.operation_manager.run(data.operation_id)
 
-    if move == glob.BACK_CALLBACK:
+    if move == glob.PV_BACK_CALLBACK:
         viewer.page_back()
-    elif move == glob.FORWARD_CALLBACK:
+    elif move == glob.PV_FORWARD_CALLBACK:
         viewer.page_forward()
     else:
         raise RuntimeError('pmove(callback: CallbackQuery, move: str): invalid move')

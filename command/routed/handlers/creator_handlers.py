@@ -7,6 +7,7 @@ from aiogram.filters import Command
 from aiogram.types import Message
 
 import resources.const.glob as glob
+from command.routed.keyboards.keyboards import hide_keyboard
 from component.paged_viewer import page_generators
 from component.paged_viewer.paged_viewer import PagedViewer, keep_paged_viewer
 from model.database.award_member import AwardMemberJunction
@@ -201,7 +202,12 @@ async def award(message: Message):
                       f"{payment}"
                       f"\nвидано: <b>{am.issue_date}</b>"
                       f"\n\n<b>історія</b>: <i>{award_.description}</i>")
-        await message.answer(award_text, parse_mode=ParseMode.HTML)
+
+        await message.answer(
+            text=award_text,
+            reply_markup=hide_keyboard(glob.AWARD_HIDE_CALLBACK),
+            parse_mode=ParseMode.HTML
+        )
     else:
         await message.answer(glob.AWARD_DUPLICATE)
 

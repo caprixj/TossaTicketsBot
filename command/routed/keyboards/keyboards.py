@@ -21,7 +21,7 @@ def tpay_keyboard(operation_id: int, sender_id: int, fee_incorporated: bool) -> 
     return builder.as_markup()
 
 
-def help_keyboard() -> InlineKeyboardMarkup:
+def hide_keyboard(callback_data: str) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
-    builder.row(InlineKeyboardButton(text='🗑 Видалити', callback_data=glob.HELP_DEL_CALLBACK))
+    builder.row(InlineKeyboardButton(text='🗑 Приховати', callback_data=callback_data))
     return builder.as_markup()

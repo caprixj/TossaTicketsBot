@@ -107,6 +107,7 @@ SELECT_AWARDS_COUNT_BY_OWNER_ID = "SELECT COUNT(am.award_id) FROM award_member a
 SELECT_TICKETS_COUNT = "SELECT tickets FROM members WHERE user_id = ?"
 SELECT_ARTIFACTS_BY_OWNER_ID = "SELECT * FROM artifacts WHERE owner_id = ?"
 SELECT_ARTIFACTS_COUNT_BY_OWNER_ID = "SELECT COUNT(a.artifact_id) FROM artifacts a WHERE a.owner_id = ?"
+SELECT_TOTAL_TICKETS_COUNT = "SELECT SUM(tickets) FROM members"
 
 SELECT_TOPTALL = """
     SELECT m.*
