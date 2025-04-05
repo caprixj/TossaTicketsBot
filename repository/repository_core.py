@@ -134,7 +134,8 @@ async def create_award_member(am: AwardMemberJunction) -> bool:
         try:
             await db.execute(scripts.INSERT_AWARD_MEMBER, (
                 am.award_id,
-                am.owner_id
+                am.owner_id,
+                am.issue_date
             ))
             await db.commit()
             return True

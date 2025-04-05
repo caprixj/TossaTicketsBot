@@ -29,6 +29,16 @@ async def da(message: Message):
     await message.answer('пизда!')
 
 
+@router.message(TextFilter('нє', ignore_case=True))
+async def nie_ua(message: Message):
+    await message.answer('рука в гавнє')
+
+
+@router.message(TextFilter('не', ignore_case=True))
+async def nie_ru(message: Message):
+    await message.answer('рука в говне!')
+
+
 @router.message(Command(cl.reg.name))
 async def reg(message: Message):
     og = CommandOverloadGroup([

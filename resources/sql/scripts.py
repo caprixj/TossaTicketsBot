@@ -94,7 +94,7 @@ INSERT_ADDT = "INSERT INTO addt (user_id, tickets, time, description, type_) VAL
 INSERT_DELT = "INSERT INTO delt (user_id, tickets, time, description, type_) VALUES (?, ?, ?, ?, ?)"
 INSERT_MEMBER = "INSERT INTO members (user_id, username, first_name, last_name, tickets) VALUES (?, ?, ?, ?, ?)"
 INSERT_AWARD = "INSERT INTO awards (award_id, name, description, payment) VALUES (?, ?, ?, ?)"
-INSERT_AWARD_MEMBER = "INSERT INTO award_member (award_id, owner_id) VALUES (?, ?)"
+INSERT_AWARD_MEMBER = "INSERT INTO award_member (award_id, owner_id, issue_date) VALUES (?, ?, ?)"
 INSERT_TPAY = "INSERT INTO tpay (sender_id, receiver_id, transfer, fee, time, description) VALUES (?, ?, ?, ?, ?, ?)"
 
 SELECT_TPAY_BY_SENDER_OR_RECEIVER = "SELECT * FROM tpay WHERE sender_id = ? OR receiver_id = ?"
