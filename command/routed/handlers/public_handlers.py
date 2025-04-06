@@ -26,17 +26,20 @@ router = Router()
 
 @router.message(TextFilter(r'^[дД][аА]+[.]*[!]*[?]*$', ignore_case=True, regex=True))
 async def da(message: Message):
-    await message.answer(f"пизд{'а' * message.text.lower().count('а')}!")
+    text = f"пизд{'а' * message.text.lower().count('а')}!"
+    await message.answer(text.upper() if message.text.isupper() else text)
 
 
 @router.message(TextFilter(r'^[нН][єЄ]+[.]*[!]*[?]*$', ignore_case=True, regex=True))
 async def nie_ua(message: Message):
-    await message.answer(f"рука в гавн{'є' * message.text.lower().count('є')}!")
+    text = f"рука в гавн{'є' * message.text.lower().count('є')}!"
+    await message.answer(text.upper() if message.text.isupper() else text)
 
 
 @router.message(TextFilter(r'^[нН][еЕ]+[.]*[!]*[?]*$', ignore_case=True, regex=True))
 async def nie_ru(message: Message):
-    await message.answer(f"рука в говн{'е' * message.text.lower().count('е')}!")
+    text = f"рука в говн{'е' * message.text.lower().count('е')}!"
+    await message.answer(text.upper() if message.text.isupper() else text)
 
 
 @router.message(Command(cl.reg.name))
