@@ -24,19 +24,19 @@ from resources.funcs import funcs
 router = Router()
 
 
-@router.message(TextFilter('да', ignore_case=True))
+@router.message(TextFilter(r'^[дД][аА]+[.]*[!]*[?]*$', ignore_case=True, regex=True))
 async def da(message: Message):
-    await message.answer('пизда!')
+    await message.answer(f"пизд{'а' * message.text.lower().count('а')}!")
 
 
-@router.message(TextFilter('нє', ignore_case=True))
+@router.message(TextFilter(r'^[нН][єЄ]+[.]*[!]*[?]*$', ignore_case=True, regex=True))
 async def nie_ua(message: Message):
-    await message.answer('рука в гавнє')
+    await message.answer(f"рука в гавн{'є' * message.text.lower().count('є')}!")
 
 
-@router.message(TextFilter('не', ignore_case=True))
+@router.message(TextFilter(r'^[нН][еЕ]+[.]*[!]*[?]*$', ignore_case=True, regex=True))
 async def nie_ru(message: Message):
-    await message.answer('рука в говне!')
+    await message.answer(f"рука в говн{'е' * message.text.lower().count('е')}!")
 
 
 @router.message(Command(cl.reg.name))
