@@ -1,4 +1,5 @@
 import functools
+import re
 
 from aiogram import Router
 from aiogram.enums import ParseMode
@@ -24,22 +25,19 @@ from resources.funcs import funcs
 router = Router()
 
 
-@router.message(TextFilter(r'^[дД][аА]+[.]*[!]*[?]*$', ignore_case=True, regex=True))
+@router.message(TextFilter(r'^[дД]+[аА]+[.]*[!]*[?]*$', regex=True))
 async def da(message: Message):
-    text = f"пизд{'а' * message.text.lower().count('а')}!"
-    await message.answer(text.upper() if message.text.isupper() else text)
+    await message.answer(f'пиз{message.text}')
 
 
-@router.message(TextFilter(r'^[нН][єЄ]+[.]*[!]*[?]*$', ignore_case=True, regex=True))
+@router.message(TextFilter(r'^[нН]+[єЄ]+[.]*[!]*[?]*$', regex=True))
 async def nie_ua(message: Message):
-    text = f"рука в гавн{'є' * message.text.lower().count('є')}!"
-    await message.answer(text.upper() if message.text.isupper() else text)
+    await message.answer(f'рука в гав{message.text}!')
 
 
-@router.message(TextFilter(r'^[нН][еЕ]+[.]*[!]*[?]*$', ignore_case=True, regex=True))
+@router.message(TextFilter(r'^[нН]+[еЕ]+[.]*[!]*[?]*$', regex=True))
 async def nie_ru(message: Message):
-    text = f"рука в говн{'е' * message.text.lower().count('е')}!"
-    await message.answer(text.upper() if message.text.isupper() else text)
+    await message.answer(f'рука в гов{message.text}!')
 
 
 @router.message(Command(cl.reg.name))
