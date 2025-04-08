@@ -1,11 +1,15 @@
 from datetime import datetime
 
 from model.database.member import Member
-from resources.const.glob import FEE_RATE as F, MIN_FEE as M
+from resources.const.glob import FEE_RATE as F, MIN_FEE as M, DATETIME_FORMAT
 
 
 def get_current_datetime() -> str:
-    return datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    return datetime.now().strftime(DATETIME_FORMAT)
+
+
+def date_to_str(date: datetime) -> str:
+    return date.strftime(DATETIME_FORMAT)
 
 
 async def get_fee(transfer: float) -> float:

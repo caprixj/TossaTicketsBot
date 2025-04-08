@@ -1,3 +1,5 @@
+""" Create Tables """
+
 CREATE_TABLE_MEMBERS = """
     CREATE TABLE IF NOT EXISTS members (
         user_id INTEGER PRIMARY KEY,
@@ -90,12 +92,62 @@ CREATE_TABLE_TPAY = """
     );
 """
 
+CREATE_TABLE_PRICE_HISTORY = """
+    CREATE TABLE IF NOT EXISTS price_history (
+        price_history_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        inflation REAL NOT NULL,
+        fluctuation REAL NOT NULL,
+        plan_date TEXT NOT NULL,
+        fact_date TEXT NOT NULL
+    );
+"""
+
+CREATE_TABLE_SALARY_PAYOUTS = """
+    CREATE TABLE IF NOT EXISTS salary_payouts (
+        salary_payout_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        date TEXT NOT NULL,
+        paid_out INTEGER NOT NULL DEFAULT 0
+    );
+"""
+
+CREATE_TABLE_PAID_MEMBERS = """
+    CREATE TABLE IF NOT EXISTS paid_members (
+        user_id INTEGER,
+        position TEXT,
+        salary REAL NOT NULL,
+        PRIMARY KEY (user_id, position),
+        FOREIGN KEY (user_id)
+            REFERENCES members (user_id)
+            ON DELETE RESTRICT
+    );
+"""
+
+CREATE_TABLE_PAID_MEMBER_HISTORY = """
+    CREATE TABLE IF NOT EXISTS paid_member_history (
+        paid_member_history_id INTEGER PRIMARY KEY INCREMENT,
+        user_id INTEGER NOT NULL,
+        position TEXT NOT NULL,
+        salary REAL NOT NULL,
+        FOREIGN KEY (user_id)
+            REFERENCES members (user_id)
+            ON DELETE RESTRICT
+    );
+"""
+
+
+""" Insert """
+
 INSERT_ADDT = "INSERT INTO addt (user_id, tickets, time, description, type_) VALUES (?, ?, ?, ?, ?)"
 INSERT_DELT = "INSERT INTO delt (user_id, tickets, time, description, type_) VALUES (?, ?, ?, ?, ?)"
 INSERT_MEMBER = "INSERT INTO members (user_id, username, first_name, last_name, tickets) VALUES (?, ?, ?, ?, ?)"
 INSERT_AWARD = "INSERT INTO awards (award_id, name, description, payment) VALUES (?, ?, ?, ?)"
 INSERT_AWARD_MEMBER = "INSERT INTO award_member (award_id, owner_id) VALUES (?, ?)"
 INSERT_TPAY = "INSERT INTO tpay (sender_id, receiver_id, transfer, fee, time, description) VALUES (?, ?, ?, ?, ?, ?)"
+INSERT_PRICE_HISTORY = "INSERT INTO price_history (inflation, fluctuation, plan_date, fact_date) VALUES (?, ?, ?, ?)"
+INSERT_SALARY_PAYOUT = "INSERT INTO salary_payouts (date, paid_out) VALUES (?, ?)"
+
+
+""" Select """
 
 SELECT_TPAY_BY_SENDER_OR_RECEIVER = "SELECT * FROM tpay WHERE sender_id = ? OR receiver_id = ?"
 SELECT_ADDT_TYPE_NOT_TPAY = "SELECT * FROM addt WHERE user_id = ? AND type_ NOT IN (?, ?)"
@@ -108,6 +160,8 @@ SELECT_TICKETS_COUNT = "SELECT tickets FROM members WHERE user_id = ?"
 SELECT_ARTIFACTS_BY_OWNER_ID = "SELECT * FROM artifacts WHERE owner_id = ?"
 SELECT_ARTIFACTS_COUNT_BY_OWNER_ID = "SELECT COUNT(a.artifact_id) FROM artifacts a WHERE a.owner_id = ?"
 SELECT_TOTAL_TICKETS_COUNT = "SELECT SUM(tickets) FROM members"
+SELECT_PRICE_HISTORY = "SELECT * FROM price_history ORDER BY plan_date DESC LIMIT 1"
+SELECT_SALARY_PAYOUT = "SELECT * FROM salary_payouts ORDER BY date DESC LIMIT 1"
 
 SELECT_TOPTALL = """
     SELECT m.*
@@ -136,7 +190,11 @@ SELECT_AWARD_RECORDS_BY_OWNER_ID = """
     ORDER BY am.issue_date ASC
 """
 
+
+""" Update """
+
 UPDATE_MEMBER = "UPDATE members SET username = ?, first_name = ?, last_name = ? WHERE user_id = ?"
 UPDATE_TICKETS_COUNT = "UPDATE members SET tickets = ? WHERE user_id = ?"
 UPDATE_TPAY_AVAILABLE = "UPDATE members SET tpay_available = ? WHERE user_id = ?"
 RESET_TPAY_AVAILABLE = "UPDATE members SET tpay_available = 3"
+UPDATE_SALARY_PAYOUT = "UPDATE salary_payouts SET paid_out = ? WHERE date = ?"

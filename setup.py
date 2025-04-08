@@ -33,12 +33,12 @@ def define_rms(rm: RunMode) -> bool:
 async def create_databases():
     os.makedirs(os.path.dirname(glob.rms.db_file_path), exist_ok=True)
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
-        for query in await _get_db_setup_sql_script():
+        for query in await _get_create_table_scripts():
             await db.execute(query)
             await db.commit()
 
 
-async def _get_db_setup_sql_script() -> list[str]:
+async def _get_create_table_scripts() -> list[str]:
     return [
         scripts.CREATE_TABLE_MEMBERS,
         scripts.CREATE_TABLE_ARTIFACTS,
@@ -46,7 +46,11 @@ async def _get_db_setup_sql_script() -> list[str]:
         scripts.CREATE_TABLE_DELT,
         scripts.CREATE_TABLE_TPAY,
         scripts.CREATE_TABLE_AWARDS,
-        scripts.CREATE_TABLE_AWARD_MEMBER
+        scripts.CREATE_TABLE_AWARD_MEMBER,
+        scripts.CREATE_TABLE_PRICE_HISTORY,
+        scripts.CREATE_TABLE_SALARY_PAYOUTS,
+        scripts.CREATE_TABLE_PAID_MEMBERS,
+        scripts.CREATE_TABLE_PAID_MEMBER_HISTORY
     ]
 
 

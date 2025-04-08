@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from model.types.transaction_type import TransactionType
+from resources.const.glob import DATETIME_FORMAT
 
 
 class AddtTransaction:
@@ -14,6 +15,6 @@ class AddtTransaction:
         self.addt_id = addt_id
         self.user_id = user_id
         self.tickets = tickets
-        self.time = datetime.strptime(time, '%Y-%m-%d %H:%M:%S')
+        self.time = datetime.strptime(time, DATETIME_FORMAT)
         self.description = description
         self.type_ = type_

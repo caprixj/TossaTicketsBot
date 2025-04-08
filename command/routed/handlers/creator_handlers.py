@@ -1,4 +1,3 @@
-import functools
 import random
 
 from aiogram import Router
@@ -8,8 +7,6 @@ from aiogram.types import Message
 
 import resources.const.glob as glob
 from command.routed.keyboards.keyboards import hide_keyboard
-from component.paged_viewer import page_generators
-from component.paged_viewer.paged_viewer import PagedViewer, keep_paged_viewer
 from model.database.award_member import AwardMemberJunction
 from service import service_core as service
 from command.parser.core import cog
@@ -21,6 +18,7 @@ from model.types.ticketonomics_types import BaseText, Real, PNReal, SID
 from command.parser.types.com_list import CommandList as cl
 
 from resources.const.rands import crv_messages
+from service.price_manager import adjust_price_test
 
 router = Router()
 
@@ -170,6 +168,27 @@ async def award(message: Message):
         )
     else:
         await message.answer(glob.AWARD_DUPLICATE)
+
+
+@router.message(Command(cl.p.name))
+async def p(message: Message):
+    og = CommandOverloadGroup([
+        # /p <price:pnreal>
+        CommandOverload(oid='price').add(glob.PRICE_ARG, PNReal)
+    ])
+
+    cpr = CommandParser(message, og).parse()
+
+    if not cpr.valid:
+        await message.answer(glob.COM_PARSER_FAILED)
+        return
+
+    price = cpr.args[glob.PRICE_ARG]
+    adjusted_price, inflation, fluctuation = await adjust_price_test(price)
+    await message.answer(f'базова вартість: {price:.2f} tc'
+                         f'\nскорегована вартість: {adjusted_price:.2f} tc'
+                         f'\nінфляція: {(inflation - 1) * 100:.3f}%'
+                         f'\nпоточна флуктуація: {(fluctuation - 1) * 100:.3f}%')
 
 
 """ Private """

@@ -1,5 +1,7 @@
 from datetime import datetime
 
+from resources.const.glob import DATETIME_FORMAT
+
 
 class TpayTransaction:
     def __init__(self,
@@ -15,5 +17,5 @@ class TpayTransaction:
         self.receiver_id = receiver_id
         self.transfer = transfer
         self.fee = fee
-        self.time = datetime.strptime(time, '%Y-%m-%d %H:%M:%S')
+        self.time = datetime.strptime(time, DATETIME_FORMAT)
         self.description = description

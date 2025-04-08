@@ -10,6 +10,8 @@ from model.database.award_member import AwardMemberJunction
 from model.database.member import Member
 from model.database.addt_transaction import AddtTransaction
 from model.database.delt_transaction import DeltTransaction
+from model.database.price_reset import PriceReset
+from model.database.salary_payout import SalaryPayout
 from model.database.tpay_transaction import TpayTransaction
 from model.results.award_record import AwardRecord
 from model.results.ltrans_result import LTransResult
@@ -66,10 +68,10 @@ async def execute_external(query: str) -> (bool, str):
         return False, str(e)
 
 
-""" Create """
+""" Insert """
 
 
-async def create_member(member: Member) -> None:
+async def insert_member(member: Member) -> None:
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
         await db.execute(scripts.INSERT_MEMBER, (
             member.user_id,
@@ -81,7 +83,7 @@ async def create_member(member: Member) -> None:
         await db.commit()
 
 
-async def create_stat_addt(addt: AddtTransaction) -> None:
+async def insert_addt(addt: AddtTransaction) -> None:
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
         await db.execute(scripts.INSERT_ADDT, (
             addt.user_id,
@@ -93,7 +95,7 @@ async def create_stat_addt(addt: AddtTransaction) -> None:
         await db.commit()
 
 
-async def create_stat_delt(delt: DeltTransaction) -> None:
+async def insert_delt(delt: DeltTransaction) -> None:
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
         await db.execute(scripts.INSERT_DELT, (
             delt.user_id,
@@ -105,7 +107,7 @@ async def create_stat_delt(delt: DeltTransaction) -> None:
         await db.commit()
 
 
-async def create_stat_tpay(tpay: TpayTransaction):
+async def insert_tpay(tpay: TpayTransaction):
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
         await db.execute(scripts.INSERT_TPAY, (
             tpay.sender_id,
@@ -118,7 +120,7 @@ async def create_stat_tpay(tpay: TpayTransaction):
         await db.commit()
 
 
-async def create_award(award: Award):
+async def insert_award(award: Award):
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
         await db.execute(scripts.INSERT_AWARD, (
             award.award_id,
@@ -129,7 +131,7 @@ async def create_award(award: Award):
         await db.commit()
 
 
-async def create_award_member(am: AwardMemberJunction) -> bool:
+async def insert_award_member(am: AwardMemberJunction) -> bool:
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
         try:
             await db.execute(scripts.INSERT_AWARD_MEMBER, (
@@ -140,6 +142,26 @@ async def create_award_member(am: AwardMemberJunction) -> bool:
             return True
         except IntegrityError:
             return False
+
+
+async def insert_price_history(price_reset: PriceReset):
+    async with aiosqlite.connect(glob.rms.db_file_path) as db:
+        await db.execute(scripts.INSERT_PRICE_HISTORY, (
+            price_reset.inflation,
+            price_reset.fluctuation,
+            price_reset.plan_date,
+            price_reset.fact_date
+        ))
+        await db.commit()
+
+
+async def insert_salary_payout(payout: SalaryPayout):
+    async with aiosqlite.connect(glob.rms.db_file_path) as db:
+        await db.execute(scripts.INSERT_SALARY_PAYOUT, (
+            payout.paid_out,
+            payout.date
+        ))
+        await db.commit()
 
 
 """ Read """
@@ -218,13 +240,6 @@ async def get_total_tickets(skip_negative: bool = True) -> float:
         return float(row[0]) if row else 0
 
 
-# async def get_award_addt_time(user_id: int) -> str:
-#     async with aiosqlite.connect(glob.rms.db_file_path) as db:
-#         cursor = await db.execute(scripts.SELECT_AWARD_ADDT_TIME_BY_USER_ID, (user_id,))
-#         row = await cursor.fetchone()
-#         return row[0] if row else 'not found'
-
-
 async def get_transaction_stats(user_id: int) -> LTransResult:
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
         cursor = await db.cursor()
@@ -256,6 +271,20 @@ async def get_transaction_stats(user_id: int) -> LTransResult:
         return LTransResult(user_id, tpays, addts, delts, unique_tpay_members)
 
 
+async def get_last_price_reset() -> Optional[PriceReset]:
+    async with aiosqlite.connect(glob.rms.db_file_path) as db:
+        cursor = await db.execute(scripts.SELECT_PRICE_HISTORY)
+        row = await cursor.fetchone()
+        return PriceReset(*row) if row else None
+
+
+async def get_last_salary_payout() -> Optional[SalaryPayout]:
+    async with aiosqlite.connect(glob.rms.db_file_path) as db:
+        cursor = await db.execute(scripts.SELECT_SALARY_PAYOUT)
+        row = await cursor.fetchone()
+        return PriceReset(*row) if row else None
+
+
 """ Update """
 
 
@@ -280,3 +309,7 @@ async def spend_tpay_available(member: Member):
         member.tpay_available - 1,
         member.user_id
     ))
+
+
+async def set_salary_payout_paid_out(payout: SalaryPayout):
+    await _execute(scripts.UPDATE_SALARY_PAYOUT, (1, payout.date))

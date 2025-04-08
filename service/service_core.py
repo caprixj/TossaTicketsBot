@@ -31,7 +31,7 @@ async def _add_tickets(member: Member, tickets: float, transaction_type: Transac
     time = get_current_datetime()
 
     await repo.update_member_tickets(member)
-    await repo.create_stat_addt(AddtTransaction(
+    await repo.insert_addt(AddtTransaction(
         user_id=member.user_id,
         tickets=tickets,
         time=time,
@@ -46,7 +46,7 @@ async def _delete_tickets(member: Member, tickets: float, transaction_type: Tran
     time = get_current_datetime()
 
     await repo.update_member_tickets(member)
-    await repo.create_stat_delt(DeltTransaction(
+    await repo.insert_delt(DeltTransaction(
         user_id=member.user_id,
         tickets=tickets,
         time=time,
@@ -63,7 +63,7 @@ async def _set_tickets(member: Member, tickets: float, transaction_type: Transac
     time = get_current_datetime()
 
     if tickets > member.tickets:
-        await repo.create_stat_addt(AddtTransaction(
+        await repo.insert_addt(AddtTransaction(
             user_id=member.user_id,
             tickets=tickets - member.tickets,
             time=time,
@@ -71,7 +71,7 @@ async def _set_tickets(member: Member, tickets: float, transaction_type: Transac
             type_=transaction_type
         ))
     else:
-        await repo.create_stat_delt(DeltTransaction(
+        await repo.insert_delt(DeltTransaction(
             user_id=member.user_id,
             tickets=member.tickets - tickets,
             time=time,
@@ -180,7 +180,7 @@ async def tpay(sender: Member, receiver: Member, transfer: float, description: s
     sender.tickets -= transfer
     await repo.update_member_tickets(sender)
     await repo.spend_tpay_available(sender)
-    await repo.create_stat_delt(DeltTransaction(
+    await repo.insert_delt(DeltTransaction(
         user_id=sender.user_id,
         tickets=transfer,
         time=time,
@@ -191,7 +191,7 @@ async def tpay(sender: Member, receiver: Member, transfer: float, description: s
     # sender: -fee
     sender.tickets -= fee
     await repo.update_member_tickets(sender)
-    await repo.create_stat_delt(DeltTransaction(
+    await repo.insert_delt(DeltTransaction(
         user_id=sender.user_id,
         tickets=fee,
         time=time,
@@ -202,7 +202,7 @@ async def tpay(sender: Member, receiver: Member, transfer: float, description: s
     # receiver: +transfer
     receiver.tickets += transfer
     await repo.update_member_tickets(receiver)
-    await repo.create_stat_addt(AddtTransaction(
+    await repo.insert_addt(AddtTransaction(
         user_id=receiver.user_id,
         tickets=transfer,
         time=time,
@@ -211,7 +211,7 @@ async def tpay(sender: Member, receiver: Member, transfer: float, description: s
     ))
 
     # save tpay transaction
-    await repo.create_stat_tpay(TpayTransaction(
+    await repo.insert_tpay(TpayTransaction(
         sender_id=sender.user_id,
         receiver_id=receiver.user_id,
         transfer=transfer,
@@ -232,7 +232,7 @@ async def laward(user_id: int) -> Optional[List[AwardRecord]]:
 
 
 async def issue_award(am: AwardMemberJunction) -> bool:
-    return await repo.create_award_member(am)
+    return await repo.insert_award_member(am)
 
 
 async def pay_award(member: Member, payment: float, description: str):
@@ -263,16 +263,12 @@ async def get_award(cpr: CommandParserResult) -> Optional[Award]:
     return await repo.get_award(cpr.args[glob.AWARD_ID_ARG])
 
 
-# async def get_award_issue_date(user_id: int) -> str:
-#     return await repo.get_award_addt_time(user_id)
-
-
 """ Member """
 
 
 async def create_member(value: Union[Member, User]) -> None:
     if isinstance(value, Member):
-        await repo.create_member(value)
+        await repo.insert_member(value)
     elif isinstance(value, User):
         member = Member(
             user_id=value.id,
@@ -280,7 +276,7 @@ async def create_member(value: Union[Member, User]) -> None:
             first_name=value.first_name,
             last_name=value.last_name
         )
-        await repo.create_member(member)
+        await repo.insert_member(member)
     else:
         raise TypeError()
 
@@ -313,3 +309,7 @@ async def update_member(user: User, member: Member = None):
 
 async def reset_tpay_available() -> (bool, str):
     return await repo.execute_external(RESET_TPAY_AVAILABLE)
+
+
+async def payout_salaries():
+

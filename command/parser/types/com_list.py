@@ -26,6 +26,9 @@ class CommandList(str, Enum):
     # cog: a1_any
     award = 'award'
 
+    # /p <price:pnreal>
+    p = 'p'
+
     # # # # # # # # #
     # for all users
 

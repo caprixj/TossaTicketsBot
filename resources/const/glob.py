@@ -10,8 +10,16 @@ CONFIG_PATH_PROD = '../config/config.xml'
 CREATOR_USER_ID = 825549745
 CREATOR_USERNAME = '@capri_xj'
 
+DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S'
+
 FEE_RATE = 0.27  # F
 MIN_FEE = 1      # M
+
+INFLATION_ALPHA = 0.9
+FLUCTUATION_GAUSS_SIGMA = 0.009
+MAX_FLUCTUATION = 1.1
+MIN_FLUCTUATION = 0.9
+INITIAL_TPOOL = 2326.1
 
 PAGE_ROW_CHAR_LIMIT = 25
 PAGE_ROWS_COUNT_LIMIT = 40
@@ -26,6 +34,7 @@ SIZE_ARG = 'size'
 AWARD_ID_ARG = 'award_id'
 PAGE_ARG = 'page'
 PERCENT_ARG = 'percent'
+PRICE_ARG = 'price'
 
 TPAY_YES_CALLBACK = 'tpay_yes'
 TPAY_NO_CALLBACK = 'tpay_no'
@@ -52,6 +61,8 @@ LTRANS_START_TEXT = """
 
 RESET_TPAY_AVAILABLE_DONE = 'ℹ️ к-сть доступних переказів оновлено'
 DB_BACKUP_DONE = 'ℹ️ копію бази даних збережено'
+PRICE_RESET_DONE = 'ℹ️ інфляційний курс тікетів оновлено'
+SALARIES_PAID_OUT = 'ℹ️ нараховано заробітні плати'
 
 ADDT_TEXT = '📈 тікети нараховано!'
 DELT_TEXT = '📉 тікети знято!'
