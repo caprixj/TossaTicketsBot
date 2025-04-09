@@ -1,4 +1,5 @@
 import functools
+import re
 
 from aiogram import Router
 from aiogram.enums import ParseMode
@@ -24,9 +25,19 @@ from resources.funcs import funcs
 router = Router()
 
 
-@router.message(TextFilter('да', ignore_case=True))
+@router.message(TextFilter(r'^[дД]+[аА]+[.]*[!]*[?]*$', regex=True))
 async def da(message: Message):
-    await message.answer('пизда!')
+    await message.answer(f'пиз{message.text}')
+
+
+@router.message(TextFilter(r'^[нН]+[єЄ]+[.]*[!]*[?]*$', regex=True))
+async def nie_ua(message: Message):
+    await message.answer(f'рука в гав{message.text}!')
+
+
+@router.message(TextFilter(r'^[нН]+[еЕ]+[.]*[!]*[?]*$', regex=True))
+async def nie_ru(message: Message):
+    await message.answer(f'рука в гов{message.text}!')
 
 
 @router.message(Command(cl.reg.name))
