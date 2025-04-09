@@ -14,11 +14,11 @@ from command.parser.core.overload import CommandOverload, CommandOverloadGroup
 from command.parser.core.parser import CommandParser
 from command.parser.results.parser_result import CommandParserResult
 from command.routed.handlers.validations import validate_message
-from model.types.ticketonomics_types import BaseText, Real, PNReal, SID
+from model.types.ticketonomics_types import BaseText, Real, PNReal, SID, PMP
 from command.parser.types.com_list import CommandList as cl
 
 from resources.const.rands import crv_messages
-from service.price_manager import adjust_price_test
+from service.price_manager import p_adjust_tickets_amount
 
 router = Router()
 
@@ -184,11 +184,61 @@ async def p(message: Message):
         return
 
     price = cpr.args[glob.PRICE_ARG]
-    adjusted_price, inflation, fluctuation = await adjust_price_test(price)
+    adjusted_price, inflation, fluctuation = await p_adjust_tickets_amount(price)
     await message.answer(f'базова вартість: {price:.2f} tc'
                          f'\nскорегована вартість: {adjusted_price:.2f} tc'
                          f'\nінфляція: {(inflation - 1) * 100:.3f}%'
                          f'\nпоточна флуктуація: {(fluctuation - 1) * 100:.3f}%')
+
+
+@router.message(Command(cl.hire.name))
+async def hire(message: Message):
+    if not await validate_message(message):
+        return
+
+    og = cog.a1_any(a1_name=glob.PMP_ARG, a1_type=PMP, creator_required=True)
+    cpr = CommandParser(message, og).parse()
+
+    if not cpr.valid:
+        await message.answer(glob.COM_PARSER_FAILED)
+        return
+
+    target_member = await service.get_target_member(cpr)
+
+    if target_member is None:
+        await message.answer(glob.GET_MEMBER_FAILED)
+        return
+
+    paid_member_position = cpr.args[glob.PMP_ARG]
+
+    hired = await service.hire(target_member.user_id, paid_member_position)
+    answer = glob.MEMBER_HIRED if hired else glob.MEMBER_ALREADY_HIRED
+    await message.answer(answer)
+
+
+@router.message(Command(cl.fire.name))
+async def fire(message: Message):
+    if not await validate_message(message):
+        return
+
+    og = cog.a1_any(a1_name=glob.PMP_ARG, a1_type=PMP, creator_required=True)
+    cpr = CommandParser(message, og).parse()
+
+    if not cpr.valid:
+        await message.answer(glob.COM_PARSER_FAILED)
+        return
+
+    target_member = await service.get_target_member(cpr)
+
+    if target_member is None:
+        await message.answer(glob.GET_MEMBER_FAILED)
+        return
+
+    paid_member_position = cpr.args[glob.PMP_ARG]
+
+    fired = await service.fire(target_member.user_id, paid_member_position)
+    answer = glob.MEMBER_FIRED if fired else glob.MEMBER_ALREADY_FIRED
+    await message.answer(answer)
 
 
 """ Private """

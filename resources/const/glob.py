@@ -19,7 +19,7 @@ INFLATION_ALPHA = 0.9
 FLUCTUATION_GAUSS_SIGMA = 0.009
 MAX_FLUCTUATION = 1.1
 MIN_FLUCTUATION = 0.9
-INITIAL_TPOOL = 2326.1
+INITIAL_TPOOL = 2326.79
 
 PAGE_ROW_CHAR_LIMIT = 25
 PAGE_ROWS_COUNT_LIMIT = 40
@@ -35,6 +35,7 @@ AWARD_ID_ARG = 'award_id'
 PAGE_ARG = 'page'
 PERCENT_ARG = 'percent'
 PRICE_ARG = 'price'
+PMP_ARG = 'paid_member_position'
 
 TPAY_YES_CALLBACK = 'tpay_yes'
 TPAY_NO_CALLBACK = 'tpay_no'
@@ -75,6 +76,11 @@ TOPT_DESC = '*💸 рейтинг тікетів*'
 TOPT_ASC = '*💩 анти-рейтинг тікетів*'
 INFM_TEXT = '<b>ℹ️ інформація про учасника</b>'
 SQL_SUCCESS = '✅ команду виконано!'
+MEMBER_HIRED = '✅💼 учасника наймано на посаду!'
+MEMBER_ALREADY_HIRED = '❌ учасник уже обіймає дану посаду!'
+# MEMBER_HIRED_RESTRICTED = '❌ учасник не може обіймати дану посаду! імовірно, одну з його поточних посад не дозволено поєднувати з іншою'
+MEMBER_FIRED = '❌💼 учасника звільнено з посади!'
+MEMBER_ALREADY_FIRED = '❌ неможливо звільнити, оскільки учасник не обіймає дану посаду!'
 NOT_IMPLEMENTED = 'ще не реалізовано :с'
 
 ALERT_CALLBACK_YES = 'ви не можете підтвердити цю операцію!'

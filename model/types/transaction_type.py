@@ -7,3 +7,4 @@ class TransactionType(str, Enum):
     tpay = 'tpay'
     tpay_fee = 'tpay_fee'
     award = 'award'
+    salary = 'salary'

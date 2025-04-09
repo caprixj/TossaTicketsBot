@@ -29,6 +29,12 @@ class CommandList(str, Enum):
     # /p <price:pnreal>
     p = 'p'
 
+    # cog: a1_any
+    hire = 'hire'
+
+    # cog: a1_any
+    fire = 'fire'
+
     # # # # # # # # #
     # for all users
 

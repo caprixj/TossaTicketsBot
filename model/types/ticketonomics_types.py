@@ -1,6 +1,8 @@
 import re
 from typing import Type
 
+from model.types.paid_member_position import PaidMemberPosition
+
 
 # time type
 # r'^(?:(?:[1-9]\d*d\s*)?(?:[1-9]|1\d|2[0-3])h\s*)?(?:(?:[1-9]|[1-5]\d|60)m\s*)?$'
@@ -186,6 +188,18 @@ class SID(TicketonomicsType):
             return self.data
         else:
             raise ValueError()
+
+
+class PMP(TicketonomicsType):
+    def __init__(self, data: str):
+        super().__init__(data)
+
+    def cast(self):
+        for pmp in PaidMemberPosition:
+            if self.data == pmp and self.data != PaidMemberPosition.none:
+                return self.data
+
+        raise ValueError()
 
 
 def xreal(arg_type: Type[TicketonomicsType]) -> bool:

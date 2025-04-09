@@ -12,16 +12,19 @@ from resources.funcs.funcs import get_current_datetime, date_to_str
 from repository import repository_core as repo
 
 
-async def adjust_price(price: float) -> float:
+async def adjust_tickets_amount(price: float, inflation: bool = True) -> float:
     lpr = await repo.get_last_price_reset()
 
     if lpr is None:
         raise RuntimeError('No last price reset found!')
 
-    return price * lpr.inflation * lpr.fluctuation
+    if inflation:
+        return price * lpr.fluctuation * lpr.inflation
+    else:
+        return price * lpr.fluctuation
 
 
-async def adjust_price_test(price: float) -> (float, float, float):
+async def p_adjust_tickets_amount(price: float) -> (float, float, float):
     lpr = await repo.get_last_price_reset()
 
     if lpr is None:

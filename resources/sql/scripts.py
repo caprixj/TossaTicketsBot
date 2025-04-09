@@ -105,7 +105,8 @@ CREATE_TABLE_PRICE_HISTORY = """
 CREATE_TABLE_SALARY_PAYOUTS = """
     CREATE TABLE IF NOT EXISTS salary_payouts (
         salary_payout_id INTEGER PRIMARY KEY AUTOINCREMENT,
-        date TEXT NOT NULL,
+        plan_date TEXT NOT NULL,
+        fact_date TEXT,
         paid_out INTEGER NOT NULL DEFAULT 0
     );
 """
@@ -114,26 +115,37 @@ CREATE_TABLE_PAID_MEMBERS = """
     CREATE TABLE IF NOT EXISTS paid_members (
         user_id INTEGER,
         position TEXT,
-        salary REAL NOT NULL,
+        hired_date TEXT NOT NULL,
         PRIMARY KEY (user_id, position),
         FOREIGN KEY (user_id)
             REFERENCES members (user_id)
+            ON DELETE RESTRICT,
+        FOREIGN KEY (position)
+            REFERENCES salary_catalogue (position)
             ON DELETE RESTRICT
     );
 """
 
 CREATE_TABLE_PAID_MEMBER_HISTORY = """
     CREATE TABLE IF NOT EXISTS paid_member_history (
-        paid_member_history_id INTEGER PRIMARY KEY INCREMENT,
+        paid_member_history_id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER NOT NULL,
         position TEXT NOT NULL,
         salary REAL NOT NULL,
+        hired_date TEXT NOT NULL,
+        fired_date TEXT NOT NULL,
         FOREIGN KEY (user_id)
             REFERENCES members (user_id)
             ON DELETE RESTRICT
     );
 """
 
+CREATE_SALARY_CATALOGUE = """
+    CREATE TABLE IF NOT EXISTS salary_catalogue (
+        position TEXT PRIMARY KEY,
+        salary REAL NOT NULL DEFAULT 0
+    );
+"""
 
 """ Insert """
 
@@ -144,8 +156,10 @@ INSERT_AWARD = "INSERT INTO awards (award_id, name, description, payment) VALUES
 INSERT_AWARD_MEMBER = "INSERT INTO award_member (award_id, owner_id) VALUES (?, ?)"
 INSERT_TPAY = "INSERT INTO tpay (sender_id, receiver_id, transfer, fee, time, description) VALUES (?, ?, ?, ?, ?, ?)"
 INSERT_PRICE_HISTORY = "INSERT INTO price_history (inflation, fluctuation, plan_date, fact_date) VALUES (?, ?, ?, ?)"
-INSERT_SALARY_PAYOUT = "INSERT INTO salary_payouts (date, paid_out) VALUES (?, ?)"
-
+INSERT_SALARY_PAYOUT = "INSERT INTO salary_payouts (plan_date, fact_date, paid_out) VALUES (?, ?, ?)"
+INSERT_PAID_MEMBER = "INSERT INTO paid_members (user_id, position, hired_date) VALUES (?, ?, ?)"
+INSERT_PAID_MEMBER_HISTORY = ("INSERT INTO paid_member_history (user_id, position, salary, hired_date, fired_date) "
+                              "VALUES (?, ?, ?, ?, ?)")
 
 """ Select """
 
@@ -161,8 +175,7 @@ SELECT_ARTIFACTS_BY_OWNER_ID = "SELECT * FROM artifacts WHERE owner_id = ?"
 SELECT_ARTIFACTS_COUNT_BY_OWNER_ID = "SELECT COUNT(a.artifact_id) FROM artifacts a WHERE a.owner_id = ?"
 SELECT_TOTAL_TICKETS_COUNT = "SELECT SUM(tickets) FROM members"
 SELECT_PRICE_HISTORY = "SELECT * FROM price_history ORDER BY plan_date DESC LIMIT 1"
-SELECT_SALARY_PAYOUT = "SELECT * FROM salary_payouts ORDER BY date DESC LIMIT 1"
-
+SELECT_SALARY_PAYOUT = "SELECT * FROM salary_payouts ORDER BY plan_date DESC LIMIT 1"
 SELECT_TOPTALL = """
     SELECT m.*
     FROM members m
@@ -171,7 +184,6 @@ SELECT_TOPTALL = """
     GROUP BY m.user_id, m.username, m.first_name, m.last_name, m.tickets
     ORDER BY m.tickets DESC, MAX(COALESCE(a.time, d.time)) DESC;
 """
-
 SELECT_TOPT = """
     SELECT m.*
     FROM members m
@@ -181,7 +193,6 @@ SELECT_TOPT = """
     ORDER BY m.tickets $, MAX(COALESCE(a.time, d.time)) $
     LIMIT ?
 """
-
 SELECT_AWARD_RECORDS_BY_OWNER_ID = """
     SELECT a.*, am.issue_date
     FROM awards a
@@ -189,7 +200,23 @@ SELECT_AWARD_RECORDS_BY_OWNER_ID = """
     WHERE am.owner_id = ?
     ORDER BY am.issue_date ASC
 """
-
+SELECT_PAID_MEMBER_BY_PRIMARY_KEY = """
+    SELECT pm.user_id, pm.position, sc.salary, pm.hired_date
+    FROM paid_members pm
+    INNER JOIN salary_catalogue sc ON pm.position = sc.position
+    WHERE pm.user_id = ? AND pm.position = ?
+"""
+SELECT_PAID_MEMBERS_BY_USER_ID = """
+    SELECT pm.user_id, pm.position, sc.salary, pm.hired_date
+    FROM paid_members pm
+    INNER JOIN salary_catalogue sc ON pm.position = sc.position
+    WHERE pm.user_id = ?
+"""
+SELECT_PAID_MEMBERS = """
+    SELECT pm.user_id, pm.position, sc.salary, pm.hired_date
+    FROM paid_members pm
+    INNER JOIN salary_catalogue sc ON pm.position = sc.position
+"""
 
 """ Update """
 
@@ -197,4 +224,8 @@ UPDATE_MEMBER = "UPDATE members SET username = ?, first_name = ?, last_name = ? 
 UPDATE_TICKETS_COUNT = "UPDATE members SET tickets = ? WHERE user_id = ?"
 UPDATE_TPAY_AVAILABLE = "UPDATE members SET tpay_available = ? WHERE user_id = ?"
 RESET_TPAY_AVAILABLE = "UPDATE members SET tpay_available = 3"
-UPDATE_SALARY_PAYOUT = "UPDATE salary_payouts SET paid_out = ? WHERE date = ?"
+UPDATE_SALARY_PAYOUT = "UPDATE salary_payouts SET paid_out = ?, fact_date = ? WHERE plan_date = ?"
+
+""" Delete """
+
+DELETE_PAID_MEMBER = "DELETE FROM paid_members WHERE user_id = ? AND position = ?"

@@ -37,6 +37,27 @@ def tickets(arg_type: Type[TicketonomicsType], creator_required: bool) -> Comman
 
 
 # <creator> <reply> /command <a1:any>
+# <creator> /command <username:username> <a1:any>
+# <creator> /command <operation_id:userid> <a1:any>
+def a1_any(a1_name: str, a1_type: Type[TicketonomicsType], creator_required: bool,
+           no_self_reply_required: bool = False) -> CommandOverloadGroup:
+    return CommandOverloadGroup([
+        CommandOverload(
+            reply_required=True,
+            no_self_reply_required=no_self_reply_required)
+        .add(a1_name, a1_type),
+
+        CommandOverload()
+        .add(USERNAME_ARG, Username)
+        .add(a1_name, a1_type),
+
+        CommandOverload()
+        .add(USER_ID_ARG, UserID)
+        .add(a1_name, a1_type)
+    ], creator_required=creator_required)
+
+
+# <creator> <reply> /command <a1:any>
 # <creator> <reply> /command <a1:any> <description:text256>
 # <creator> /command <username:username> <a1:any>
 # <creator> /command <username:username> <a1:any> <description:text256>
@@ -73,25 +94,4 @@ def a1d_any(a1_name: str, a1_type: Type[TicketonomicsType], creator_required: bo
         .add(USER_ID_ARG, UserID)
         .add(a1_name, a1_type)
         .add(DESCRIPTION_ARG, Text256)
-    ], creator_required=creator_required)
-
-
-# <creator> <reply> /command <a1:any>
-# <creator> /command <username:username> <a1:any>
-# <creator> /command <operation_id:userid> <a1:any>
-def a1_any(a1_name: str, a1_type: Type[TicketonomicsType], creator_required: bool,
-           no_self_reply_required: bool = False) -> CommandOverloadGroup:
-    return CommandOverloadGroup([
-        CommandOverload(
-            reply_required=True,
-            no_self_reply_required=no_self_reply_required)
-        .add(a1_name, a1_type),
-
-        CommandOverload()
-        .add(USERNAME_ARG, Username)
-        .add(a1_name, a1_type),
-
-        CommandOverload()
-        .add(USER_ID_ARG, UserID)
-        .add(a1_name, a1_type)
     ], creator_required=creator_required)

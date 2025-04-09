@@ -18,10 +18,11 @@ aiosch = AsyncIOScheduler()
 async def schedule(bot: Bot):
     aiosch.add_job(_reset_tpay_available, args=[bot], trigger='cron', hour=0, minute=1)
     aiosch.add_job(_db_backup, args=[bot], trigger='cron', hour=0, minute=1)
-    aiosch.add_job(reset_prices, args=[bot], trigger='cron', hour=12, minute=0)
+    aiosch.add_job(reset_prices, args=[bot], trigger='cron', hour=9, minute=0)
 
-    aiosch.add_job(_salary_control, args=[bot], trigger='cron', hour=15, minute=0)
-    aiosch.add_job(_salary_control, args=[bot], trigger='cron', hour=21, minute=0)
+    aiosch.add_job(_salary_control, args=[bot], trigger='cron', hour=3, minute=0)
+    aiosch.add_job(_salary_control, args=[bot], trigger='cron', hour=12, minute=0)
+    aiosch.add_job(_salary_control, args=[bot], trigger='cron', hour=18, minute=0)
 
     aiosch.start()
 
@@ -51,24 +52,24 @@ async def _salary_control(bot: Bot):
     # next cases mean that something must have gone wrong in the database records
     if lsp is None:
         raise RuntimeError('No last salary payout found!')
-    if lsp.date.weekday() != 0:
+    if lsp.plan_date.weekday() != 0:
         raise RuntimeError('The last salary payout is not Monday!')
 
     next_monday = datetime.now() + timedelta(days=7 - datetime.now().weekday())
 
-    # if the next payout is not present in db
-    # then we create and insert it into db
-    if lsp.date.date() != next_monday.date():
-        await repo.insert_salary_payout(SalaryPayout(
-            date=next_monday.strftime(glob.DATETIME_FORMAT)
-        ))
-
     # if the last salary payout from db is not paid out
     # and we passed the date of the last salary payout (or today is the payout day)
     # then we pay out the salaries
-    if not lsp.paid_out and lsp.date.date() <= datetime.now().date():
-        await payout_salaries()
+    if not lsp.paid_out and lsp.plan_date.date() <= datetime.now().date():
+        await payout_salaries(lsp.plan_date)
         await bot.send_message(
             chat_id=glob.rms.group_chat_id,
             text=glob.SALARIES_PAID_OUT
         )
+
+    # if the next payout is not present in db
+    # then we create and insert it into db
+    if lsp.plan_date.date() != next_monday.date():
+        await repo.insert_salary_payout(SalaryPayout(
+            plan_date=next_monday.strftime(glob.DATETIME_FORMAT)
+        ))

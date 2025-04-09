@@ -1,4 +1,5 @@
 import copy
+from datetime import datetime
 from typing import Union, Optional, List
 from aiogram.types import User
 
@@ -13,27 +14,32 @@ from model.database.delt_transaction import DeltTransaction
 from model.database.tpay_transaction import TpayTransaction
 from model.results.award_record import AwardRecord
 from model.results.ltrans_result import LTransResult
+from model.types.paid_member_position import PaidMemberPosition
 from model.types.transaction_result_errors import TransactionResultErrors as trm
 from model.results.transaction_result import TransactionResult
 from model.types.transaction_type import TransactionType
 from repository.ordering_type import OrderingType
 from repository import repository_core as repo
 from service.operation_manager import ServiceOperationManager
-from resources.funcs.funcs import get_formatted_name, get_fee, get_current_datetime
+from resources.funcs.funcs import get_formatted_name, get_fee, get_current_datetime, date_to_str
 from resources.sql.scripts import RESET_TPAY_AVAILABLE
+from service.price_manager import adjust_tickets_amount
 
 operation_manager: ServiceOperationManager = ServiceOperationManager()
 
 
 async def _add_tickets(member: Member, tickets: float, transaction_type: TransactionType,
-                       description: str = None) -> None:
-    member.tickets += tickets
+                       description: str = None, inflation: bool = False):
+    adj_tickets = tickets if not transaction_type == TransactionType.salary \
+        else await adjust_tickets_amount(tickets, inflation)
+
+    member.tickets += adj_tickets
     time = get_current_datetime()
 
     await repo.update_member_tickets(member)
     await repo.insert_addt(AddtTransaction(
         user_id=member.user_id,
-        tickets=tickets,
+        tickets=adj_tickets,
         time=time,
         description=description,
         type_=transaction_type
@@ -41,14 +47,17 @@ async def _add_tickets(member: Member, tickets: float, transaction_type: Transac
 
 
 async def _delete_tickets(member: Member, tickets: float, transaction_type: TransactionType,
-                          description: str = None) -> None:
-    member.tickets -= tickets
+                          description: str = None, inflation: bool = False):
+    adj_tickets = tickets if not transaction_type == TransactionType.salary \
+        else await adjust_tickets_amount(tickets, inflation)
+
+    member.tickets -= adj_tickets
     time = get_current_datetime()
 
     await repo.update_member_tickets(member)
     await repo.insert_delt(DeltTransaction(
         user_id=member.user_id,
-        tickets=tickets,
+        tickets=adj_tickets,
         time=time,
         description=description,
         type_=transaction_type
@@ -56,7 +65,7 @@ async def _delete_tickets(member: Member, tickets: float, transaction_type: Tran
 
 
 async def _set_tickets(member: Member, tickets: float, transaction_type: TransactionType,
-                       description: str = None) -> None:
+                       description: str = None):
     if member.tickets == tickets:
         return
 
@@ -141,12 +150,17 @@ async def topt(size: int = 0, percent: bool = False) -> str:
 async def infm(user_id: int) -> str:
     member = await repo.get_member_by_user_id(user_id)
 
+    positions = str()
+    await repo.get_member_positions(user_id)
+
     return (f"{glob.INFM_TEXT}"
             f"\n\n<b>🪪 персональні дані</b>"
             f"\nid: {member.user_id}"
             f"\nім'я: {'-' if member.first_name is None else member.first_name}"
             f"\nпрізвище: {'-' if member.last_name is None else member.last_name}"
             f"\nюзернейм: {'-' if member.username is None else member.username}"
+            f"\n\n<b>💼 посади</b>"
+            f"{positions}"
             f"\n\n<b>💎 колекція</b>"
             f"\nартефактів: {await repo.get_artifacts_count(user_id)}"
             f"\nнагород: {await repo.get_awards_count(user_id)}"
@@ -239,6 +253,31 @@ async def pay_award(member: Member, payment: float, description: str):
     await _add_tickets(member, payment, TransactionType.award, description)
 
 
+async def hire(user_id: float, position: PaidMemberPosition) -> bool:
+    paid_member = await repo.get_paid_member(user_id, position)
+
+    if paid_member is None:
+        await repo.insert_paid_member_position(
+            user_id=user_id,
+            position=position,
+            hired_date=get_current_datetime()
+        )
+        return True
+    else:
+        return False
+
+
+async def fire(user_id: float, position: PaidMemberPosition) -> bool:
+    paid_member = await repo.get_paid_member(user_id, position)
+
+    if paid_member is None:
+        return False
+    else:
+        await repo.insert_paid_member_history(paid_member, get_current_datetime())
+        await repo.delete_paid_member(user_id, position)
+        return True
+
+
 """ Get """
 
 
@@ -311,5 +350,26 @@ async def reset_tpay_available() -> (bool, str):
     return await repo.execute_external(RESET_TPAY_AVAILABLE)
 
 
-async def payout_salaries():
+async def payout_salaries(lsp_plan_date: datetime):
+    paid_members = await repo.get_paid_members()
 
+    if paid_members is None:
+        await repo.set_salary_paid_out(
+            plan_date=date_to_str(lsp_plan_date),
+            fact_date=date_to_str(datetime.now())
+        )
+        return
+
+    for pm in paid_members:
+        if pm.salary != 0:
+            await _add_tickets(
+                member=await repo.get_member_by_user_id(pm.user_id),
+                tickets=pm.salary,
+                transaction_type=TransactionType.salary,
+                description=TransactionType.salary
+            )
+
+    await repo.set_salary_paid_out(
+        plan_date=date_to_str(lsp_plan_date),
+        fact_date=date_to_str(datetime.now())
+    )
