@@ -1,13 +1,13 @@
 from datetime import datetime
 
-from model.types.paid_member_position import PaidMemberPosition
+from model.types.employee_position import EmployeePosition
 from resources.const.glob import DATETIME_FORMAT
 
 
-class PaidMember:
+class Employee:
     def __init__(self,
                  user_id: int = 0,
-                 position: PaidMemberPosition = PaidMemberPosition.none,
+                 position: EmployeePosition = EmployeePosition.none,
                  salary: float = 0,
                  hired_date: str = None):
         self.user_id = user_id

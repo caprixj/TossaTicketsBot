@@ -49,9 +49,9 @@ async def _get_create_table_scripts() -> list[str]:
         scripts.CREATE_TABLE_AWARD_MEMBER,
         scripts.CREATE_TABLE_PRICE_HISTORY,
         scripts.CREATE_TABLE_SALARY_PAYOUTS,
-        scripts.CREATE_TABLE_PAID_MEMBERS,
-        scripts.CREATE_TABLE_PAID_MEMBER_HISTORY,
-        scripts.CREATE_SALARY_CATALOGUE
+        scripts.CREATE_TABLE_EMPLOYEES,
+        scripts.CREATE_TABLE_EMPLOYMENT_HISTORY,
+        scripts.CREATE_TABLE_POSITION_CATALOGUE
     ]
 
 

@@ -111,8 +111,8 @@ CREATE_TABLE_SALARY_PAYOUTS = """
     );
 """
 
-CREATE_TABLE_PAID_MEMBERS = """
-    CREATE TABLE IF NOT EXISTS paid_members (
+CREATE_TABLE_EMPLOYEES = """
+    CREATE TABLE IF NOT EXISTS employees (
         user_id INTEGER,
         position TEXT,
         hired_date TEXT NOT NULL,
@@ -121,14 +121,14 @@ CREATE_TABLE_PAID_MEMBERS = """
             REFERENCES members (user_id)
             ON DELETE RESTRICT,
         FOREIGN KEY (position)
-            REFERENCES salary_catalogue (position)
+            REFERENCES position_catalogue (position)
             ON DELETE RESTRICT
     );
 """
 
-CREATE_TABLE_PAID_MEMBER_HISTORY = """
-    CREATE TABLE IF NOT EXISTS paid_member_history (
-        paid_member_history_id INTEGER PRIMARY KEY AUTOINCREMENT,
+CREATE_TABLE_EMPLOYMENT_HISTORY = """
+    CREATE TABLE IF NOT EXISTS employment_history (
+        employment_id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER NOT NULL,
         position TEXT NOT NULL,
         salary REAL NOT NULL,
@@ -140,8 +140,8 @@ CREATE_TABLE_PAID_MEMBER_HISTORY = """
     );
 """
 
-CREATE_SALARY_CATALOGUE = """
-    CREATE TABLE IF NOT EXISTS salary_catalogue (
+CREATE_TABLE_POSITION_CATALOGUE = """
+    CREATE TABLE IF NOT EXISTS position_catalogue (
         position TEXT PRIMARY KEY,
         salary REAL NOT NULL DEFAULT 0
     );
@@ -157,9 +157,9 @@ INSERT_AWARD_MEMBER = "INSERT INTO award_member (award_id, owner_id, issue_date)
 INSERT_TPAY = "INSERT INTO tpay (sender_id, receiver_id, transfer, fee, time, description) VALUES (?, ?, ?, ?, ?, ?)"
 INSERT_PRICE_HISTORY = "INSERT INTO price_history (inflation, fluctuation, plan_date, fact_date) VALUES (?, ?, ?, ?)"
 INSERT_SALARY_PAYOUT = "INSERT INTO salary_payouts (plan_date, fact_date, paid_out) VALUES (?, ?, ?)"
-INSERT_PAID_MEMBER = "INSERT INTO paid_members (user_id, position, hired_date) VALUES (?, ?, ?)"
-INSERT_PAID_MEMBER_HISTORY = ("INSERT INTO paid_member_history (user_id, position, salary, hired_date, fired_date) "
-                              "VALUES (?, ?, ?, ?, ?)")
+INSERT_EMPLOYEE = "INSERT INTO employees (user_id, position, hired_date) VALUES (?, ?, ?)"
+INSERT_EMPLOYMENT_HISTORY = ("INSERT INTO employment_history (user_id, position, salary, hired_date, fired_date) "
+                             "VALUES (?, ?, ?, ?, ?)")
 
 """ Select """
 
@@ -200,22 +200,22 @@ SELECT_AWARD_RECORDS_BY_OWNER_ID = """
     WHERE am.owner_id = ?
     ORDER BY am.issue_date ASC
 """
-SELECT_PAID_MEMBER_BY_PRIMARY_KEY = """
-    SELECT pm.user_id, pm.position, sc.salary, pm.hired_date
-    FROM paid_members pm
-    INNER JOIN salary_catalogue sc ON pm.position = sc.position
-    WHERE pm.user_id = ? AND pm.position = ?
+SELECT_EMPLOYEE_BY_PRIMARY_KEY = """
+    SELECT e.user_id, e.position, sc.salary, e.hired_date
+    FROM employees e
+    INNER JOIN position_catalogue sc ON e.position = sc.position
+    WHERE e.user_id = ? AND e.position = ?
 """
-SELECT_PAID_MEMBERS_BY_USER_ID = """
-    SELECT pm.user_id, pm.position, sc.salary, pm.hired_date
-    FROM paid_members pm
-    INNER JOIN salary_catalogue sc ON pm.position = sc.position
-    WHERE pm.user_id = ?
+SELECT_EMPLOYEE_BY_USER_ID = """
+    SELECT e.user_id, e.position, sc.salary, e.hired_date
+    FROM employees e
+    INNER JOIN position_catalogue sc ON e.position = sc.position
+    WHERE e.user_id = ?
 """
-SELECT_PAID_MEMBERS = """
-    SELECT pm.user_id, pm.position, sc.salary, pm.hired_date
-    FROM paid_members pm
-    INNER JOIN salary_catalogue sc ON pm.position = sc.position
+SELECT_EMPLOYEES = """
+    SELECT e.user_id, e.position, sc.salary, e.hired_date
+    FROM employees e
+    INNER JOIN position_catalogue sc ON e.position = sc.position
 """
 
 """ Update """
@@ -228,4 +228,4 @@ UPDATE_SALARY_PAYOUT = "UPDATE salary_payouts SET paid_out = ?, fact_date = ? WH
 
 """ Delete """
 
-DELETE_PAID_MEMBER = "DELETE FROM paid_members WHERE user_id = ? AND position = ?"
+DELETE_PAID_MEMBER = "DELETE FROM employees WHERE user_id = ? AND position = ?"

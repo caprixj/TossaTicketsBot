@@ -10,13 +10,13 @@ from model.database.award_member import AwardMemberJunction
 from model.database.member import Member
 from model.database.addt_transaction import AddtTransaction
 from model.database.delt_transaction import DeltTransaction
-from model.database.paid_member import PaidMember
+from model.database.employee import Employee
 from model.database.price_reset import PriceReset
 from model.database.salary_payout import SalaryPayout
 from model.database.tpay_transaction import TpayTransaction
 from model.results.award_record import AwardRecord
 from model.results.ltrans_result import LTransResult
-from model.types.paid_member_position import PaidMemberPosition
+from model.types.employee_position import EmployeePosition
 from model.types.transaction_type import TransactionType
 from repository.ordering_type import OrderingType
 from resources.const import glob
@@ -168,9 +168,9 @@ async def insert_salary_payout(payout: SalaryPayout):
         await db.commit()
 
 
-async def insert_paid_member_position(user_id: float, position: PaidMemberPosition, hired_date: str):
+async def insert_paid_member_position(user_id: float, position: EmployeePosition, hired_date: str):
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
-        await db.execute(scripts.INSERT_PAID_MEMBER, (
+        await db.execute(scripts.INSERT_EMPLOYEE, (
             user_id,
             position,
             hired_date
@@ -178,9 +178,9 @@ async def insert_paid_member_position(user_id: float, position: PaidMemberPositi
         await db.commit()
 
 
-async def insert_paid_member_history(paid_member: PaidMember, fired_date: str):
+async def insert_employment_history(paid_member: Employee, fired_date: str):
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
-        await db.execute(scripts.INSERT_PAID_MEMBER_HISTORY, (
+        await db.execute(scripts.INSERT_EMPLOYMENT_HISTORY, (
             paid_member.user_id,
             paid_member.position,
             paid_member.salary,
@@ -311,25 +311,25 @@ async def get_last_salary_payout() -> Optional[SalaryPayout]:
         return SalaryPayout(*row) if row else None
 
 
-async def get_paid_members() -> Optional[List[PaidMember]]:
+async def get_employees() -> Optional[List[Employee]]:
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
-        cursor = await db.execute(scripts.SELECT_PAID_MEMBERS)
+        cursor = await db.execute(scripts.SELECT_EMPLOYEES)
         rows = await cursor.fetchall()
-        return [PaidMember(*row) for row in rows]
+        return [Employee(*row) for row in rows]
 
 
-async def get_paid_member(user_id: float, position: PaidMemberPosition) -> Optional[PaidMember]:
+async def get_paid_member(user_id: float, position: EmployeePosition) -> Optional[Employee]:
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
-        cursor = await db.execute(scripts.SELECT_PAID_MEMBER_BY_PRIMARY_KEY, (user_id, position))
+        cursor = await db.execute(scripts.SELECT_EMPLOYEE_BY_PRIMARY_KEY, (user_id, position))
         row = await cursor.fetchone()
-        return PaidMember(*row) if row else None
+        return Employee(*row) if row else None
 
 
-async def get_member_positions(user_id: float) -> Optional[List[PaidMember]]:
+async def get_employee_positions(user_id: float) -> Optional[List[Employee]]:
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
-        cursor = await db.execute(scripts.SELECT_PAID_MEMBERS_BY_USER_ID, (user_id,))
+        cursor = await db.execute(scripts.SELECT_EMPLOYEE_BY_USER_ID, (user_id,))
         rows = await cursor.fetchall()
-        return [PaidMember(*row) for row in rows]
+        return [Employee(*row) for row in rows]
 
 
 """ Update """
@@ -369,7 +369,7 @@ async def set_salary_paid_out(plan_date: str, fact_date: str):
 """ Delete """
 
 
-async def delete_paid_member(user_id: float, position: PaidMemberPosition):
+async def delete_paid_member(user_id: float, position: EmployeePosition):
     await _execute(scripts.DELETE_PAID_MEMBER, (
         user_id,
         position

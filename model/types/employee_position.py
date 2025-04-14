@@ -1,7 +1,7 @@
 from enum import Enum
 
 
-class PaidMemberPosition(str, Enum):
+class EmployeePosition(str, Enum):
     none = 'none'
     alliance_deputy = 'al-dep'
     independent_deputy = 'indi-dep'

@@ -1,7 +1,7 @@
 import re
 from typing import Type
 
-from model.types.paid_member_position import PaidMemberPosition
+from model.types.employee_position import EmployeePosition
 
 
 # time type
@@ -195,8 +195,8 @@ class PMP(TicketonomicsType):
         super().__init__(data)
 
     def cast(self):
-        for pmp in PaidMemberPosition:
-            if self.data == pmp and self.data != PaidMemberPosition.none:
+        for pmp in EmployeePosition:
+            if self.data == pmp and self.data != EmployeePosition.none:
                 return self.data
 
         raise ValueError()

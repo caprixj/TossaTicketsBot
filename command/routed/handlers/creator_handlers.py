@@ -170,27 +170,6 @@ async def award(message: Message):
         await message.answer(glob.AWARD_DUPLICATE)
 
 
-@router.message(Command(cl.p.name))
-async def p(message: Message):
-    og = CommandOverloadGroup([
-        # /p <price:pnreal>
-        CommandOverload(oid='price').add(glob.PRICE_ARG, PNReal)
-    ])
-
-    cpr = CommandParser(message, og).parse()
-
-    if not cpr.valid:
-        await message.answer(glob.COM_PARSER_FAILED)
-        return
-
-    price = cpr.args[glob.PRICE_ARG]
-    adjusted_price, inflation, fluctuation = await p_adjust_tickets_amount(price)
-    await message.answer(f'базова вартість: {price:.2f} tc'
-                         f'\nскорегована вартість: {adjusted_price:.2f} tc'
-                         f'\nінфляція: {(inflation - 1) * 100:.3f}%'
-                         f'\nпоточна флуктуація: {(fluctuation - 1) * 100:.3f}%')
-
-
 @router.message(Command(cl.hire.name))
 async def hire(message: Message):
     if not await validate_message(message):

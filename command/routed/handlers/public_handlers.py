@@ -21,6 +21,7 @@ from command.parser.types.com_list import CommandList as cl
 from command.parser.types.target_type import CommandTargetType as ctt
 from model.types.transaction_result_errors import TransactionResultErrors as tre
 from resources.funcs import funcs
+from service.price_manager import p_adjust_tickets_amount
 
 router = Router()
 
@@ -315,3 +316,24 @@ async def tpay(message: Message, callback_message: Message = None, fee_incorpora
                 fee_incorporated=transfer > glob.MIN_FEE
             )
         )
+
+
+@router.message(Command(cl.p.name))
+async def p(message: Message):
+    og = CommandOverloadGroup([
+        # /p <price:pnreal>
+        CommandOverload().add(glob.PRICE_ARG, PNReal)
+    ])
+
+    cpr = CommandParser(message, og).parse()
+
+    if not cpr.valid:
+        await message.answer(glob.COM_PARSER_FAILED)
+        return
+
+    price = cpr.args[glob.PRICE_ARG]
+    adjusted_price, inflation, fluctuation = await p_adjust_tickets_amount(price)
+    await message.answer(f'базова вартість: {price:.2f} tc'
+                         f'\nскорегована вартість: {adjusted_price:.2f} tc'
+                         f'\nінфляція: {(inflation - 1) * 100:.3f}%'
+                         f'\nпоточна флуктуація: {(fluctuation - 1) * 100:.3f}%')

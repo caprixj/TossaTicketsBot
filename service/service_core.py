@@ -14,7 +14,7 @@ from model.database.delt_transaction import DeltTransaction
 from model.database.tpay_transaction import TpayTransaction
 from model.results.award_record import AwardRecord
 from model.results.ltrans_result import LTransResult
-from model.types.paid_member_position import PaidMemberPosition
+from model.types.employee_position import EmployeePosition
 from model.types.transaction_result_errors import TransactionResultErrors as trm
 from model.results.transaction_result import TransactionResult
 from model.types.transaction_type import TransactionType
@@ -151,7 +151,7 @@ async def infm(user_id: int) -> str:
     member = await repo.get_member_by_user_id(user_id)
 
     positions = str()
-    await repo.get_member_positions(user_id)
+    await repo.get_employee_positions(user_id)
 
     return (f"{glob.INFM_TEXT}"
             f"\n\n<b>🪪 персональні дані</b>"
@@ -253,7 +253,7 @@ async def pay_award(member: Member, payment: float, description: str):
     await _add_tickets(member, payment, TransactionType.award, description)
 
 
-async def hire(user_id: float, position: PaidMemberPosition) -> bool:
+async def hire(user_id: float, position: EmployeePosition) -> bool:
     paid_member = await repo.get_paid_member(user_id, position)
 
     if paid_member is None:
@@ -267,13 +267,13 @@ async def hire(user_id: float, position: PaidMemberPosition) -> bool:
         return False
 
 
-async def fire(user_id: float, position: PaidMemberPosition) -> bool:
+async def fire(user_id: float, position: EmployeePosition) -> bool:
     paid_member = await repo.get_paid_member(user_id, position)
 
     if paid_member is None:
         return False
     else:
-        await repo.insert_paid_member_history(paid_member, get_current_datetime())
+        await repo.insert_employment_history(paid_member, get_current_datetime())
         await repo.delete_paid_member(user_id, position)
         return True
 
@@ -351,20 +351,20 @@ async def reset_tpay_available() -> (bool, str):
 
 
 async def payout_salaries(lsp_plan_date: datetime):
-    paid_members = await repo.get_paid_members()
+    employees = await repo.get_employees()
 
-    if paid_members is None:
+    if employees is None:
         await repo.set_salary_paid_out(
             plan_date=date_to_str(lsp_plan_date),
             fact_date=date_to_str(datetime.now())
         )
         return
 
-    for pm in paid_members:
-        if pm.salary != 0:
+    for e in employees:
+        if e.salary != 0:
             await _add_tickets(
-                member=await repo.get_member_by_user_id(pm.user_id),
-                tickets=pm.salary,
+                member=await repo.get_member_by_user_id(e.user_id),
+                tickets=e.salary,
                 transaction_type=TransactionType.salary,
                 description=TransactionType.salary
             )
