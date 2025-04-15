@@ -275,8 +275,7 @@ async def get_total_tickets(skip_negative: bool = True, time: datetime = None) -
                 (next_day_datetime, next_day_datetime)
             )
             row = await cursor.fetchone()
-            delta_total = float(row[0]) if row else 0
-        return cur_total - delta_total
+            return cur_total if row is None else cur_total - float(row[0])
     else:
         return cur_total
 
