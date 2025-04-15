@@ -10,7 +10,6 @@ CREATE_TABLE_MEMBERS = """
         tpay_available INTEGER NOT NULL DEFAULT 3
     );
 """
-
 CREATE_TABLE_ARTIFACTS = """
     CREATE TABLE IF NOT EXISTS artifacts (
         artifact_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -21,7 +20,6 @@ CREATE_TABLE_ARTIFACTS = """
             REFERENCES members (user_id)
     );
 """
-
 CREATE_TABLE_AWARDS = """
     CREATE TABLE IF NOT EXISTS awards (
         award_id TEXT PRIMARY KEY,
@@ -30,7 +28,6 @@ CREATE_TABLE_AWARDS = """
         payment REAL NOT NULL
     );
 """
-
 CREATE_TABLE_AWARD_MEMBER = """
     CREATE TABLE IF NOT EXISTS award_member (
         award_id TEXT,
@@ -45,7 +42,6 @@ CREATE_TABLE_AWARD_MEMBER = """
             ON DELETE CASCADE
     );
 """
-
 CREATE_TABLE_ADDT = """
     CREATE TABLE IF NOT EXISTS addt (
         addt_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -59,7 +55,6 @@ CREATE_TABLE_ADDT = """
             ON DELETE RESTRICT
     );
 """
-
 CREATE_TABLE_DELT = """
     CREATE TABLE IF NOT EXISTS delt (
         delt_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -73,7 +68,6 @@ CREATE_TABLE_DELT = """
             ON DELETE RESTRICT
     );
 """
-
 CREATE_TABLE_TPAY = """
     CREATE TABLE IF NOT EXISTS tpay (
         tpay_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -91,7 +85,6 @@ CREATE_TABLE_TPAY = """
             ON DELETE RESTRICT
     );
 """
-
 CREATE_TABLE_PRICE_HISTORY = """
     CREATE TABLE IF NOT EXISTS price_history (
         price_history_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -101,7 +94,6 @@ CREATE_TABLE_PRICE_HISTORY = """
         fact_date TEXT NOT NULL
     );
 """
-
 CREATE_TABLE_SALARY_PAYOUTS = """
     CREATE TABLE IF NOT EXISTS salary_payouts (
         salary_payout_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -110,7 +102,6 @@ CREATE_TABLE_SALARY_PAYOUTS = """
         paid_out INTEGER NOT NULL DEFAULT 0
     );
 """
-
 CREATE_TABLE_EMPLOYEES = """
     CREATE TABLE IF NOT EXISTS employees (
         user_id INTEGER,
@@ -125,7 +116,6 @@ CREATE_TABLE_EMPLOYEES = """
             ON DELETE RESTRICT
     );
 """
-
 CREATE_TABLE_EMPLOYMENT_HISTORY = """
     CREATE TABLE IF NOT EXISTS employment_history (
         employment_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -139,10 +129,10 @@ CREATE_TABLE_EMPLOYMENT_HISTORY = """
             ON DELETE RESTRICT
     );
 """
-
 CREATE_TABLE_POSITION_CATALOGUE = """
     CREATE TABLE IF NOT EXISTS position_catalogue (
         position TEXT PRIMARY KEY,
+        name_uk TEXT NOT NULL,
         salary REAL NOT NULL DEFAULT 0
     );
 """
@@ -160,6 +150,7 @@ INSERT_SALARY_PAYOUT = "INSERT INTO salary_payouts (plan_date, fact_date, paid_o
 INSERT_EMPLOYEE = "INSERT INTO employees (user_id, position, hired_date) VALUES (?, ?, ?)"
 INSERT_EMPLOYMENT_HISTORY = ("INSERT INTO employment_history (user_id, position, salary, hired_date, fired_date) "
                              "VALUES (?, ?, ?, ?, ?)")
+INSERT_POSITION_CATALOGUE = "INSERT INTO position_catalogue (position, name_uk, salary) VALUES (?, ?, ?)"
 
 """ Select """
 
@@ -176,6 +167,7 @@ SELECT_ARTIFACTS_COUNT_BY_OWNER_ID = "SELECT COUNT(a.artifact_id) FROM artifacts
 SELECT_TOTAL_TICKETS_COUNT = "SELECT SUM(tickets) FROM members"
 SELECT_PRICE_HISTORY = "SELECT * FROM price_history ORDER BY plan_date DESC LIMIT 1"
 SELECT_SALARY_PAYOUT = "SELECT * FROM salary_payouts ORDER BY plan_date DESC LIMIT 1"
+SELECT_POSITION_CATALOGUE = "SELECT * FROM position_catalogue"
 SELECT_TOPTALL = """
     SELECT m.*
     FROM members m
@@ -201,31 +193,59 @@ SELECT_AWARD_RECORDS_BY_OWNER_ID = """
     ORDER BY am.issue_date ASC
 """
 SELECT_EMPLOYEE_BY_PRIMARY_KEY = """
-    SELECT e.user_id, e.position, sc.salary, e.hired_date
+    SELECT e.user_id, e.position, pc.salary, e.hired_date
     FROM employees e
-    INNER JOIN position_catalogue sc ON e.position = sc.position
+    INNER JOIN position_catalogue pc ON e.position = pc.position
     WHERE e.user_id = ? AND e.position = ?
 """
-SELECT_EMPLOYEE_BY_USER_ID = """
-    SELECT e.user_id, e.position, sc.salary, e.hired_date
+SELECT_EMPLOYEE_POSITION_NAMES = """
+    SELECT pc.name_uk
     FROM employees e
-    INNER JOIN position_catalogue sc ON e.position = sc.position
+    INNER JOIN position_catalogue pc ON e.position = pc.position
     WHERE e.user_id = ?
 """
 SELECT_EMPLOYEES = """
-    SELECT e.user_id, e.position, sc.salary, e.hired_date
+    SELECT e.user_id, e.position, pc.salary, e.hired_date
     FROM employees e
-    INNER JOIN position_catalogue sc ON e.position = sc.position
+    INNER JOIN position_catalogue pc ON e.position = pc.position
+"""
+SELECT_DELTA_TICKETS_COUNT_AFTER_DATETIME = """
+    SELECT SUM(dt) FROM (
+        SELECT SUM(add_sum - delt_sum) AS dt
+        FROM (
+            SELECT
+                DATE(time) AS date,
+                SUM(tickets) AS add_sum,
+                0 AS delt_sum
+            FROM addt
+            WHERE time >= ?
+            GROUP BY DATE(time)
+    
+            UNION ALL
+    
+            SELECT
+                DATE(time) AS date,
+                0 AS add_sum,
+                SUM(tickets) AS delt_sum
+            FROM delt
+            WHERE time >= ?
+            GROUP BY DATE(time)
+        )
+        GROUP BY date
+        ORDER BY date
+    )
 """
 
 """ Update """
 
-UPDATE_MEMBER = "UPDATE members SET username = ?, first_name = ?, last_name = ? WHERE user_id = ?"
-UPDATE_TICKETS_COUNT = "UPDATE members SET tickets = ? WHERE user_id = ?"
-UPDATE_TPAY_AVAILABLE = "UPDATE members SET tpay_available = ? WHERE user_id = ?"
-RESET_TPAY_AVAILABLE = "UPDATE members SET tpay_available = 3"
+UPDATE_MEMBER_NAMES = "UPDATE members SET username = ?, first_name = ?, last_name = ? WHERE user_id = ?"
+UPDATE_MEMBER_TICKETS = "UPDATE members SET tickets = ? WHERE user_id = ?"
+UPDATE_MEMBER_TPAY_AVAILABLE = "UPDATE members SET tpay_available = ? WHERE user_id = ?"
+RESET_MEMBER_TPAY_AVAILABLE = "UPDATE members SET tpay_available = 3"
 UPDATE_SALARY_PAYOUT = "UPDATE salary_payouts SET paid_out = ?, fact_date = ? WHERE plan_date = ?"
+UPDATE_POSITION_CATALOGUE_SALARY = "UPDATE position_catalogue SET salary = ? WHERE position = ?"
 
 """ Delete """
 
 DELETE_PAID_MEMBER = "DELETE FROM employees WHERE user_id = ? AND position = ?"
+DELETE_POSITION_CATALOGUE = "DELETE FROM position_catalogue WHERE position = ?"

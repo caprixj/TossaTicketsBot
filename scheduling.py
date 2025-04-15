@@ -20,7 +20,7 @@ async def schedule(bot: Bot):
     aiosch.add_job(_db_backup, args=[bot], trigger='cron', hour=0, minute=1)
     aiosch.add_job(reset_prices, args=[bot], trigger='cron', hour=9, minute=0)
 
-    aiosch.add_job(_salary_control, args=[bot], trigger='cron', hour=3, minute=0)
+    aiosch.add_job(_salary_control, args=[bot], trigger='cron', hour=6, minute=0)
     aiosch.add_job(_salary_control, args=[bot], trigger='cron', hour=12, minute=0)
     aiosch.add_job(_salary_control, args=[bot], trigger='cron', hour=18, minute=0)
 
@@ -55,8 +55,6 @@ async def _salary_control(bot: Bot):
     if lsp.plan_date.weekday() != 0:
         raise RuntimeError('The last salary payout is not Monday!')
 
-    next_monday = datetime.now() + timedelta(days=7 - datetime.now().weekday())
-
     # if the last salary payout from db is not paid out
     # and we passed the date of the last salary payout (or today is the payout day)
     # then we pay out the salaries
@@ -69,7 +67,9 @@ async def _salary_control(bot: Bot):
 
     # if the next payout is not present in db
     # then we create and insert it into db
+    next_monday = datetime.now() + timedelta(days=7 - datetime.now().weekday())
     if lsp.plan_date.date() != next_monday.date():
+        next_monday_plan = lsp.plan_date + timedelta(days=7 - lsp.plan_date.weekday())
         await repo.insert_salary_payout(SalaryPayout(
-            plan_date=next_monday.strftime(glob.DATETIME_FORMAT)
+            plan_date=next_monday_plan.strftime(glob.DATETIME_FORMAT)
         ))

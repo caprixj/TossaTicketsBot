@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 from sqlite3 import IntegrityError
 from typing import Optional, List
 
@@ -11,12 +12,12 @@ from model.database.member import Member
 from model.database.addt_transaction import AddtTransaction
 from model.database.delt_transaction import DeltTransaction
 from model.database.employee import Employee
+from model.database.position_catalogue_record import PositionCatalogueRecord
 from model.database.price_reset import PriceReset
 from model.database.salary_payout import SalaryPayout
 from model.database.tpay_transaction import TpayTransaction
 from model.results.award_record import AwardRecord
 from model.results.ltrans_result import LTransResult
-from model.types.employee_position import EmployeePosition
 from model.types.transaction_type import TransactionType
 from repository.ordering_type import OrderingType
 from resources.const import glob
@@ -168,7 +169,7 @@ async def insert_salary_payout(payout: SalaryPayout):
         await db.commit()
 
 
-async def insert_paid_member_position(user_id: float, position: EmployeePosition, hired_date: str):
+async def insert_employee(user_id: float, position: str, hired_date: str):
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
         await db.execute(scripts.INSERT_EMPLOYEE, (
             user_id,
@@ -258,12 +259,26 @@ async def get_awards_count(user_id: int) -> int:
         return int(row[0]) if row else 0
 
 
-async def get_total_tickets(skip_negative: bool = True) -> float:
-    query = f"{scripts.SELECT_TOTAL_TICKETS_COUNT} {'WHERE tickets > 0' if skip_negative else str()}"
+async def get_total_tickets(skip_negative: bool = True, time: datetime = None) -> float:
+    total_query = f"{scripts.SELECT_TOTAL_TICKETS_COUNT} {'WHERE tickets > 0' if skip_negative else str()}"
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
-        cursor = await db.execute(query)
+        cursor = await db.execute(total_query)
         row = await cursor.fetchone()
-        return float(row[0]) if row else 0
+        cur_total = float(row[0]) if row else 0
+
+    if time is not None:
+        next_day = time + timedelta(days=1)
+        next_day_datetime = datetime(next_day.year, next_day.month, next_day.day)
+        async with aiosqlite.connect(glob.rms.db_file_path) as db:
+            cursor = await db.execute(
+                scripts.SELECT_DELTA_TICKETS_COUNT_AFTER_DATETIME,
+                (next_day_datetime, next_day_datetime)
+            )
+            row = await cursor.fetchone()
+            delta_total = float(row[0]) if row else 0
+        return cur_total - delta_total
+    else:
+        return cur_total
 
 
 async def get_transaction_stats(user_id: int) -> LTransResult:
@@ -318,25 +333,32 @@ async def get_employees() -> Optional[List[Employee]]:
         return [Employee(*row) for row in rows]
 
 
-async def get_paid_member(user_id: float, position: EmployeePosition) -> Optional[Employee]:
+async def get_employee(user_id: float, position: str) -> Optional[Employee]:
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
         cursor = await db.execute(scripts.SELECT_EMPLOYEE_BY_PRIMARY_KEY, (user_id, position))
         row = await cursor.fetchone()
         return Employee(*row) if row else None
 
 
-async def get_employee_positions(user_id: float) -> Optional[List[Employee]]:
+async def get_employee_position_names(user_id: float) -> Optional[List[str]]:
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
-        cursor = await db.execute(scripts.SELECT_EMPLOYEE_BY_USER_ID, (user_id,))
+        cursor = await db.execute(scripts.SELECT_EMPLOYEE_POSITION_NAMES, (user_id,))
         rows = await cursor.fetchall()
-        return [Employee(*row) for row in rows]
+        return [row[0] for row in rows]
+
+
+async def get_position_catalogue() -> Optional[List[PositionCatalogueRecord]]:
+    async with aiosqlite.connect(glob.rms.db_file_path) as db:
+        cursor = await db.execute(scripts.SELECT_POSITION_CATALOGUE)
+        rows = await cursor.fetchall()
+        return [PositionCatalogueRecord(*row) for row in rows]
 
 
 """ Update """
 
 
 async def update_member_names(member: Member) -> None:
-    await _execute(scripts.UPDATE_MEMBER, (
+    await _execute(scripts.UPDATE_MEMBER_NAMES, (
         member.username,
         member.first_name,
         member.last_name,
@@ -345,14 +367,14 @@ async def update_member_names(member: Member) -> None:
 
 
 async def update_member_tickets(member: Member) -> None:
-    await _execute(scripts.UPDATE_TICKETS_COUNT, (
+    await _execute(scripts.UPDATE_MEMBER_TICKETS, (
         member.tickets,
         member.user_id
     ))
 
 
 async def spend_tpay_available(member: Member):
-    await _execute(scripts.UPDATE_TPAY_AVAILABLE, (
+    await _execute(scripts.UPDATE_MEMBER_TPAY_AVAILABLE, (
         member.tpay_available - 1,
         member.user_id
     ))
@@ -369,7 +391,7 @@ async def set_salary_paid_out(plan_date: str, fact_date: str):
 """ Delete """
 
 
-async def delete_paid_member(user_id: float, position: EmployeePosition):
+async def delete_employee(user_id: float, position: str):
     await _execute(scripts.DELETE_PAID_MEMBER, (
         user_id,
         position

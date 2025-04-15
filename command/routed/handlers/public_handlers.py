@@ -1,5 +1,4 @@
 import functools
-import re
 
 from aiogram import Router
 from aiogram.enums import ParseMode
@@ -21,7 +20,7 @@ from command.parser.types.com_list import CommandList as cl
 from command.parser.types.target_type import CommandTargetType as ctt
 from model.types.transaction_result_errors import TransactionResultErrors as tre
 from resources.funcs import funcs
-from service.price_manager import p_adjust_tickets_amount
+from service.price_manager import adjust_tickets_amount
 
 router = Router()
 
@@ -50,7 +49,7 @@ async def reg(message: Message):
         CommandOverload(reply_required=True)
     ])
 
-    cpr = CommandParser(message, og).parse()
+    cpr = await CommandParser(message, og).parse()
 
     if not cpr.valid:
         await message.answer(glob.COM_PARSER_FAILED)
@@ -95,7 +94,7 @@ async def ltrans(message: Message):
     if not await validate_message(message):
         return
 
-    cpr = CommandParser(message, cog.pure()).parse()
+    cpr = await CommandParser(message, cog.pure()).parse()
 
     if not cpr.valid:
         await message.answer(glob.COM_PARSER_FAILED)
@@ -128,7 +127,7 @@ async def laward(message: Message):
     if not await validate_message(message):
         return
 
-    cpr = CommandParser(message, cog.pure()).parse()
+    cpr = await CommandParser(message, cog.pure()).parse()
 
     if not cpr.valid:
         await message.answer(glob.COM_PARSER_FAILED)
@@ -171,7 +170,7 @@ async def topt(message: Message):
         CommandOverload(oid='percent-size').add_percent().add(glob.SIZE_ARG, NInt),
     ])
 
-    cpr = CommandParser(message, og).parse()
+    cpr = await CommandParser(message, og).parse()
 
     if not cpr.valid:
         await message.answer(glob.COM_PARSER_FAILED)
@@ -206,7 +205,7 @@ async def bal(message: Message):
     if not await validate_message(message):
         return
 
-    cpr = CommandParser(message, cog.pure()).parse()
+    cpr = await CommandParser(message, cog.pure()).parse()
 
     if not cpr.valid:
         await message.answer(glob.COM_PARSER_FAILED)
@@ -232,7 +231,7 @@ async def infm(message: Message):
     if not await validate_message(message):
         return
 
-    cpr = CommandParser(message, cog.pure()).parse()
+    cpr = await CommandParser(message, cog.pure()).parse()
 
     if not cpr.valid:
         await message.answer(glob.COM_PARSER_FAILED)
@@ -253,7 +252,7 @@ async def tpay(message: Message, callback_message: Message = None, fee_incorpora
     if not await validate_message(message):
         return
 
-    cpr = CommandParser(message, cog.tickets(PNReal, creator_required=False)).parse()
+    cpr = await CommandParser(message, cog.tickets(PNReal, creator_required=False)).parse()
 
     if not cpr.valid:
         await message.answer(glob.COM_PARSER_FAILED)
@@ -325,14 +324,14 @@ async def p(message: Message):
         CommandOverload().add(glob.PRICE_ARG, PNReal)
     ])
 
-    cpr = CommandParser(message, og).parse()
+    cpr = await CommandParser(message, og).parse()
 
     if not cpr.valid:
         await message.answer(glob.COM_PARSER_FAILED)
         return
 
     price = cpr.args[glob.PRICE_ARG]
-    adjusted_price, inflation, fluctuation = await p_adjust_tickets_amount(price)
+    adjusted_price, inflation, fluctuation = await adjust_tickets_amount(price)
     await message.answer(f'базова вартість: {price:.2f} tc'
                          f'\nскорегована вартість: {adjusted_price:.2f} tc'
                          f'\nінфляція: {(inflation - 1) * 100:.3f}%'

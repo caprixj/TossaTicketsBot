@@ -17,7 +17,7 @@ class CommandParser:
         parts = self.message.text.split(maxsplit=1)
         return parts[1].split() if len(parts) > 1 else []
 
-    def _validate_args(self, overload: CommandOverload) -> CommandParserResult:
+    async def _validate_args(self, overload: CommandOverload) -> CommandParserResult:
         parsed_args = {}
 
         lia = len(self.input_args)
@@ -33,7 +33,7 @@ class CommandParser:
 
         for (arg_name, arg_type), value in zip(overload.schema.items(), joined_args):
             try:
-                parsed_args[arg_name] = arg_type(value).cast()
+                parsed_args[arg_name] = await arg_type(value).cast()
             except ValueError:
                 return CommandParserResult(valid=False)
 
@@ -44,7 +44,7 @@ class CommandParser:
             args=parsed_args
         )
 
-    def parse(self) -> CommandParserResult:
+    async def parse(self) -> CommandParserResult:
         if self.overload_group.is_empty():
             raise RuntimeError(glob.NO_OVERLOADS_ERROR)
 
@@ -55,7 +55,7 @@ class CommandParser:
         )
 
         for i, overload in enumerate(sorted_overloads):
-            cpr = self._parse_overload(overload)
+            cpr = await self._parse_overload(overload)
 
             if cpr.valid or cpr.creator_required_violation:
                 return cpr
@@ -63,7 +63,7 @@ class CommandParser:
             if i == len(self.overload_group.overloads) - 1:
                 return cpr
 
-    def _parse_overload(self, overload: CommandOverload) -> CommandParserResult:
+    async def _parse_overload(self, overload: CommandOverload) -> CommandParserResult:
         if overload.creator_required:
             if self.message.from_user.id != glob.CREATOR_USER_ID:
                 if self.overload_group.creator_required:
@@ -78,7 +78,7 @@ class CommandParser:
             if self.message.reply_to_message is None:
                 return CommandParserResult(valid=False)
 
-        return self._validate_args(overload)
+        return await self._validate_args(overload)
 
     def _replied(self) -> bool:
         return self.message.reply_to_message is not None

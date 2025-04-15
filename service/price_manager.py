@@ -12,19 +12,7 @@ from resources.funcs.funcs import get_current_datetime, date_to_str
 from repository import repository_core as repo
 
 
-async def adjust_tickets_amount(price: float, inflation: bool = True) -> float:
-    lpr = await repo.get_last_price_reset()
-
-    if lpr is None:
-        raise RuntimeError('No last price reset found!')
-
-    if inflation:
-        return price * lpr.fluctuation * lpr.inflation
-    else:
-        return price * lpr.fluctuation
-
-
-async def p_adjust_tickets_amount(price: float) -> (float, float, float):
+async def adjust_tickets_amount(price: float) -> (float, float, float):
     lpr = await repo.get_last_price_reset()
 
     if lpr is None:
@@ -33,9 +21,7 @@ async def p_adjust_tickets_amount(price: float) -> (float, float, float):
     return price * lpr.inflation * lpr.fluctuation, lpr.inflation, lpr.fluctuation
 
 
-async def reset_prices(bot: Bot):
-    tpool = await repo.get_total_tickets()
-
+async def reset_prices(bot: Bot = None):
     while True:
         lpr = await repo.get_last_price_reset()
 
@@ -43,16 +29,20 @@ async def reset_prices(bot: Bot):
         if lpr is None:
             raise RuntimeError('No last price reset found!')
 
+        tpool = await repo.get_total_tickets(time=lpr.plan_date)
+
         lpr_date = lpr.plan_date.date()
         yesterday_date = (datetime.now() - timedelta(days=1)).date()
 
         # if somehow we're trying to reset already reset price for today
         if lpr_date == datetime.now().date():
-            continue
+            return
 
+        updated_inflation = _get_updated_inflation(tpool)
         updated_fluctuation = _get_updated_fluctuation(lpr.fluctuation)
-        updated_inflation = _get_updated_inflation(tpool, lpr.inflation)
+        dt = (updated_inflation * updated_fluctuation / (lpr.inflation * lpr.fluctuation) - 1) * 100
 
+        await _reset_prices(dt)
         await repo.insert_price_history(PriceReset(
             inflation=updated_inflation,
             fluctuation=updated_fluctuation,
@@ -63,12 +53,17 @@ async def reset_prices(bot: Bot):
         # we're resetting prices for each skipped day
         # the skip may happen due to the temporal bot's inactivity
         if lpr_date == yesterday_date:
-            break
+            if bot:
+                await bot.send_message(
+                    chat_id=glob.rms.group_chat_id,
+                    text=f'{glob.PRICE_RESET_DONE}\n'
+                         f'курс змінено на: {"+" if dt > 0 else str()}{dt:.2f}%')
+            return
 
-    await bot.send_message(
-        chat_id=glob.rms.group_chat_id,
-        text=glob.PRICE_RESET_DONE
-    )
+
+# NOT IMPLEMENTED! (no prices to update yet)
+async def _reset_prices(dt: float):
+    return
 
 
 def _get_updated_fluctuation(last_fluctuation: float) -> float:
@@ -84,5 +79,5 @@ def _get_updated_fluctuation(last_fluctuation: float) -> float:
     return upd_f
 
 
-def _get_updated_inflation(tpool: float, last_inflation: float) -> float:
-    return last_inflation * (1 + INFLATION_ALPHA * math.log(tpool / INITIAL_TPOOL))
+def _get_updated_inflation(tpool: float) -> float:
+    return 1 + INFLATION_ALPHA * math.log(tpool / INITIAL_TPOOL)
