@@ -219,9 +219,9 @@ async def bal(message: Message):
 
     name = funcs.get_formatted_name(member=target_member, ping=True)
     sign = '+' if target_member.tickets > 0 else str()
-    response = (f"🪪 ім'я: {name}"
-                f"\n💳 тікети: {sign}{target_member.tickets:.2f}"
-                f"\n🔀 доступно транзакцій: {target_member.tpay_available}")
+    response = (f"{glob.BAL_NAME}: {name}"
+                f"\n{glob.BAL_TICKETS}: {sign}{target_member.tickets:.2f}"
+                f"\n{glob.BAL_TICKETS_AVAILABLE}: {target_member.tpay_available}")
 
     await message.answer(response)
 
@@ -285,12 +285,12 @@ async def tpay(message: Message, callback_message: Message = None, fee_incorpora
 
     total, transfer, fee = await calculate_transfer(cpr.args[glob.TICKETS_ARG])
 
-    tpay_confirmation_text = (f'відправник: {funcs.get_formatted_name(sender, ping=True)}\n'
-                              f'отримувач: {funcs.get_formatted_name(receiver, ping=True)}\n\n'
-                              f'*загальна сума: {total:.2f}*\n'
-                              f'сума переказу: {transfer:.2f}\n'
-                              f'комісія: {fee:.2f} ({int(100 * glob.FEE_RATE)}%, min {glob.MIN_FEE:.2f})\n\n'
-                              f'опис: _{description}_')
+    tpay_confirmation_text = (f'{glob.TPAY_SENDER}: {funcs.get_formatted_name(sender, ping=True)}\n'
+                              f'{glob.TPAY_RECEIVER}: {funcs.get_formatted_name(receiver, ping=True)}\n\n'
+                              f'*{glob.TPAY_TOTAL}: {total:.2f}*\n'
+                              f'{glob.TPAY_AMOUNT}: {transfer:.2f}\n'
+                              f'{glob.TPAY_FEE}: {fee:.2f} ({int(100 * glob.FEE_RATE)}%, min {glob.MIN_FEE:.2f})\n\n'
+                              f'{glob.TPAY_DESCRIPTION}: _{description}_')
 
     operation_id = await service.operation_manager.register(
         func=functools.partial(service.tpay, sender, receiver, transfer, description),
@@ -332,7 +332,7 @@ async def p(message: Message):
 
     price = cpr.args[glob.PRICE_ARG]
     adjusted_price, inflation, fluctuation = await adjust_tickets_amount(price)
-    await message.answer(f'базова вартість: {price:.2f} tc'
-                         f'\nскорегована вартість: {adjusted_price:.2f} tc'
-                         f'\nінфляція: {(inflation - 1) * 100:.3f}%'
-                         f'\nпоточна флуктуація: {(fluctuation - 1) * 100:.3f}%')
+    await message.answer(f'{glob.P_BASE_PRICE}: {price:.2f} tc'
+                         f'\n{glob.P_ADJUSTED_PRICE}: {adjusted_price:.2f} tc'
+                         f'\n{glob.P_INFLATION}: {(inflation - 1) * 100:.3f}%'
+                         f'\n{glob.P_FLUCTUATION}: {(fluctuation - 1) * 100:.3f}%')

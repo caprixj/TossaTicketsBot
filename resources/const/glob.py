@@ -52,90 +52,138 @@ PV_BACK_CALLBACK = 'pv_back'
 PV_FORWARD_CALLBACK = 'pv_forward'
 PV_HIDE_CALLBACK = 'pv_hide'
 
-LAWARD_TITLE = '<b>📯 Дошка нагород</b>'
-LTRANS_TITLE = '📊 Історія надходжень та витрат (тікети)'
-LTRANS_START_TEXT = """
-🔹 - вхідні перекази
-🔻 - вихідні перекази
-🔀 - переказ за tpay
-✨ - переказ за addt/delt/sett
-"""
-
-RESET_TPAY_AVAILABLE_DONE = 'ℹ️ к-сть доступних переказів оновлено'
-DB_BACKUP_DONE = 'ℹ️ копію бази даних збережено'
-PRICE_RESET_DONE = 'ℹ️ ціни оновлено відповідно до інфляційного курсу тікетів'
-SALARIES_PAID_OUT = 'ℹ️ нараховано заробітні плати'
-
-CONTINUE_BTN = '✅ Продовжити'
-CANCEL_BTN = '❌ Скасувати'
-INCORPORATE_FEE_BTN = '➕ Вкласти комісію'
-HIDE_BTN = '🗑 Приховати'
-
-ADDT_TEXT = '📈 тікети нараховано!'
-DELT_TEXT = '📉 тікети знято!'
-SETT_TEXT = '🔄 тікети перевстановлено!'
-TPAY_TEXT = '🔀 тікети переведено!'
-AWARD_SUCCESS = '🎖 шановного учасника нагороджено!'
-REG_SUCCESS = '🎉 реєстрація пройшла успішно!\nласкаво просимо в тікетономіку'
-RUSNI_TEXT = 'пизда!'
-TOPT_DESC = '*💸 рейтинг тікетів*'
-TOPT_ASC = '*💩 анти-рейтинг тікетів*'
-INFM_TEXT = '<b>ℹ️ інформація про учасника</b>'
-SQL_SUCCESS = '✅ команду виконано!'
-MEMBER_HIRED = '✅💼 учасника наймано на посаду!'
-RESET_PRICE_COMMAND_DONE = '✅ виконано дострокове оновлення цін відповідно до інфляційного курсу тікетів'
-MEMBER_ALREADY_HIRED = '❌ учасник уже обіймає дану посаду!'
-# MEMBER_HIRED_RESTRICTED = '❌ учасник не може обіймати дану посаду! імовірно, одну з його поточних посад не дозволено поєднувати з іншою'
-MEMBER_FIRED = '❌💼 учасника звільнено з посади!'
-MEMBER_ALREADY_FIRED = '❌ неможливо звільнити, оскільки учасник не обіймає дану посаду!'
-NOT_IMPLEMENTED = 'ще не реалізовано :с'
-
-ALERT_CALLBACK_YES = 'ви не можете підтвердити цю операцію!'
-ALERT_CALLBACK_NO = 'ви не можете скасувати цю операцію!'
-ALERT_CALLBACK_ACTION = 'ви не можете здійснити цю операцію!'
-CALLBACK_FLOOD_CONTROL = 'не так швидко! такими темпами телеграм пошле тікето-тяночку нахуй.. (зачекай щонайменше 20 секунд)'
-
-AWARD_DUPLICATE = '❌ учасник уже має вказану нагороду!'
-REG_DENIED_CTT_NONE = '❌ ви вже берете участь у тікетономіці!'
-REG_DENIED_CTT_REPLY = '❌ даний учасник вже бере участь у тікетономіці!'
-SQL_FAILED = '❌ команду відхилено!'
-COM_PARSER_FAILED = '❌ неправильно оформлена команда!'
-TARGET_NOT_MEMBER_ERROR = '❌ вказаний користувач не є учасником тікетономіки!'
-GET_MEMBER_FAILED = '❌ учасника не знайдено! перевірте правильність введеного ідентифікатора'
-GET_AWARD_FAILED = '❌ вказаної нагороди не існує! перевірте правильність введеного ідентифікатора'
-SERVICE_OPERATION_NONE_RESULT = '😔 не вдалося виконати операцію..'
-NOT_MEMBER_ERROR = '❌ щоб користуватися ботом, необхідно бути учасником чату сфс та відправити команду /reg. детальніші інструкції шукай на /help'
-
 INVALID_ARGS = 'THE PROGRAM WAS STARTED WITH INVALID COMMAND ARGUMENTS!'
 NO_OVERLOADS_ERROR = 'PARSING WITHOUT OVERLOADS IN COMMAND PARSER!'
 DOUBLE_TARGETING_ERROR = 'TRYING TO PUT TWO TARGET-TYPED ARGUMENTS INTO COMMAND OVERLOAD!'
 CREATOR_REQUIRED_VIOLATION = 'CREATOR_REQUIRED_VIOLATION'
 
+LAWARD_TITLE = '<b>📯 awards board</b>'
+LTRANS_TITLE = '<b>📊 income and expenses history (tickets)</b>'
+LTRANS_START_TEXT = """
+🔹 - incoming transfers  
+🔻 - outgoing transfers  
+🔀 - transfer via /tpay  
+✨ - transfer by creator
+"""
+
+RESET_TPAY_AVAILABLE_DONE = 'ℹ️ number of available transfers updated'
+DB_BACKUP_DONE = 'ℹ️ database backup saved'
+PRICE_RESET_DONE = 'ℹ️ prices updated according to the ticket inflation rate'
+SALARIES_PAID_OUT = 'ℹ️ salaries have been paid'
+
+CONTINUE_BTN = '✅ continue'
+CANCEL_BTN = '❌ cancel'
+INCORPORATE_FEE_BTN = '➕ fee inside'
+HIDE_BTN = '🗑 hide'
+
+ADDT_TEXT = '📈 tickets added!'
+DELT_TEXT = '📉 tickets deducted!'
+SETT_TEXT = '🔄 tickets reset!'
+TPAY_TEXT = '🔀 tickets transferred!'
+AWARD_SUCCESS = '🎖 the honorable member has been awarded!'
+REG_SUCCESS = '🎉 successfully signed up!\nwelcome to ticketonomics'
+RUSNI_TEXT = 'пизда!'
+TOPT_DESC = '*💸 ticket leaderboard*'
+TOPT_ASC = '*💩 ticket anti-leaderboard*'
+INFM_TEXT = '<b>ℹ️ member information</b>'
+SQL_SUCCESS = '✅ command executed!'
+MEMBER_HIRED = '✅💼 member hired for the position!'
+RESET_PRICE_COMMAND_DONE = '✅ manual price reset executed based on the ticket inflation rate'
+MEMBER_ALREADY_HIRED = '❌ member already holds this position!'
+MEMBER_FIRED = '❌💼 member has been fired!'
+MEMBER_ALREADY_FIRED = '❌ cannot fire member as he does not hold this position!'
+NOT_IMPLEMENTED = 'not implemented yet :('
+
+ALERT_CALLBACK_YES = 'you cannot confirm this action!'
+ALERT_CALLBACK_NO = 'you cannot cancel this action!'
+ALERT_CALLBACK_ACTION = 'you cannot perform this action!'
+CALLBACK_FLOOD_CONTROL = 'not so fast! at this rate, telegram will send ticketo-chan to hell.. (wait at least 20 seconds)'
+
+AWARD_DUPLICATE = '❌ participant already has this award!'
+REG_DENIED_CTT_NONE = '❌ you are already a participant in ticketonomics!'
+REG_DENIED_CTT_REPLY = '❌ this participant is already part of ticketonomics!'
+SQL_FAILED = '❌ command rejected!'
+COM_PARSER_FAILED = '❌ invalid command format!'
+TARGET_NOT_MEMBER_ERROR = '❌ the specified user is not a ticketonomics member!'
+GET_MEMBER_FAILED = '❌ member not found! check the id you entered'
+GET_AWARD_FAILED = '❌ specified award does not exist! check the id you entered'
+SERVICE_OPERATION_NONE_RESULT = '😔 couldn’t complete the operation..'
+NOT_MEMBER_ERROR = '❌ to use the bot, you must be a member of the sfs chat and send the /reg command. more instructions can be found at /help'
+
+BAL_NAME = "🪪 name"
+BAL_TICKETS = '💳 tickets'
+BAL_TICKETS_AVAILABLE = '🔀 transactions available'
+
+LTRANS_TRANS_HISTORY_EMPTY = 'your transactions history is empty.. 😶‍🌫️'
+LTRANS_FROM = 'from'
+LTRANS_TO = 'to'
+LTRANS_TEXT = 'text'
+
+TOPT_FULL = '(full)'
+TOPT_TICKETS_TOTAL = 'tickets total'
+TOPT_BANKRUPT = 'bankrupt'
+
+P_BASE_PRICE = 'base price (17 march 2025)'
+P_ADJUSTED_PRICE = 'adjusted price'
+P_INFLATION = 'inflation'
+P_FLUCTUATION = 'fluctuation'
+
+INFM_PERSONAL_INFO = '🪪 personal info'
+INFM_FIRST_NAME = 'first name'
+INFM_LAST_NAME = 'last name'
+INFM_USERNAME = 'username'
+INFM_JOBS = '💼 jobs'
+INFM_COLLECTION = '💎 collection'
+INFM_ARTIFACTS = 'artifacts'
+INFM_AWARDS = 'awards'
+INFM_ASSETS = '💳 assets'
+INFM_TICKETS = 'tickets'
+INFM_TRANS_AVAILABLE = 'transactions available'
+
+HIRE_JOBS = "member's jobs"
+
+TPAY_SENDER = 'sender'
+TPAY_RECEIVER = 'receiver'
+TPAY_TOTAL = 'total'
+TPAY_AMOUNT = 'amount'
+TPAY_FEE = 'fee'
+TPAY_DESCRIPTION = 'text'
+
+PRICE_RESET_TEXT = 'the ticket inflation rate changed by'
+
+PAGE_GEN_NO_AWARDS = 'you have no awards yet.. 😔'
+PAGE_GEN_AWARDS = 'awards'
+PAGE_GEN_PAYMENT = 'payment'
+PAGE_GEN_ISSUED = 'issued'
+PAGE_GEN_STORY = 'story'
+
 HELP_TEXT = """
 ✨ *Тікето-тяночка 🇺🇦* ✨
 
-*Тікето-тяночка* — це телеграм бот для автоматизації процесів *Тікетономіки*. 
-_Май на увазі, що бот хоститься на телефоні розробника, тож не завжди може бути доступним_
+*Ticketo-chan* (ukrainian: Тікето-тяночка) is a Telegram bot for automating *Ticketonomics* processes.  
+_Note that the bot is hosted on the developer's phone, so it may not always be available._
 
-*Тікетономіка* — це ігрова система, побудована на *тікетах* (ігровій валюті). Додаткова інформація та новини в телеграм каналі *TossaTickets* (https://t.me/+q66chy227wk5MWQy)
+*Ticketonomics* is a game system based on *tickets* (in-game currency). More info and updates are available in the Telegram channel *TossaTickets* (https://t.me/+q66chy227wk5MWQy)
 
-🪬 Аби взяти участь у тікетономіці, необхідно вступити в нашу Спільноту, у телеграм групу *Spaceflight Simulator 🇺🇦* (@spaceflight\_simulator\_chat), та відправити команду /reg тікето-тяночці
+🪬 To join Ticketonomics, you must become part of our Community by joining the Telegram group *Spaceflight Simulator 🇺🇦* (@spaceflight\_simulator\_chat), and send the /reg command to Ticketo-chan.
 
-*📊 Дізнавайся про учасників та рейтинги*
+*📊 Learn about participants and leaderboards*
 
-*• Інформація про учасника*: Відправ у відповідь на повідомлення учасника _(= зроби реплай)_`  /infm `, або вкажи його username чи id` /infm [username/id]`
-*• Переглянути активи учасника*: Зроби реплай` /bal`, або вкажи username чи id учасника` /bal [username/id]`
-*• Переглянути нагороди учасника*: Команда` /laward`. Працює аналогічно до` /bal`
-*• Переглянути історію власних переказів*: Команда` /ltrans`
-*• Рейтинг учасників за кількістю тікетів*: Отримай повний список` /topt`. Отримай обрізаний список, _(вказуючи додатнє число)_ або відповідний анти-рейтинг _(вказуючи від'ємне число)_` /topt [число]`
-*• Рейтинг учасників за часткою тікетів*: Отримай рейтинг, аналогічний до` /topt` , але у відсотках:` /topt % [число]`
+*• Member info*: Reply to one's message with `/infm`, or provide one's username or ID: `/infm [username/id]`  
+*• Check member's assets*: Reply with `/bal`, or provide one's username or ID: `/bal [username/id]`  
+*• View member's awards*: Use the `/laward` command. Works the same as `/bal`  
+*• View your transfer history*: Use the `/ltrans` command  
+*• Ticket leaderboard*: Get the full list with `/topt`. For a trimmed list, provide a positive number, or for the anti-leaderboard, a negative number: `/topt [number]`  
+*• Leaderboard by ticket share*: Similar to `/topt` but shown in percentages: `/topt % [number]`
 
-*💳 Здійснюй переказ активів*
+*💳 Transfer assets*
 
-*• Переказ тікетів між учасниками*: Зроби реплай на будь-яке повідомлення отримувача коштів, за бажання додай опис _(він збережеться)_` /tpay [число] [опис]`, або вкажи його username чи id` /tpay [username/id] [число] [опис]`. Допускаються додатні дробні та цілі числа _(максимум з двома цифрами після коми/крапки)_
+*• Transfer tickets between members*: Reply to any message from the recipient, optionally add a description (it will be saved):  
+`/tpay [amount] [description]`, or use their username/ID: `/tpay [username/id] [amount] [description]`.  
+Both whole and fractional positive numbers are allowed (up to 2 digits after the dot/comma).
 
-*✉️ Маєш питання?*
+*✉️ Got questions?*
 
-• Автор: t.me/capri\_xj
+• Author: t.me/capri\_xj  
 • GitHub: github.com/caprixj/TossaTicketsBot
 """

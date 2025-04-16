@@ -5,6 +5,7 @@ from typing import List, Tuple
 from model.database.member import Member
 from model.results.award_record import AwardRecord
 from model.results.ltrans_result import LTransResult
+from resources.const import glob
 from resources.funcs.funcs import get_formatted_name
 from resources.const.glob import PAGE_ROW_CHAR_LIMIT, PAGE_ROWS_COUNT_LIMIT
 
@@ -13,38 +14,38 @@ async def ltrans(result: LTransResult, title: str) -> List[str]:
     rows = []
 
     if result.empty():
-        return [f'{title}\n\n<i>ваша історія транзакцій порожня.. 😶‍🌫️</i>']
+        return [f'{title}\n\n<i>{glob.LTRANS_TRANS_HISTORY_EMPTY}</i>']
 
     for addt in result.addts:
         row = (f"✨🔹 | id: {addt.addt_id}"
                f" | <b>+{addt.tickets:.2f}</b>"
                f" | {addt.time}"
-               f" | опис: <i>{addt.description}</i>")
+               f" | {glob.LTRANS_TEXT}: <i>{addt.description}</i>")
         rows.append((row, addt.time))
 
     for delt in result.delts:
         row = (f"✨🔻 | id: {delt.delt_id}"
                f" | <b>-{delt.tickets:.2f}</b>"
                f" | {delt.time}"
-               f" | опис: <i>{delt.description}</i>")
+               f" | {glob.LTRANS_TEXT}: <i>{delt.description}</i>")
         rows.append((row, delt.time))
 
     for tpay in result.tpays:
         if tpay.receiver_id == result.user_id:
             sender_name = get_formatted_name(_find_member(result.unique_tpay_members, tpay.sender_id))
             row = (f"🔀🔹 | id: {tpay.tpay_id}"
-                   f" | від: <b>{sender_name}</b>"
+                   f" | {glob.LTRANS_FROM}: <b>{sender_name}</b>"
                    f" | <b>+{tpay.transfer:.2f}</b>"
                    f" | {tpay.time}"
-                   f" | опис: <i>{tpay.description}</i>")
+                   f" | {glob.LTRANS_TEXT}: <i>{tpay.description}</i>")
         else:
             receiver_name = get_formatted_name(_find_member(result.unique_tpay_members, tpay.receiver_id))
             row = (f"🔀🔻 | id: {tpay.tpay_id}"
-                   f" | кому: <b>{receiver_name}</b>"
+                   f" | {glob.LTRANS_TO}: <b>{receiver_name}</b>"
                    f" | <b>-{tpay.transfer:.2f}</b>"
                    f" | -{tpay.fee:.2f}"
                    f" | {tpay.time}"
-                   f" | опис: <i>{tpay.description}</i>")
+                   f" | {glob.LTRANS_TEXT}: <i>{tpay.description}</i>")
 
         rows.append((row, tpay.time))
 
@@ -56,9 +57,9 @@ async def laward(result: List[AwardRecord], title: str) -> List[str]:
     first_page = str()
 
     if not result:
-        return [f'{title}\n\n<i>ви все ще не маєте нагород.. 😔</i>']
+        return [f'{title}\n\n<i>{glob.PAGE_GEN_NO_AWARDS}</i>']
 
-    first_page += f'<i>нагород: {len(result)}</i>\n'
+    first_page += f'<i>{glob.PAGE_GEN_AWARDS}: {len(result)}</i>\n'
     for ar in result:
         first_page += f'\n🎖 {ar.award.name}'
 
@@ -67,9 +68,9 @@ async def laward(result: List[AwardRecord], title: str) -> List[str]:
     for ar in result:
         award_text = (f"<b>🎖 {ar.award.name}</b>"
                       f"\n\nid: <b>{ar.award.award_id}</b>"
-                      f"\nвиплата: <b>{ar.award.payment:.2f} tc</b>"
-                      f"\nвидано: <b>{ar.issue_date}</b>"
-                      f"\n\n<b>історія</b>: <i>{ar.award.description}</i>")
+                      f"\n{glob.PAGE_GEN_PAYMENT}: <b>{ar.award.payment:.2f} tc</b>"
+                      f"\n{glob.PAGE_GEN_ISSUED}: <b>{ar.issue_date}</b>"
+                      f"\n\n<b>{glob.PAGE_GEN_STORY}</b>: <i>{ar.award.description}</i>")
 
         pages.append('\n\n'.join([title, award_text]))
 

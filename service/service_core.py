@@ -98,10 +98,10 @@ async def topt(size: int = 0, percent: bool = False) -> str:
     else:
         order = str()
         members = await repo.get_members_by_tickets()
-        result = f'{glob.TOPT_DESC} (повний)'
+        result = f'{glob.TOPT_DESC} {glob.TOPT_FULL}'
 
     total_tickets = await repo.get_total_tickets(skip_negative=True)
-    result += f"\nобсяг тікетономіки: {total_tickets:.2f} tc\n\n"
+    result += f"\n{glob.TOPT_TICKETS_TOTAL}: {total_tickets:.2f} tc\n\n"
 
     for i, m in enumerate(members):
         name = get_formatted_name(Member(
@@ -123,7 +123,7 @@ async def topt(size: int = 0, percent: bool = False) -> str:
 
         if percent:
             value = f'{m.tickets / total_tickets * 100:.2f}%' \
-                if m.tickets > 0 else 'bankrupt'
+                if m.tickets > 0 else glob.TOPT_BANKRUPT
         else:
             sign = '+' if m.tickets > 0 else str()
             value = f'{sign}{m.tickets:.2f}'
@@ -144,19 +144,19 @@ async def infm(user_id: int) -> str:
         positions += f'\n~ {pn}'
 
     return (f"{glob.INFM_TEXT}"
-            f"\n\n<b>🪪 персональні дані</b>"
+            f"\n\n<b>{glob.INFM_PERSONAL_INFO}</b>"
             f"\nid: {member.user_id}"
-            f"\nім'я: {'-' if member.first_name is None else member.first_name}"
-            f"\nпрізвище: {'-' if member.last_name is None else member.last_name}"
-            f"\nюзернейм: {'-' if member.username is None else member.username}"
-            f"\n\n<b>💼 посади</b>"
+            f"\n{glob.INFM_FIRST_NAME}: {'-' if member.first_name is None else member.first_name}"
+            f"\n{glob.INFM_LAST_NAME}: {'-' if member.last_name is None else member.last_name}"
+            f"\n{glob.INFM_USERNAME}: {'-' if member.username is None else member.username}"
+            f"\n\n<b>{glob.INFM_JOBS}</b>"
             f"{positions}"
-            f"\n\n<b>💎 колекція</b>"
-            f"\nартефактів: {await repo.get_artifacts_count(user_id)}"
-            f"\nнагород: {await repo.get_awards_count(user_id)}"
-            f"\n\n<b>💳 активи</b>"
-            f"\nтікети: {'+' if member.tickets > 0 else str()}{member.tickets:.2f}"
-            f"\nдоступно транзакцій: {member.tpay_available}")
+            f"\n\n<b>{glob.INFM_COLLECTION}</b>"
+            f"\n{glob.INFM_ARTIFACTS}: {await repo.get_artifacts_count(user_id)}"
+            f"\n{glob.INFM_AWARDS}: {await repo.get_awards_count(user_id)}"
+            f"\n\n<b>{glob.INFM_ASSETS}</b>"
+            f"\n{glob.INFM_TICKETS}: {'+' if member.tickets > 0 else str()}{member.tickets:.2f}"
+            f"\n{glob.INFM_TRANS_AVAILABLE}: {member.tpay_available}")
 
 
 async def addt(member: Member, tickets: float, description: str = None) -> None:

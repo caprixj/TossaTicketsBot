@@ -197,7 +197,7 @@ async def hire(message: Message):
 
     await service.hire(target_member.user_id, employee_position)
 
-    positions = f'посади учасника {get_formatted_name(target_member)}:'
+    positions = f'{glob.HIRE_JOBS} {get_formatted_name(target_member)}:'
     for pn in await service.get_position_names(target_member.user_id):
         positions += f'\n~ {pn}'
 

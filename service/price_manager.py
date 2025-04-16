@@ -57,7 +57,7 @@ async def reset_prices(bot: Bot = None):
                 await bot.send_message(
                     chat_id=glob.rms.group_chat_id,
                     text=f'{glob.PRICE_RESET_DONE}\n'
-                         f'курс змінено на: {"+" if dt > 0 else str()}{dt:.2f}%')
+                         f'{glob.PRICE_RESET_TEXT}: {"+" if dt > 0 else str()}{dt:.2f}%')
             return
 
 
