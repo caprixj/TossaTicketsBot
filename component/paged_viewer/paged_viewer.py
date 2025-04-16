@@ -74,7 +74,7 @@ class PagedViewer:
         )
 
         hide = generate_callback_data(glob.PV_HIDE_CALLBACK, operation_id, sender_id)
-        builder.row(InlineKeyboardButton(text='🗑 Приховати', callback_data=hide))
+        builder.row(InlineKeyboardButton(text=glob.HIDE_BTN, callback_data=hide))
 
         return builder.as_markup()
 
