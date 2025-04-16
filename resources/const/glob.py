@@ -140,7 +140,7 @@ INFM_ASSETS = '💳 assets'
 INFM_TICKETS = 'tickets'
 INFM_TRANS_AVAILABLE = 'transactions available'
 
-HIRE_JOBS = "member's jobs"
+HIRE_JOBS = 'jobs of the member'
 
 TPAY_SENDER = 'sender'
 TPAY_RECEIVER = 'receiver'
