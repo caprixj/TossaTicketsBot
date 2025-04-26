@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from model.database.member import Member
+from model.database import Member
 from resources.const.glob import FEE_RATE as F, MIN_FEE as M, DATETIME_FORMAT
 
 

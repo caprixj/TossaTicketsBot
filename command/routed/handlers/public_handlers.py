@@ -16,9 +16,9 @@ from command.parser.core.parser import CommandParser
 from component.paged_viewer import page_generators
 from component.paged_viewer.paged_viewer import PagedViewer, keep_paged_viewer
 from model.types.ticketonomics_types import PNReal, NInt
-from command.parser.types.com_list import CommandList as cl
-from command.parser.types.target_type import CommandTargetType as ctt
-from model.types.transaction_result_errors import TransactionResultErrors as tre
+from command.parser.types.command_list import CommandList as cl
+from command.parser.types.target_type import CommandTargetType as CTT
+from model.types.transaction_result_errors import TransactionResultErrors as TRE
 from resources.funcs import funcs
 from service.price_manager import adjust_tickets_amount
 
@@ -58,16 +58,16 @@ async def reg(message: Message):
     target_member = await service.get_target_member(cpr)
 
     if target_member is None:
-        if cpr.overload.target_type == ctt.none:
+        if cpr.overload.target_type == CTT.none:
             await service.create_member(message.from_user)
-        elif cpr.overload.target_type == ctt.reply:
+        elif cpr.overload.target_type == CTT.reply:
             await service.create_member(message.reply_to_message.from_user)
         await message.answer(glob.REG_SUCCESS)
     else:
-        if cpr.overload.target_type == ctt.none:
+        if cpr.overload.target_type == CTT.none:
             await service.update_member(message.from_user, target_member)
             await message.answer(glob.REG_DENIED_CTT_NONE)
-        elif cpr.overload.target_type == ctt.reply:
+        elif cpr.overload.target_type == CTT.reply:
             await service.update_member(message.reply_to_message.from_user, target_member)
             await message.answer(glob.REG_DENIED_CTT_REPLY)
 
@@ -267,7 +267,7 @@ async def tpay(message: Message, callback_message: Message = None, fee_incorpora
     sender = await service.get_member(message.from_user.id)
 
     if sender.tpay_available == 0:
-        await message.answer(tre.tpay_unavailable)
+        await message.answer(TRE.tpay_unavailable)
         return
 
     description = cpr.args.get(glob.DESCRIPTION_ARG, None)

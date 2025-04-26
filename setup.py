@@ -1,13 +1,11 @@
 import os
 import sys
 import xml.etree.ElementTree as ET
-import aiosqlite
 
 from pathlib import Path
 
 import resources.const.glob as glob
 from model.types.run_mode import RunMode, RunModeSettings
-from resources.sql import scripts
 
 
 def define_run_mode() -> RunMode:
@@ -28,31 +26,6 @@ def define_rms(rm: RunMode) -> bool:
 
     glob.rms = _get_run_mode_settings(rm)
     return True
-
-
-async def create_databases():
-    os.makedirs(os.path.dirname(glob.rms.db_file_path), exist_ok=True)
-    async with aiosqlite.connect(glob.rms.db_file_path) as db:
-        for query in await _get_create_table_scripts():
-            await db.execute(query)
-            await db.commit()
-
-
-async def _get_create_table_scripts() -> list[str]:
-    return [
-        scripts.CREATE_TABLE_MEMBERS,
-        scripts.CREATE_TABLE_ARTIFACTS,
-        scripts.CREATE_TABLE_ADDT,
-        scripts.CREATE_TABLE_DELT,
-        scripts.CREATE_TABLE_TPAY,
-        scripts.CREATE_TABLE_AWARDS,
-        scripts.CREATE_TABLE_AWARD_MEMBER,
-        scripts.CREATE_TABLE_PRICE_HISTORY,
-        scripts.CREATE_TABLE_SALARY_PAYOUTS,
-        scripts.CREATE_TABLE_EMPLOYEES,
-        scripts.CREATE_TABLE_EMPLOYMENT_HISTORY,
-        scripts.CREATE_TABLE_POSITION_CATALOGUE
-    ]
 
 
 def _parse_pathlib(xml_path: str) -> str:

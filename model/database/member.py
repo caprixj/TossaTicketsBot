@@ -1,14 +1,50 @@
-class Member:
-    def __init__(self,
-                 user_id: int = 0,
-                 username: str = None,
-                 first_name: str = None,
-                 last_name: str = None,
-                 tickets: int = 0,
-                 tpay_available: int = 3):
-        self.user_id = user_id
-        self.username = username
-        self.first_name = first_name
-        self.last_name = last_name
-        self.tickets = tickets
-        self.tpay_available = tpay_available
+from sqlalchemy import Column, Integer, Text, text, Float
+from sqlalchemy.orm import relationship
+
+from .base import Base
+
+
+class Member(Base):
+    __tablename__ = 'members'
+
+    user_id = Column(Integer, primary_key=True)
+    username = Column(Text)
+    first_name = Column(Text)
+    last_name = Column(Text)
+    tickets = Column(Float, nullable=False, server_default=text('0'))
+    tpay_available = Column(Integer, nullable=False, server_default=text('3'))
+
+    artifacts = relationship(
+        'Artifact',
+        back_populates='owner'
+    )
+    awards = relationship(
+        'AwardMember',
+        back_populates='member'
+    )
+    addt_transactions = relationship(
+        'AddtTransaction',
+        back_populates='user'
+    )
+    delt_transactions = relationship(
+        'DeltTransaction',
+        back_populates='user'
+    )
+    sent_transactions = relationship(
+        'TpayTransaction',
+        back_populates='sender',
+        foreign_keys='TpayTransaction.sender_id'
+    )
+    received_transactions = relationship(
+        'TpayTransaction',
+        back_populates='receiver',
+        foreign_keys='TpayTransaction.receiver_id'
+    )
+    employees_positions = relationship(
+        'EmployeeAssignment',
+        back_populates='member'
+    )
+    employment_history = relationship(
+        'EmploymentHistory',
+        back_populates='member'
+    )

@@ -7,7 +7,7 @@ from service import service_core as service
 import resources.const.glob as glob
 from command.routed.handlers.public_handlers import tpay
 from component.paged_viewer.paged_viewer import pmove, phide
-from model.results.transaction_result import TransactionResult
+from model.dto.transaction_dto import TransactionResult
 from command.routed.callbacks.callback_data import get_callback_data
 
 router = Router()

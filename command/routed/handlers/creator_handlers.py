@@ -7,7 +7,7 @@ from aiogram.types import Message
 
 import resources.const.glob as glob
 from command.routed.keyboards.keyboards import hide_keyboard
-from model.database.award_member import AwardMemberJunction
+from model.database import AwardMember
 from resources.funcs.funcs import get_formatted_name
 from service import service_core as service
 from service.price_manager import reset_prices
@@ -17,7 +17,7 @@ from command.parser.core.parser import CommandParser
 from command.parser.results.parser_result import CommandParserResult
 from command.routed.handlers.validations import validate_message
 from model.types.ticketonomics_types import BaseText, Real, PNReal, SID, EmployeePosition
-from command.parser.types.com_list import CommandList as cl
+from command.parser.types.command_list import CommandList as cl
 
 from resources.const.rands import crv_messages
 
@@ -139,7 +139,7 @@ async def award(message: Message):
         await message.answer(glob.GET_AWARD_FAILED)
         return
 
-    am = AwardMemberJunction(
+    am = AwardMember(
         award_id=award_.award_id,
         owner_id=target_member.user_id
     )

@@ -2,15 +2,14 @@ from datetime import datetime
 from math import ceil
 from typing import List, Tuple
 
-from model.database.member import Member
-from model.results.award_record import AwardRecord
-from model.results.ltrans_result import LTransResult
+from model.database import Member
+from model.dto import AwardDTO, LTransDTO
 from resources.const import glob
 from resources.funcs.funcs import get_formatted_name
 from resources.const.glob import PAGE_ROW_CHAR_LIMIT, PAGE_ROWS_COUNT_LIMIT
 
 
-async def ltrans(result: LTransResult, title: str) -> List[str]:
+async def ltrans(result: LTransDTO, title: str) -> List[str]:
     rows = []
 
     if result.empty():
@@ -52,7 +51,7 @@ async def ltrans(result: LTransResult, title: str) -> List[str]:
     return _form_pages(title, _sorted_by_datetime(rows))
 
 
-async def laward(result: List[AwardRecord], title: str) -> List[str]:
+async def laward(result: List[AwardDTO], title: str) -> List[str]:
     pages = []
     first_page = str()
 

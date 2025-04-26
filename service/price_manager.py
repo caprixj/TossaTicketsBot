@@ -4,9 +4,9 @@ from datetime import datetime, timedelta
 
 from aiogram import Bot
 
-from model.database.price_reset import PriceReset
+from model.database import PriceReset
 from resources.const import glob
-from resources.const.glob import MAX_FLUCTUATION, MIN_FLUCTUATION, FLUCTUATION_GAUSS_SIGMA, INFLATION_ALPHA, \
+from resources.const.glob import MAX_FLUCT, MIN_FLUCT, FLUCT_GAUSS_SIGMA, INFLATION_ALPHA, \
     INITIAL_TPOOL
 from resources.funcs.funcs import get_current_datetime, date_to_str
 from repository import repository_core as repo
@@ -43,7 +43,7 @@ async def reset_prices(bot: Bot = None):
         dt = (updated_inflation * updated_fluctuation / (lpr.inflation * lpr.fluctuation) - 1) * 100
 
         await _reset_prices(dt)
-        await repo.insert_price_history(PriceReset(
+        await repo.insert_record(PriceReset(
             inflation=updated_inflation,
             fluctuation=updated_fluctuation,
             plan_date=date_to_str(lpr.plan_date + timedelta(days=1)),
@@ -67,14 +67,14 @@ async def _reset_prices(dt: float):
 
 
 def _get_updated_fluctuation(last_fluctuation: float) -> float:
-    g = random.gauss(1, FLUCTUATION_GAUSS_SIGMA)
+    g = random.gauss(1, FLUCT_GAUSS_SIGMA)
     upd_f = last_fluctuation * g
 
-    gauss_distribution = abs(random.gauss(0, FLUCTUATION_GAUSS_SIGMA))
-    if upd_f > MAX_FLUCTUATION:
-        upd_f = MAX_FLUCTUATION - gauss_distribution
-    elif upd_f < MIN_FLUCTUATION:
-        upd_f = MIN_FLUCTUATION + gauss_distribution
+    gauss_distribution = abs(random.gauss(0, FLUCT_GAUSS_SIGMA))
+    if upd_f > MAX_FLUCT:
+        upd_f = MAX_FLUCT - gauss_distribution
+    elif upd_f < MIN_FLUCT:
+        upd_f = MIN_FLUCT + gauss_distribution
 
     return upd_f
 

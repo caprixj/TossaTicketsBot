@@ -1,14 +1,11 @@
 from dataclasses import dataclass
 from typing import List
 
-from model.database.addt_transaction import AddtTransaction
-from model.database.delt_transaction import DeltTransaction
-from model.database.tpay_transaction import TpayTransaction
-from model.database.member import Member
+from model.database import TpayTransaction, AddtTransaction, DeltTransaction, Member
 
 
 @dataclass
-class LTransResult:
+class LTransDTO:
     user_id: int
     tpays: List[TpayTransaction]
     addts: List[AddtTransaction]

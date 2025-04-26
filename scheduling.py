@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 
 from aiogram import Bot
 
-from model.database.salary_payout import SalaryPayout
+from model.database import SalaryPayout
 from service import service_core as service
 from aiogram.types import FSInputFile
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -17,8 +17,14 @@ aiosch = AsyncIOScheduler()
 
 async def schedule(bot: Bot):
     aiosch.add_job(_reset_tpay_available, args=[bot], trigger='cron', hour=0, minute=1)
+
     aiosch.add_job(_db_backup, args=[bot], trigger='cron', hour=0, minute=1)
-    aiosch.add_job(reset_prices, args=[bot], trigger='cron', hour=9, minute=0)
+
+    aiosch.add_job(reset_prices, args=[bot], trigger='cron', hour=1, minute=0)
+    aiosch.add_job(reset_prices, args=[bot], trigger='cron', hour=6, minute=0)
+    aiosch.add_job(reset_prices, args=[bot], trigger='cron', hour=11, minute=0)
+    aiosch.add_job(reset_prices, args=[bot], trigger='cron', hour=16, minute=0)
+    aiosch.add_job(reset_prices, args=[bot], trigger='cron', hour=21, minute=0)
 
     aiosch.add_job(_salary_control, args=[bot], trigger='cron', hour=6, minute=0)
     aiosch.add_job(_salary_control, args=[bot], trigger='cron', hour=12, minute=0)
@@ -70,6 +76,6 @@ async def _salary_control(bot: Bot):
     next_monday = datetime.now() + timedelta(days=7 - datetime.now().weekday())
     if lsp.plan_date.date() != next_monday.date():
         next_monday_plan = lsp.plan_date + timedelta(days=7 - lsp.plan_date.weekday())
-        await repo.insert_salary_payout(SalaryPayout(
+        await repo.insert_record(SalaryPayout(
             plan_date=next_monday_plan.strftime(glob.DATETIME_FORMAT)
         ))

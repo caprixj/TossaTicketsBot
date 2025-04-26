@@ -29,8 +29,6 @@ async def main():
     if not valid_args:
         raise RuntimeError(glob.INVALID_ARGS)
 
-    await setup.create_databases()
-
     bot = Bot(
         token=glob.rms.bot_token,
         default=DefaultBotProperties(

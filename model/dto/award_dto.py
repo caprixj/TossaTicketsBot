@@ -1,9 +1,9 @@
 from dataclasses import dataclass
 
-from model.database.award import Award
+from model.database import Award
 
 
 @dataclass
-class AwardRecord:
+class AwardDTO:
     award: Award
     issue_date: str
