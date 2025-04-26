@@ -1,7 +1,6 @@
 import asyncio
 import logging
 import sys
-from typing import Union
 
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
@@ -11,6 +10,7 @@ import setup
 import scheduling
 import resources.const.glob as glob
 from middleware.source_filter_middleware import SourceFilterMiddleware
+from repository import session
 
 from router_loader import get_routers
 
@@ -18,7 +18,7 @@ dp = Dispatcher()
 for router in get_routers():
     dp.include_router(router)
 
-bot: Union[Bot, None] = None
+bot: any = None
 
 
 async def main():
@@ -28,6 +28,8 @@ async def main():
 
     if not valid_args:
         raise RuntimeError(glob.INVALID_ARGS)
+
+    await session.set_database()
 
     bot = Bot(
         token=glob.rms.bot_token,

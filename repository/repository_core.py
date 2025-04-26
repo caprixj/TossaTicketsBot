@@ -16,8 +16,10 @@ from model.database import (
 )
 from model.dto import AwardDTO, LTransDTO
 from model.types import TransactionType
-from repository.session import AsyncSessionLocal
+from repository.session import get_async_session
 from repository.ordering_type import OrderingType
+
+AsyncSessionLocal = get_async_session()
 
 
 async def _get_unique_members(session: AsyncSession, user_id: int, tpays: list[TpayTransaction]) -> list[Member]:
