@@ -1,3 +1,4 @@
+import re
 from datetime import datetime
 
 from model.database.member import Member
@@ -21,23 +22,16 @@ async def get_transfer_by_total(t: float) -> float:
 
 
 def get_formatted_name(member: Member, ping: bool = False) -> str:
-    name = str()
+    parts = [member.first_name or '', member.last_name or '']
+    name = str(' '.join(filter(None, parts)) or member.username or '-')
 
-    if member.first_name or member.last_name:
-        fn_not_empty = False
-        if member.first_name:
-            fn_not_empty = True
-            name += member.first_name
-        if member.last_name:
-            name += ' ' if fn_not_empty else str()
-            name += member.last_name
-    elif member.username:
-        name += member.username
-    else:
-        name = '-'
+    return f"[{_escape_brackets(name)}](tg://user?id={member.user_id})" \
+        if ping else _escape_markdown_v2(name)
 
-    name.replace('[', '(')
-    name.replace(']', ')')
 
-    return name if not ping else \
-        f'@{name}' if name == member.username else f'[{name}](tg://user?id={member.user_id})'
+def _escape_markdown_v2(text: str) -> str:
+    return re.sub(r'([_*])', r'\\\1', text)
+
+
+def _escape_brackets(text: str) -> str:
+    return text.replace('[', ' ').replace(']', ' ')

@@ -7,7 +7,7 @@ from service import service_core as service
 import resources.const.glob as glob
 from command.routed.handlers.public_handlers import tpay
 from component.paged_viewer.paged_viewer import pmove, phide
-from model.results.transaction_result import TransactionResult
+from model.dto.transaction_dto import TransactionResultDTO
 from command.routed.callbacks.callback_data import get_callback_data
 
 router = Router()
@@ -65,7 +65,7 @@ async def tpay_yes(callback: CallbackQuery):
         await callback.answer(glob.ALERT_CALLBACK_YES, show_alert=True)
         return
 
-    tr_: Optional[TransactionResult] = await service.operation_manager.run(data.operation_id)
+    tr_: Optional[TransactionResultDTO] = await service.operation_manager.run(data.operation_id)
 
     if tr_ is None:
         await callback.message.edit_reply_markup(reply_markup=None)

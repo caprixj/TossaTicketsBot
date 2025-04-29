@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 
 from aiogram import Bot
 
-from model.database.price_reset import PriceReset
+from model.database.dynprices import PriceReset
 from resources.const import glob
 from resources.const.glob import MAX_FLUCTUATION, MIN_FLUCTUATION, FLUCTUATION_GAUSS_SIGMA, INFLATION_ALPHA, \
     INITIAL_TPOOL

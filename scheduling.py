@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 
 from aiogram import Bot
 
-from model.database.salary_payout import SalaryPayout
+from model.database import SalaryPayout
 from service import service_core as service
 from aiogram.types import FSInputFile
 from apscheduler.schedulers.asyncio import AsyncIOScheduler

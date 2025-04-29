@@ -5,20 +5,13 @@ from typing import Optional, List
 import aiosqlite
 from aiosqlite import Cursor
 
-from model.database.artifact import Artifact
-from model.database.award import Award
-from model.database.award_member import AwardMemberJunction
-from model.database.member import Member
-from model.database.addt_transaction import AddtTransaction
-from model.database.delt_transaction import DeltTransaction
-from model.database.employee import Employee
-from model.database.position_catalogue_record import PositionCatalogueRecord
-from model.database.price_reset import PriceReset
-from model.database.salary_payout import SalaryPayout
-from model.database.tpay_transaction import TpayTransaction
-from model.results.award_record import AwardRecord
-from model.results.ltrans_result import LTransResult
-from model.types.transaction_type import TransactionType
+from model.database import (
+    Artifact, Award, AwardMemberJunction, Member, AddtTransaction,
+    DeltTransaction, Employee, Job, PriceReset,
+    SalaryPayout, TpayTransaction
+)
+from model.dto import AwardDTO, LTransDTO
+from model.types import TransactionType
 from repository.ordering_type import OrderingType
 from resources.const import glob
 from resources.sql import scripts
@@ -245,11 +238,11 @@ async def get_award(award_id: str) -> Optional[Award]:
         return Award(*row) if row else None
 
 
-async def get_awards(user_id: int) -> Optional[List[AwardRecord]]:
+async def get_awards(user_id: int) -> Optional[List[AwardDTO]]:
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
         cursor = await db.execute(scripts.SELECT_AWARD_RECORDS_BY_OWNER_ID, (user_id,))
         rows = await cursor.fetchall()
-        return [AwardRecord(Award(*row[:-1]), row[-1]) for row in rows]
+        return [AwardDTO(Award(*row[:-1]), row[-1]) for row in rows]
 
 
 async def get_awards_count(user_id: int) -> int:
@@ -280,7 +273,7 @@ async def get_total_tickets(skip_negative: bool = True, time: datetime = None) -
         return cur_total
 
 
-async def get_transaction_stats(user_id: int) -> LTransResult:
+async def get_transaction_stats(user_id: int) -> LTransDTO:
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
         cursor = await db.cursor()
 
@@ -308,7 +301,7 @@ async def get_transaction_stats(user_id: int) -> LTransResult:
         # unique_tpay_members
         unique_tpay_members = await _get_unique_members(cursor, user_id, tpays)
 
-        return LTransResult(user_id, tpays, addts, delts, unique_tpay_members)
+        return LTransDTO(user_id, tpays, addts, delts, unique_tpay_members)
 
 
 async def get_last_price_reset() -> Optional[PriceReset]:
@@ -346,11 +339,11 @@ async def get_employee_position_names(user_id: float) -> Optional[List[str]]:
         return [row[0] for row in rows]
 
 
-async def get_position_catalogue() -> Optional[List[PositionCatalogueRecord]]:
+async def get_position_catalogue() -> Optional[List[Job]]:
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
         cursor = await db.execute(scripts.SELECT_POSITION_CATALOGUE)
         rows = await cursor.fetchall()
-        return [PositionCatalogueRecord(*row) for row in rows]
+        return [Job(*row) for row in rows]
 
 
 """ Update """

@@ -4,6 +4,6 @@ from model.types.transaction_result_errors import TransactionResultErrors
 
 
 @dataclass
-class TransactionResult:
-    message: TransactionResultErrors = None,
+class TransactionResultDTO:
+    message: TransactionResultErrors = None
     valid: bool = False

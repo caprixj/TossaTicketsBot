@@ -6,17 +6,9 @@ from aiogram.types import User
 import resources.const.glob as glob
 from command.parser.results.parser_result import CommandParserResult
 from command.parser.types.target_type import CommandTargetType as ctt
-from model.database.award import Award
-from model.database.award_member import AwardMemberJunction
-from model.database.member import Member
-from model.database.addt_transaction import AddtTransaction
-from model.database.delt_transaction import DeltTransaction
-from model.database.tpay_transaction import TpayTransaction
-from model.results.award_record import AwardRecord
-from model.results.ltrans_result import LTransResult
-from model.types.transaction_result_errors import TransactionResultErrors as trm
-from model.results.transaction_result import TransactionResult
-from model.types.transaction_type import TransactionType
+from model.database import Award, AwardMemberJunction, Member, AddtTransaction, DeltTransaction, TpayTransaction
+from model.dto import AwardDTO, LTransDTO, TransactionResultDTO
+from model.types import TransactionResultErrors as TRE, TransactionType
 from repository.ordering_type import OrderingType
 from repository import repository_core as repo
 from service.operation_manager import ServiceOperationManager
@@ -171,12 +163,12 @@ async def sett(member: Member, tickets: float, description: str = None) -> None:
     await _set_tickets(member, tickets, TransactionType.creator, description)
 
 
-async def tpay(sender: Member, receiver: Member, transfer: float, description: str = None) -> TransactionResult:
+async def tpay(sender: Member, receiver: Member, transfer: float, description: str = None) -> TransactionResultDTO:
     fee = await get_fee(transfer)
     total = transfer + fee
 
     if total > sender.tickets:
-        return TransactionResult(trm.insufficient_funds)
+        return TransactionResultDTO(TRE.insufficient_funds)
 
     time = get_current_datetime()
 
@@ -224,14 +216,14 @@ async def tpay(sender: Member, receiver: Member, transfer: float, description: s
         description=description
     ))
 
-    return TransactionResult(valid=True)
+    return TransactionResultDTO(valid=True)
 
 
-async def ltrans(user_id: int) -> LTransResult:
+async def ltrans(user_id: int) -> LTransDTO:
     return await repo.get_transaction_stats(user_id)
 
 
-async def laward(user_id: int) -> Optional[List[AwardRecord]]:
+async def laward(user_id: int) -> Optional[List[AwardDTO]]:
     return await repo.get_awards(user_id)
 
 
