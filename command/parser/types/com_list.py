@@ -27,6 +27,8 @@ class CommandList(str, Enum):
     fire = 'fire'
     # /resetprice
     resetprice = 'resetprice'
+    # /unreg
+    unreg = 'unreg'
 
     # # # # # # # # #
     # for all users
@@ -52,3 +54,5 @@ class CommandList(str, Enum):
     infm = 'infm'
     # cog: tickets-pnreal
     tpay = 'tpay'
+    # /tpool
+    tpool = 'tpool'

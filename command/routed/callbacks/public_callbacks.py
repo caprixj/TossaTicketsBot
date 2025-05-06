@@ -13,12 +13,7 @@ from command.routed.callbacks.callback_data import get_callback_data
 router = Router()
 
 
-@router.callback_query(lambda c: c.data.startswith(glob.DECORATIVE_KEYBOARD_BUTTON))
-async def decorative_keyboard_button(callback: CallbackQuery):
-    await callback.answer()
-
-
-""" paged viewer """
+""" Paged Viewer """
 
 
 @router.callback_query(lambda c: c.data.startswith(glob.PV_BACK_CALLBACK))
@@ -36,7 +31,7 @@ async def pv_hide(callback: CallbackQuery):
     await phide(callback)
 
 
-""" hide callbacks """
+""" Hide Callbacks """
 
 
 @router.callback_query(lambda c: c.data.startswith(glob.HELP_HIDE_CALLBACK))
@@ -116,3 +111,24 @@ async def tpay_fi(callback: CallbackQuery):
         callback_message=callback.message,
         fee_incorporated=True
     )
+
+
+""" Other """
+
+
+@router.callback_query(lambda c: c.data.startswith(glob.DECORATIVE_KEYBOARD_BUTTON))
+async def decorative_keyboard_button(callback: CallbackQuery):
+    await callback.answer()
+
+
+# @router.callback_query(lambda c: c.data.startswith(glob.CLAIM_BHF_CALLBACK))
+# async def claim_bhf(callback: CallbackQuery):
+#     if not await validate_callback(callback):
+#         return
+#
+#     await callback.message.delete()
+#
+#     member = await service.get_member(callback.from_user.id)
+#
+#     await service.claim_bhf(member.user_id)
+#     await callback.message.answer(f'*{glob.BHF_CLAIMED_TEXT}*: {get_formatted_name(member, ping=True)}')

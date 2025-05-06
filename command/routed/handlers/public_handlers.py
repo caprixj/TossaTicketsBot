@@ -8,7 +8,7 @@ from aiogram.types import Message, LinkPreviewOptions
 import resources.const.glob as glob
 from model.types.router_filters import TextFilter
 from service import service_core as service
-from command.routed.handlers.validations import validate_message
+from command.routed.handlers.validations import validate_message, validate_user
 from command.routed.keyboards.keyboards import tpay_keyboard, hide_keyboard
 from command.parser.core import cog
 from command.parser.core.overload import CommandOverload, CommandOverloadGroup
@@ -80,7 +80,7 @@ async def rusni(message: Message):
 
 @router.message(Command(cl.help.name))
 async def help_(message: Message):
-    await validate_message(message)
+    await validate_user(message.from_user)
     await message.answer(
         text=glob.HELP_TEXT,
         parse_mode=ParseMode.MARKDOWN,
@@ -107,7 +107,7 @@ async def ltrans(message: Message):
         return
 
     viewer = PagedViewer(
-        title=glob.LTRANS_TITLE,
+        title=f'{glob.LTRANS_TITLE}\nmember: {funcs.get_formatted_name(target_member)}',
         data_extractor=functools.partial(service.ltrans, target_member.user_id),
         page_generator=page_generators.ltrans,
         page_message=message,
@@ -217,13 +217,10 @@ async def bal(message: Message):
         await message.answer(glob.GET_MEMBER_FAILED)
         return
 
-    name = funcs.get_formatted_name(member=target_member, ping=True)
-    sign = '+' if target_member.tickets > 0 else str()
-    response = (f"{glob.BAL_NAME}: {name}"
-                f"\n{glob.BAL_TICKETS}: {sign}{target_member.tickets:.2f}"
-                f"\n{glob.BAL_TICKETS_AVAILABLE}: {target_member.tpay_available}")
-
-    await message.answer(response)
+    await message.answer(
+        text=await service.bal(target_member),
+        reply_markup=hide_keyboard(glob.HELP_HIDE_CALLBACK)
+    )
 
 
 @router.message(Command(cl.infm.name))
@@ -243,8 +240,11 @@ async def infm(message: Message):
         await message.answer(glob.GET_MEMBER_FAILED)
         return
 
-    response = await service.infm(target_member.user_id)
-    await message.answer(response, parse_mode=ParseMode.HTML)
+    await message.answer(
+        text=await service.infm(target_member),
+        parse_mode=ParseMode.HTML,
+        reply_markup=hide_keyboard(glob.HELP_HIDE_CALLBACK)
+    )
 
 
 @router.message(Command(cl.tpay.name))
@@ -272,7 +272,7 @@ async def tpay(message: Message, callback_message: Message = None, fee_incorpora
 
     description = cpr.args.get(glob.DESCRIPTION_ARG, None)
 
-    # t - total, x - transfer, f - fee
+    # t - tpool, x - transfer, f - fee
     # -> (t, x, f)
     async def calculate_transfer(x: float) -> (float, float, float):
         if fee_incorporated:
@@ -289,7 +289,7 @@ async def tpay(message: Message, callback_message: Message = None, fee_incorpora
                               f'{glob.TPAY_RECEIVER}: {funcs.get_formatted_name(receiver, ping=True)}\n\n'
                               f'*{glob.TPAY_TOTAL}: {total:.2f}*\n'
                               f'{glob.TPAY_AMOUNT}: {transfer:.2f}\n'
-                              f'{glob.TPAY_FEE}: {fee:.2f} ({int(100 * glob.FEE_RATE)}%, min {glob.MIN_FEE:.2f})\n\n'
+                              f'{glob.TPAY_TAX}: {fee:.2f} ({int(100 * glob.UNI_TAX)}%, min {glob.MIN_FEE:.2f})\n\n'
                               f'{glob.TPAY_DESCRIPTION}: _{description}_')
 
     operation_id = await service.operation_manager.register(
@@ -332,7 +332,31 @@ async def p(message: Message):
 
     price = cpr.args[glob.PRICE_ARG]
     adjusted_price, inflation, fluctuation = await adjust_tickets_amount(price)
-    await message.answer(f'{glob.P_BASE_PRICE}: {price:.2f} tc'
-                         f'\n{glob.P_ADJUSTED_PRICE}: {adjusted_price:.2f} tc'
-                         f'\n{glob.P_INFLATION}: {(inflation - 1) * 100:.3f}%'
-                         f'\n{glob.P_FLUCTUATION}: {(fluctuation - 1) * 100:.3f}%')
+    await message.answer(
+        text=f'{glob.P_BASE_PRICE}:\n{price:.2f} tc\n'
+             f'\n{glob.P_ADJUSTED_PRICE}: {adjusted_price:.2f} tc'
+             f'\n{glob.P_INFLATION}: {(inflation - 1) * 100:.3f}%'
+             f'\n{glob.P_FLUCTUATION}: {(fluctuation - 1) * 100:.3f}%',
+        reply_markup=hide_keyboard(glob.HELP_HIDE_CALLBACK)
+    )
+
+
+@router.message(Command(cl.tpool.name))
+async def tpool(message: Message):
+    if not await validate_message(message):
+        return
+
+    personal_tpool = await service.get_total_tickets()
+    business_tpool = await service.get_business_tpool()
+    artifact_tpool = await service.get_artifact_tpool()
+    material_tpool = await service.get_material_tpool()
+    total_tpool = personal_tpool + business_tpool + artifact_tpool
+
+    await message.answer(
+        text=f'{glob.TPOOL_PERSONAL}: {personal_tpool:.2f} tc'
+             f'\n{glob.TPOOL_BUSINESS}: {business_tpool:.2f} tc'
+             f'\n{glob.TPOOL_ARTIFACT}: {artifact_tpool:.2f} tc'
+             f'\n{glob.TPOOL_MATERIAL}: {material_tpool:.2f} tc'
+             f'\n\n*{glob.TPOOL_TOTAL}: {total_tpool:.2f} tc*',
+        reply_markup=hide_keyboard(glob.HELP_HIDE_CALLBACK)
+    )

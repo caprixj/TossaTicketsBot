@@ -16,7 +16,7 @@ from command.parser.core.overload import CommandOverload, CommandOverloadGroup
 from command.parser.core.parser import CommandParser
 from command.parser.results.parser_result import CommandParserResult
 from command.routed.handlers.validations import validate_message
-from model.types.ticketonomics_types import BaseText, Real, PNReal, SID, EmployeePosition
+from model.types.ticketonomics_types import BaseText, Real, PNReal, SID, EmployeePosition, Username, UserID
 from command.parser.types.com_list import CommandList as cl
 
 from resources.const.rands import crv_messages
@@ -43,7 +43,11 @@ async def sql(message: Message):
     )
 
     status = glob.SQL_SUCCESS if executed else glob.SQL_FAILED
-    await message.reply(f'{status}\n\n{response}', parse_mode=None)
+    await message.reply(
+        text=f'{status}\n\n{response}',
+        parse_mode=None,
+        reply_markup=hide_keyboard(glob.HELP_HIDE_CALLBACK)
+    )
 
 
 @router.message(Command(cl.addt.name))
@@ -66,7 +70,7 @@ async def addt(message: Message):
         description=cpr.args.get(glob.DESCRIPTION_ARG, None)
     )
 
-    await message.answer(glob.ADDT_TEXT)
+    await message.answer(f'{glob.ADDT_TEXT}\nmember: {get_formatted_name(target_member)}')
 
 
 @router.message(Command(cl.delt.name))
@@ -89,7 +93,7 @@ async def delt(message: Message):
         description=cpr.args.get(glob.DESCRIPTION_ARG, None)
     )
 
-    await message.answer(glob.DELT_TEXT)
+    await message.answer(f'{glob.DELT_TEXT}\nmember: {get_formatted_name(target_member)}')
 
 
 @router.message(Command(cl.sett.name))
@@ -112,7 +116,7 @@ async def sett(message: Message):
         description=cpr.args.get(glob.DESCRIPTION_ARG, None)
     )
 
-    await message.answer(glob.SETT_TEXT)
+    await message.answer(f'{glob.SETT_TEXT}\nmember: {get_formatted_name(target_member)}')
 
 
 @router.message(Command(cl.award.name))
@@ -198,7 +202,7 @@ async def hire(message: Message):
     await service.hire(target_member.user_id, employee_position)
 
     positions = f'{glob.HIRE_JOBS} {get_formatted_name(target_member)}:'
-    for pn in await service.get_position_names(target_member.user_id):
+    for pn in await service.get_job_names(target_member.user_id):
         positions += f'\n~ {pn}'
 
     await message.answer(f'{glob.MEMBER_HIRED}\n\n{positions}')
@@ -251,6 +255,34 @@ async def reset_price(message: Message):
 
     await reset_prices()
     await message.answer(glob.RESET_PRICE_COMMAND_DONE)
+
+
+@router.message(Command(cl.unreg.name))
+async def unreg(message: Message):
+    og = CommandOverloadGroup([
+        CommandOverload(reply_required=True),
+        CommandOverload().add(glob.USERNAME_ARG, Username),
+        CommandOverload().add(glob.USER_ID_ARG, UserID)
+    ], creator_required=True)
+
+    cpr = await CommandParser(message, og).parse()
+
+    if not cpr.valid:
+        await message.answer(glob.COM_PARSER_FAILED)
+        return
+
+    target_member = await service.get_target_member(cpr)
+
+    if target_member is None:
+        await message.answer(glob.GET_MEMBER_FAILED)
+        return
+
+    if target_member.user_id == glob.CREATOR_USER_ID:
+        await message.answer(glob.UNREG_CREATOR_ERROR)
+        return
+
+    await service.unreg(target_member)
+    await message.answer(f'{glob.UNREG_TEXT}\nmember: {get_formatted_name(target_member)}')
 
 
 """ Private """

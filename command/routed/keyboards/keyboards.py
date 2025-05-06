@@ -25,3 +25,12 @@ def hide_keyboard(callback_data: str) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     builder.row(InlineKeyboardButton(text=glob.HIDE_BTN, callback_data=callback_data))
     return builder.as_markup()
+
+
+# def bhf_keyboard() -> InlineKeyboardMarkup:
+#     builder = InlineKeyboardBuilder()
+#     builder.row(InlineKeyboardButton(
+#         text=glob.CLAIM_BTN,
+#         callback_data=glob.CLAIM_BHF_CALLBACK
+#     ))
+#     return builder.as_markup()

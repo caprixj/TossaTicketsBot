@@ -6,7 +6,7 @@ class Award:
                  award_id: str = None,
                  name: str = None,
                  description: str = None,
-                 payment: float = None):
+                 payment: float = 0.0):
         self.award_id = award_id  # SID
         self.name = name  # Text64
         self.description = description  # Text512

@@ -1,0 +1,151 @@
+- result: { name: digital_dust, quantity: 5 }
+  ingredients:
+    - { name: amber, quantity: 11 }
+    - { name: sapphire, quantity: 3 }
+    - { name: ruby, quantity: 1 }
+
+- result: { name: skittles, quantity: 2 }
+  ingredients:
+    - { name: sapphire, quantity: 1 }
+    - { name: amber, quantity: 1 }
+    - { name: ruby, quantity: 1 }
+    - { name: quartz, quantity: 1 }
+    - { name: obsidian, quantity: 1 }
+    - { name: emerald, quantity: 1 }
+    - { name: amethyst, quantity: 1 }
+
+- result: { name: schizo_nubs, quantity: 5 }
+  ingredients:
+    - { name: ruby, quantity: 9 }
+    - { name: amber, quantity: 9 }
+    - { name: emerald, quantity: 1 }
+
+- result: { name: kreminna_wood, quantity: 2 }
+  ingredients:
+    - { name: emerald, quantity: 5 }
+    - { name: amber, quantity: 2 }
+    - { name: obsidian, quantity: 1 }
+
+- result: { name: tysa_water, quantity: 2 }
+  ingredients:
+    - { name: sapphire, quantity: 9 }
+    - { name: quartz, quantity: 1 }
+
+- result: { name: senbonzakura, quantity: 1 }
+  ingredients:
+    - { name: digital_dust, quantity: 1 }
+    - { name: ruby, quantity: 1 }
+    - { name: quartz, quantity: 1 }
+
+- result: { name: eastereggo, quantity: 14 }
+  ingredients:
+    - { name: quartz, quantity: 88 }
+    - { name: meme_essence, quantity: 3 }
+
+- result: { name: purple_green_strings, quantity: 3 }
+  ingredients:
+    - { name: amethyst, quantity: 13 }
+    - { name: emerald, quantity: 13 }
+
+- result: { name: donbas_coal, quantity: 3 }
+  ingredients:
+    - { name: obsidian, quantity: 20 }
+    - { name: quartz, quantity: 7 }
+
+- result: { name: schizotanium, quantity: 3 }
+  ingredients:
+    - { name: schizo_nubs, quantity: 15 }
+    - { name: sapphire, quantity: 35 }
+    - { name: quartz, quantity: 15 }
+    - { name: obsidian, quantity: 10 }
+
+- result: { name: meme_essence, quantity: 2 }
+  ingredients:
+    - { name: schizo_nubs, quantity: 2 }
+    - { name: digital_dust, quantity: 3 }
+    - { name: amethyst, quantity: 5 }
+
+- result: { name: alzheimer, quantity: 1 }
+  ingredients:
+    - { name: meme_essence, quantity: 3 }
+    - { name: schizo_nubs, quantity: 2 }
+
+- result: { name: alertian_ipso, quantity: 3 }
+  ingredients:
+    - { name: alzheimer, quantity: 3 }
+    - { name: digital_dust, quantity: 10 }
+    - { name: purple_green_strings, quantity: 2 }
+
+- result: { name: trench_spirit, quantity: 3 }
+  ingredients:
+    - { name: sigma_extract, quantity: 2 }
+    - { name: eastereggo, quantity: 4 }
+    - { name: alertian_ipso, quantity: 1 }
+
+- result: { name: sigma_extract, quantity: 2 }
+  ingredients:
+    - { name: meme_essence, quantity: 2 }
+    - { name: donbas_coal, quantity: 3 }
+    - { name: kreminna_wood, quantity: 4 }
+
+- result: { name: adamant_power, quantity: 2 }
+  ingredients:
+    - { name: trench_spirit, quantity: 2 }
+    - { name: alertian_ipso, quantity: 3 }
+
+- result: { name: artiossa_meat, quantity: 3 }
+  ingredients:
+    - { name: alertian_ipso, quantity: 5 }
+    - { name: quartz, quantity: 11 }
+    - { name: ruby, quantity: 12 }
+
+- result: { name: anime_crystal, quantity: 1 }
+  ingredients:
+    - { name: based_bullshit, quantity: 2 }
+    - { name: senbonzakura, quantity: 20 }
+    - { name: schizotanium, quantity: 7 }
+
+- result: { name: copium_crystal, quantity: 1 }
+  ingredients:
+    - { name: adamant_power, quantity: 2 }
+    - { name: quartz, quantity: 30 }
+
+- result: { name: biocrystal, quantity: 1 }
+  ingredients:
+    - { name: artiossa_meat, quantity: 2 }
+    - { name: digital_dust, quantity: 5 }
+    - { name: tysa_water, quantity: 10 }
+    - { name: purple_green_strings, quantity: 2 }
+
+- result: { name: based_bullshit, quantity: 2 }
+  ingredients:
+    - { name: adamant_power, quantity: 1 }
+    - { name: trench_spirit, quantity: 2 }
+
+- result: { name: text_artifact, quantity: 1 }
+  ingredients:
+    - { name: based_bullshit, quantity: 1 }
+    - { name: skittles, quantity: 1 }
+    - { name: digital_dust, quantity: 15 }
+
+- result: { name: pic_artifact, quantity: 1 }
+  ingredients:
+    - { name: text_artifact, quantity: 1 }
+    - { name: skittles, quantity: 3 }
+    - { name: schizotanium, quantity: 2 }
+
+- result: { name: gif_artifact, quantity: 1 }
+  ingredients:
+    - { name: pic_artifact, quantity: 1 }
+    - { name: copium_crystal, quantity: 1 }
+
+- result: { name: audio_artifact, quantity: 1 }
+  ingredients:
+    - { name: text_artifact, quantity: 1 }
+    - { name: anime_crystal, quantity: 1 }
+
+- result: { name: video_artifact, quantity: 1 }
+  ingredients:
+    - { name: gif_artifact, quantity: 1 }
+    - { name: anime_crystal, quantity: 1 }
+    - { name: biocrystal, quantity: 1 }

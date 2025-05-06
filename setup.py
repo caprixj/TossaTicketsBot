@@ -1,12 +1,14 @@
 import os
 import sys
 import xml.etree.ElementTree as ET
+
 import aiosqlite
 
 from pathlib import Path
 
 import resources.const.glob as glob
 from model.types.run_mode import RunMode, RunModeSettings
+from resources.funcs.funcs import get_materials_yaml
 from resources.sql import scripts
 
 
@@ -32,26 +34,45 @@ def define_rms(rm: RunMode) -> bool:
 
 async def create_databases():
     os.makedirs(os.path.dirname(glob.rms.db_file_path), exist_ok=True)
+    await _create_tables()
+    await _insert_materials()
+
+
+async def _create_tables():
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
         for query in await _get_create_table_scripts():
             await db.execute(query)
             await db.commit()
 
 
+async def _insert_materials():
+    async with aiosqlite.connect(glob.rms.db_file_path) as db:
+        await db.executemany(
+            scripts.INSERT_OR_IGNORE_MATERIALS,
+            [(m.name, m.emoji) for m in await get_materials_yaml()]
+        )
+        await db.commit()
+
+
 async def _get_create_table_scripts() -> list[str]:
     return [
-        scripts.CREATE_TABLE_MEMBERS,
-        scripts.CREATE_TABLE_ARTIFACTS,
-        scripts.CREATE_TABLE_ADDT,
-        scripts.CREATE_TABLE_DELT,
-        scripts.CREATE_TABLE_TPAY,
-        scripts.CREATE_TABLE_AWARDS,
-        scripts.CREATE_TABLE_AWARD_MEMBER,
-        scripts.CREATE_TABLE_PRICE_HISTORY,
-        scripts.CREATE_TABLE_SALARY_PAYOUTS,
-        scripts.CREATE_TABLE_EMPLOYEES,
-        scripts.CREATE_TABLE_EMPLOYMENT_HISTORY,
-        scripts.CREATE_TABLE_POSITION_CATALOGUE
+        scripts.CREATE_MEMBERS,
+        scripts.CREATE_ARTIFACTS,
+        scripts.CREATE_ARTIFACT_VALUE_HISTORY,
+        scripts.CREATE_ADDT,
+        scripts.CREATE_DELT,
+        scripts.CREATE_TPAY,
+        scripts.CREATE_AWARDS,
+        scripts.CREATE_AWARD_MEMBER,
+        scripts.CREATE_RATE_HISTORY,
+        scripts.CREATE_SALARY_PAYOUTS,
+        scripts.CREATE_EMPLOYEES,
+        scripts.CREATE_EMPLOYMENT_HISTORY,
+        scripts.CREATE_JOBS,
+        scripts.CREATE_PRICES,
+        scripts.CREATE_PRICE_HISTORY,
+        scripts.CREATE_MATERIALS,
+        scripts.CREATE_MEMBER_MATERIALS
     ]
 
 

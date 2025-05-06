@@ -1,4 +1,3 @@
-from datetime import datetime, timedelta
 from sqlite3 import IntegrityError
 from typing import Optional, List
 
@@ -7,13 +6,14 @@ from aiosqlite import Cursor
 
 from model.database import (
     Artifact, Award, AwardMemberJunction, Member, AddtTransaction,
-    DeltTransaction, Employee, Job, PriceReset,
-    SalaryPayout, TpayTransaction
+    DeltTransaction, Employee, Job, RateReset,
+    SalaryPayout, TpayTransaction, Price, Ingredient
 )
 from model.dto import AwardDTO, LTransDTO
 from model.types import TransactionType
 from repository.ordering_type import OrderingType
 from resources.const import glob
+from resources.funcs.funcs import get_current_datetime
 from resources.sql import scripts
 
 
@@ -141,9 +141,9 @@ async def insert_award_member(am: AwardMemberJunction) -> bool:
             return False
 
 
-async def insert_price_history(price_reset: PriceReset):
+async def insert_rate_history(price_reset: RateReset):
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
-        await db.execute(scripts.INSERT_PRICE_HISTORY, (
+        await db.execute(scripts.INSERT_RATE_HISTORY, (
             price_reset.inflation,
             price_reset.fluctuation,
             price_reset.plan_date,
@@ -184,6 +184,30 @@ async def insert_employment_history(paid_member: Employee, fired_date: str):
         await db.commit()
 
 
+async def upsert_member_material(user_id: int, ingredient: Ingredient):
+    async with aiosqlite.connect(glob.rms.db_file_path) as db:
+        await db.execute(scripts.UPSERT_MEMBER_MATERIAL, (
+            user_id,
+            ingredient.name,
+            ingredient.quantity
+        ))
+        await db.commit()
+
+
+async def expand_price_history():
+    price_history_data = [
+        (p.product_name, p.product_type, p.price, get_current_datetime())
+        for p in await get_prices()
+    ]
+
+    async with aiosqlite.connect(glob.rms.db_file_path) as db:
+        await db.executemany(
+            scripts.INSERT_PRICE_HISTORY,
+            price_history_data
+        )
+        await db.commit()
+
+
 """ Read """
 
 
@@ -220,7 +244,14 @@ async def get_members_by_tickets_limited(order: OrderingType, size: int) -> list
 async def get_artifacts(user_id: int) -> List[Artifact]:
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
         cursor = await db.execute(scripts.SELECT_ARTIFACTS_BY_OWNER_ID, (user_id,))
-        rows = await cursor.fetchall()  # rows: list[tuple[str]]
+        rows = await cursor.fetchall()
+        return [Artifact(*row) for row in rows]
+
+
+async def get_all_artifacts() -> List[Artifact]:
+    async with aiosqlite.connect(glob.rms.db_file_path) as db:
+        cursor = await db.execute(scripts.SELECT_ARTIFACTS)
+        rows = await cursor.fetchall()
         return [Artifact(*row) for row in rows]
 
 
@@ -252,25 +283,18 @@ async def get_awards_count(user_id: int) -> int:
         return int(row[0]) if row else 0
 
 
-async def get_total_tickets(skip_negative: bool = True, time: datetime = None) -> float:
-    total_query = f"{scripts.SELECT_TOTAL_TICKETS_COUNT} {'WHERE tickets > 0' if skip_negative else str()}"
+async def get_sum_tickets() -> float:
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
-        cursor = await db.execute(total_query)
+        cursor = await db.execute(scripts.SELECT_SUM_TICKETS)
         row = await cursor.fetchone()
-        cur_total = float(row[0]) if row else 0
+        return float(row[0]) if row else 0
 
-    if time is not None:
-        next_day = time + timedelta(days=1)
-        next_day_datetime = datetime(next_day.year, next_day.month, next_day.day)
-        async with aiosqlite.connect(glob.rms.db_file_path) as db:
-            cursor = await db.execute(
-                scripts.SELECT_DELTA_TICKETS_COUNT_AFTER_DATETIME,
-                (next_day_datetime, next_day_datetime)
-            )
-            row = await cursor.fetchone()
-            return cur_total if row[0] is None else cur_total - float(row[0])
-    else:
-        return cur_total
+
+async def get_sum_business_accounts() -> float:
+    async with aiosqlite.connect(glob.rms.db_file_path) as db:
+        cursor = await db.execute(scripts.SELECT_SUM_BUSINESS_ACCOUNTS)
+        row = await cursor.fetchone()
+        return float(row[0]) if row else 0
 
 
 async def get_transaction_stats(user_id: int) -> LTransDTO:
@@ -304,11 +328,11 @@ async def get_transaction_stats(user_id: int) -> LTransDTO:
         return LTransDTO(user_id, tpays, addts, delts, unique_tpay_members)
 
 
-async def get_last_price_reset() -> Optional[PriceReset]:
+async def get_last_price_reset() -> Optional[RateReset]:
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
-        cursor = await db.execute(scripts.SELECT_PRICE_HISTORY)
+        cursor = await db.execute(scripts.SELECT_RATE_HISTORY)
         row = await cursor.fetchone()
-        return PriceReset(*row) if row else None
+        return RateReset(*row) if row else None
 
 
 async def get_last_salary_payout() -> Optional[SalaryPayout]:
@@ -339,11 +363,42 @@ async def get_employee_position_names(user_id: float) -> Optional[List[str]]:
         return [row[0] for row in rows]
 
 
-async def get_position_catalogue() -> Optional[List[Job]]:
+async def get_jobs() -> Optional[List[Job]]:
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
-        cursor = await db.execute(scripts.SELECT_POSITION_CATALOGUE)
+        cursor = await db.execute(scripts.SELECT_JOBS)
         rows = await cursor.fetchall()
         return [Job(*row) for row in rows]
+
+
+async def get_prices() -> List[Price]:
+    async with aiosqlite.connect(glob.rms.db_file_path) as db:
+        cursor = await db.execute(scripts.SELECT_PRICES)
+        rows = await cursor.fetchall()
+        return [Price(*row) for row in rows]
+
+
+async def get_gem_prices_dict() -> dict[str, float]:
+    async with aiosqlite.connect(glob.rms.db_file_path) as db:
+        cursor = await db.execute(scripts.SELECT_GEM_PRICES)
+        rows = await cursor.fetchall()
+        return {r[0]: float(r[2]) for r in rows}
+
+
+async def get_each_material_count() -> dict[str, int]:
+    async with aiosqlite.connect(glob.rms.db_file_path) as db:
+        cursor = await db.execute(scripts.SELECT_EACH_MATERIAL_COUNT)
+        rows = await cursor.fetchall()
+        return {row[0]: row[1] for row in rows}
+
+
+async def get_member_material(user_id, bhf) -> Optional[Ingredient]:
+    async with aiosqlite.connect(glob.rms.db_file_path) as db:
+        cursor = await db.execute(scripts.SELECT_MEMBER_MATERIAL, (user_id, bhf))
+        row = await cursor.fetchone()
+        return Ingredient(
+            name=row[1],
+            quantity=int(row[2])
+        ) if row else None
 
 
 """ Update """
@@ -380,11 +435,27 @@ async def set_salary_paid_out(plan_date: str, fact_date: str):
     ))
 
 
+async def reset_prices(diff: float):
+    await _execute(scripts.RESET_PRICES, (diff, ))
+
+
+async def reset_gem_rate(name: str, price: float):
+    await _execute(scripts.RESET_GEM_RATE, (price, name))
+
+
+async def reset_artifact_values(diff: float):
+    await _execute(scripts.RESET_ARTIFACT_VALUES, (diff, ))
+
+
 """ Delete """
 
 
-async def delete_employee(user_id: float, position: str):
+async def delete_employee(user_id: int, position: str):
     await _execute(scripts.DELETE_PAID_MEMBER, (
         user_id,
         position
     ))
+
+
+async def delete_member(user_id: int):
+    await _execute(scripts.DELETE_MEMBER, (user_id, ))

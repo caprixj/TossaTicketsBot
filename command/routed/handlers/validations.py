@@ -1,4 +1,4 @@
-from aiogram.types import User, Message
+from aiogram.types import User, Message, CallbackQuery
 
 from resources.const import glob
 from service import service_core as service
@@ -29,3 +29,12 @@ async def validate_user(user: User) -> bool:
         await service.update_member(user, member)
 
     return member_exists
+
+
+async def validate_callback(callback: CallbackQuery) -> bool:
+    user_is_member = await validate_user(callback.from_user)
+
+    if not user_is_member:
+        await callback.answer(glob.NOT_MEMBER_ERROR, show_alert=True)
+
+    return user_is_member

@@ -12,18 +12,27 @@ CREATOR_USERNAME = '@capri_xj'
 
 DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S'
 
-FEE_RATE = 0.27  # F
+UNI_TAX = 0.17  # F
 MIN_FEE = 1      # M
 
-INFLATION_ALPHA = 0.9
-FLUCTUATION_GAUSS_SIGMA = 0.009
-MAX_FLUCTUATION = 1.1
-MIN_FLUCTUATION = 0.9
-INITIAL_TPOOL = 1315.15  # 2025-03-17
-# INITIAL_TPOOL = 3237.85  # 2025-04-15 00:20:00
+INFL_ALPHA = 0.9
+FLUCT_GAUSS_SIGMA = 0.009
+MAX_FLUCT = 1.1
+MIN_FLUCT = 0.9
+INIT_TPOOL = 1315.15  # 2025-03-17
+# INIT_TPOOL = 4333.62  # 2025-05-06 00:25:00
 
 PAGE_ROW_CHAR_LIMIT = 25
 PAGE_ROWS_COUNT_LIMIT = 40
+
+GEM_BASE_PRICE = 0.2972122
+MIN_DELTA_GEM_RATE = 0.5
+MAX_DELTA_GEM_RATE = 2.0
+MAT_RANK_DEVAL = 0.8
+
+MATERIALS_YAML_PATH = 'model/yaml/materials.yaml'
+GEM_FREQ_YAML_PATH = 'model/yaml/gem_freq.yaml'
+RECIPES_YAML_PATH = 'model/yaml/recipes.yaml'
 
 TICKETS_ARG = 'tickets'
 DESCRIPTION_ARG = 'description'
@@ -47,6 +56,7 @@ DECORATIVE_KEYBOARD_BUTTON = 'decorative'
 HELP_HIDE_CALLBACK = 'help_hide'
 AWARD_HIDE_CALLBACK = 'award_hide'
 TOPT_HIDE_CALLBACK = 'topt_hide'
+CLAIM_BHF_CALLBACK = 'claim_bhf'
 
 PV_BACK_CALLBACK = 'pv_back'
 PV_FORWARD_CALLBACK = 'pv_forward'
@@ -68,30 +78,35 @@ LTRANS_START_TEXT = """
 
 RESET_TPAY_AVAILABLE_DONE = 'ℹ️ number of available transfers updated'
 DB_BACKUP_DONE = 'ℹ️ database backup saved'
-PRICE_RESET_DONE = 'ℹ️ prices updated according to the ticket inflation rate'
-SALARIES_PAID_OUT = 'ℹ️ salaries have been paid'
+PRICE_RESET_DONE = 'ℹ️ the prices, artifact values and ticket inflation rate have been updated'
+SALARIES_PAID_OUT = 'ℹ️ salaries paid'
 
 CONTINUE_BTN = '✅ continue'
 CANCEL_BTN = '❌ cancel'
-INCORPORATE_FEE_BTN = '➕ fee inside'
+INCORPORATE_FEE_BTN = '➕ tax inside'
 HIDE_BTN = '🗑 hide'
+# CLAIM_BTN = '➡️ claim'
 
 ADDT_TEXT = '📈 tickets added!'
-DELT_TEXT = '📉 tickets deducted!'
+DELT_TEXT = '📉 tickets removed!'
 SETT_TEXT = '🔄 tickets reset!'
 TPAY_TEXT = '🔀 tickets transferred!'
-AWARD_SUCCESS = '🎖 the honorable member has been awarded!'
+AWARD_SUCCESS = '🎖 the member has been awarded!'
 REG_SUCCESS = '🎉 successfully signed up!\nwelcome to ticketonomics'
-RUSNI_TEXT = 'да!'
+UNREG_TEXT = '☠️ mercilessly kicked out of ticketonomics'
+RUSNI_TEXT = 'пизда!'
 TOPT_DESC = '*💸 ticket leaderboard*'
 TOPT_ASC = '*💩 ticket anti-leaderboard*'
 INFM_TEXT = '<b>ℹ️ member information</b>'
 SQL_SUCCESS = '✅ command executed!'
 MEMBER_HIRED = '✅💼 member hired for the position!'
 RESET_PRICE_COMMAND_DONE = '✅ manual price reset executed based on the ticket inflation rate'
+# SPAWN_BHF_TEXT = '🔨 banhammer fragments found!'
+# BHF_CLAIMED_TEXT = '🔨 banhammer fragments claimed!\nby member'
 MEMBER_ALREADY_HIRED = '❌ member already holds this position!'
 MEMBER_FIRED = '❌💼 member has been fired!'
 MEMBER_ALREADY_FIRED = '❌ cannot fire member as he does not hold this position!'
+UNREG_CREATOR_ERROR = "i won't kill you, my lord! ♥️"
 NOT_IMPLEMENTED = 'not implemented yet :('
 
 ALERT_CALLBACK_YES = 'you cannot confirm this action!'
@@ -111,7 +126,8 @@ SERVICE_OPERATION_NONE_RESULT = '😔 couldn’t complete the operation..'
 NOT_MEMBER_ERROR = '❌ to use the bot, you must be a member of the sfs chat and send the /reg command. more instructions can be found at /help'
 
 BAL_NAME = "🪪 name"
-BAL_TICKETS = '💳 tickets'
+BAL_PERSONAL = '💳 personal account'
+BAL_BUSINESS = '💸 business account'
 BAL_TICKETS_AVAILABLE = '🔀 transactions available'
 
 LTRANS_TRANS_HISTORY_EMPTY = 'your transactions history is empty.. 😶‍🌫️'
@@ -120,7 +136,7 @@ LTRANS_TO = 'to'
 LTRANS_TEXT = 'text'
 
 TOPT_FULL = '(full)'
-TOPT_TICKETS_TOTAL = 'tickets total'
+TOPT_TICKETS_TOTAL = 'tickets tpool'
 TOPT_BANKRUPT = 'bankrupt'
 
 P_BASE_PRICE = 'base price (17 march 2025)'
@@ -137,25 +153,32 @@ INFM_COLLECTION = '💎 collection'
 INFM_ARTIFACTS = 'artifacts'
 INFM_AWARDS = 'awards'
 INFM_ASSETS = '💳 assets'
-INFM_TICKETS = 'tickets'
+INFM_PERSONAL = 'personal account'
+INFM_BUSINESS = 'business account'
 INFM_TRANS_AVAILABLE = 'transactions available'
 
 HIRE_JOBS = 'jobs of the member'
 
 TPAY_SENDER = 'sender'
 TPAY_RECEIVER = 'receiver'
-TPAY_TOTAL = 'total'
+TPAY_TOTAL = 'tpool'
 TPAY_AMOUNT = 'amount'
-TPAY_FEE = 'fee'
+TPAY_TAX = 'tax'
 TPAY_DESCRIPTION = 'text'
 
-PRICE_RESET_TEXT = 'the ticket inflation rate changed by'
+RATE_RESET_TEXT = 'the ticket rate change'
 
 PAGE_GEN_NO_AWARDS = 'you have no awards yet.. 😔'
 PAGE_GEN_AWARDS = 'awards'
 PAGE_GEN_PAYMENT = 'payment'
 PAGE_GEN_ISSUED = 'issued'
 PAGE_GEN_STORY = 'story'
+
+TPOOL_PERSONAL = 'personal tpool'
+TPOOL_BUSINESS = 'business tpool'
+TPOOL_ARTIFACT = 'artifact tpool'
+TPOOL_MATERIAL = 'material tpool'
+TPOOL_TOTAL = 'total tpool'
 
 HELP_TEXT = """
 ✨ *Тікето-тяночка 🇺🇦* ✨

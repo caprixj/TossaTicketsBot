@@ -191,8 +191,8 @@ class EmployeePosition(TicketonomicsType):
         super().__init__(data)
 
     async def cast(self):
-        for pcr in await repo.get_position_catalogue():
-            if self.data == pcr.position:
+        for j in await repo.get_jobs():
+            if self.data == j.position:
                 return self.data
 
         raise ValueError()

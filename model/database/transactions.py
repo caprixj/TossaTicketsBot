@@ -24,7 +24,7 @@ class DeltTransaction:
     def __init__(self,
                  delt_id: int = 0,
                  user_id: int = 0,
-                 tickets: float = 0,
+                 tickets: float = 0.0,
                  time: str = None,
                  description: str = None,
                  type_: TransactionType = TransactionType.unknown):
@@ -41,8 +41,8 @@ class TpayTransaction:
                  tpay_id: int = 0,
                  sender_id: int = 0,
                  receiver_id: int = 0,
-                 transfer: float = 0,
-                 fee: float = 0,
+                 transfer: float = 0.0,
+                 fee: float = 0.0,
                  time: str = None,
                  description: str = None):
         self.tpay_id = tpay_id

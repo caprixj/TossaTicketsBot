@@ -4,11 +4,13 @@ class Member:
                  username: str = None,
                  first_name: str = None,
                  last_name: str = None,
-                 tickets: int = 0,
-                 tpay_available: int = 3):
+                 tickets: float = 0.0,
+                 tpay_available: int = 3,
+                 business_account: float = 0.0):
         self.user_id = user_id
         self.username = username
         self.first_name = first_name
         self.last_name = last_name
         self.tickets = tickets
         self.tpay_available = tpay_available
+        self.business_account = business_account
