@@ -1,12 +1,11 @@
 import functools
 
-from aiogram import Router
+from aiogram import Router, F
 from aiogram.enums import ParseMode
 from aiogram.filters import Command
 from aiogram.types import Message, LinkPreviewOptions
 
 import resources.const.glob as glob
-from model.types.router_filters import TextFilter
 from service import service_core as service
 from command.routed.handlers.validations import validate_message, validate_user
 from command.routed.keyboards.keyboards import tpay_keyboard, hide_keyboard
@@ -24,19 +23,26 @@ from resources.funcs import funcs
 router = Router()
 
 
-@router.message(TextFilter(r'^[дД]+[аА]+[.]*[!]*[?]*$', regex=True))
+@router.message(F.text.regexp(r'^[дД]+[аА]+[.]*[!]*[?]*$'))
 async def da(message: Message):
     await message.answer(f'пиз{message.text}')
 
 
-@router.message(TextFilter(r'^[нН]+[єЄ]+[.]*[!]*[?]*$', regex=True))
+@router.message(F.text.regexp(r'^[нН]+[єЄ]+[.]*[!]*[?]*$'))
 async def nie_ua(message: Message):
     await message.answer(f'рука в гав{message.text}!')
 
 
-@router.message(TextFilter(r'^[нН]+[еЕ]+[.]*[!]*[?]*$', regex=True))
+@router.message(F.text.regexp(r'^[нН]+[еЕ]+[.]*[!]*[?]*$'))
 async def nie_ru(message: Message):
     await message.answer(f'рука в гов{message.text}!')
+
+
+@router.message(F.text.regexp(r'сфс|СФС|sfs|SFS'))
+async def sfs_alert_trigger(message: Message):
+    if service.alert_pin is not None:
+        await message.reply(glob.SFS_ALERT_TRIGGER_RESPONSE)
+        await message.answer_sticker(glob.CRYING_STICKER_FILE_ID)
 
 
 @router.message(Command(cl.reg.name))

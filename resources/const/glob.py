@@ -184,12 +184,13 @@ TPOOL_ARTIFACT = 'artifact tpool'
 TPOOL_MATERIAL = 'material tpool'
 TPOOL_TOTAL = 'total tpool'
 
+SFS_ALERT_TRIGGER_RESPONSE = '_ААААА, СФС!_'
+CRYING_STICKER_FILE_ID = 'CAACAgIAAxkBAAILdmgbiHhqbcRyeRFPoPZ4v5B7T-_XAAKbcAACGXLYSEUEtQbR1SvMNgQ'
 SFS_UNALERT_FAILED = '❌ no sfs alert is issued right now'
 SFS_ALERT_FAILED = """
 *⚠️ the sfs alert is already issued!*
 please, go to the shelter. the administration will protect you from sfs. trust the administration, glory to the community!
 """
-
 SFS_UNALERT_TEXT = '_the sfs alert is cancelled 😴_'
 SFS_ALERT_TEXT = """
 *

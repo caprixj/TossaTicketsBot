@@ -39,8 +39,8 @@ async def main():
     )
 
     dp.message.middleware(SourceFilterMiddleware())
-
     await scheduling.schedule(bot)
+
     await dp.start_polling(bot)
 
 
