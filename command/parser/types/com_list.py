@@ -56,3 +56,7 @@ class CommandList(str, Enum):
     tpay = 'tpay'
     # /tpool
     tpool = 'tpool'
+    # /alert
+    alert = 'alert'
+    # /unalert
+    unalert = 'unalert'

@@ -128,7 +128,7 @@ async def award(message: Message):
     cpr = await CommandParser(message, og).parse()
 
     if not cpr.valid:
-        await message.answer(glob.COM_PARSER_FAILED)
+        await _reply_by_crv(message, cpr)
         return
 
     target_member = await service.get_target_member(cpr)
@@ -149,25 +149,9 @@ async def award(message: Message):
     )
 
     if await service.issue_award(am):
-        if award_.payment > 0:
-            await service.pay_award(
-                member=target_member,
-                payment=award_.payment,
-                description=award_.award_id
-            )
-
-        payment = f'\nвиплата: <b>{award_.payment:.2f} tc</b>' \
-            if award_.payment > 0 else str()
-
-        award_text = (f"{glob.AWARD_SUCCESS}"
-                      f"\n\n<b>{award_.name}</b>"
-                      f"\n\nid: <b>{award_.award_id}</b>"
-                      f"{payment}"
-                      f"\nвидано: <b>{am.issue_date}</b>"
-                      f"\n\n<b>історія</b>: <i>{award_.description}</i>")
-
+        response = await service.award(target_member, award_, am.issue_date)
         await message.answer(
-            text=award_text,
+            text=response,
             reply_markup=hide_keyboard(glob.AWARD_HIDE_CALLBACK),
             parse_mode=ParseMode.HTML
         )
@@ -184,7 +168,7 @@ async def hire(message: Message):
     cpr = await CommandParser(message, og).parse()
 
     if not cpr.valid:
-        await message.answer(glob.COM_PARSER_FAILED)
+        await _reply_by_crv(message, cpr)
         return
 
     target_member = await service.get_target_member(cpr)
@@ -217,7 +201,7 @@ async def fire(message: Message):
     cpr = await CommandParser(message, og).parse()
 
     if not cpr.valid:
-        await message.answer(glob.COM_PARSER_FAILED)
+        await _reply_by_crv(message, cpr)
         return
 
     target_member = await service.get_target_member(cpr)
@@ -244,7 +228,7 @@ async def reset_price(message: Message):
     cpr = await CommandParser(message, og).parse()
 
     if not cpr.valid:
-        await message.answer(glob.COM_PARSER_FAILED)
+        await _reply_by_crv(message, cpr)
         return
 
     target_member = await service.get_target_member(cpr)
@@ -268,7 +252,7 @@ async def unreg(message: Message):
     cpr = await CommandParser(message, og).parse()
 
     if not cpr.valid:
-        await message.answer(glob.COM_PARSER_FAILED)
+        await _reply_by_crv(message, cpr)
         return
 
     target_member = await service.get_target_member(cpr)

@@ -20,7 +20,6 @@ from command.parser.types.com_list import CommandList as cl
 from command.parser.types.target_type import CommandTargetType as ctt
 from model.types.transaction_result_errors import TransactionResultErrors as tre
 from resources.funcs import funcs
-from service.price_manager import adjust_tickets_amount
 
 router = Router()
 
@@ -330,13 +329,9 @@ async def p(message: Message):
         await message.answer(glob.COM_PARSER_FAILED)
         return
 
-    price = cpr.args[glob.PRICE_ARG]
-    adjusted_price, inflation, fluctuation = await adjust_tickets_amount(price)
+    response = await service.p(cpr.args[glob.PRICE_ARG])
     await message.answer(
-        text=f'{glob.P_BASE_PRICE}:\n{price:.2f} tc\n'
-             f'\n{glob.P_ADJUSTED_PRICE}: {adjusted_price:.2f} tc'
-             f'\n{glob.P_INFLATION}: {(inflation - 1) * 100:.3f}%'
-             f'\n{glob.P_FLUCTUATION}: {(fluctuation - 1) * 100:.3f}%',
+        text=response,
         reply_markup=hide_keyboard(glob.HELP_HIDE_CALLBACK)
     )
 
@@ -360,3 +355,29 @@ async def tpool(message: Message):
              f'\n\n*{glob.TPOOL_TOTAL}: {total_tpool:.2f} tc*',
         reply_markup=hide_keyboard(glob.HELP_HIDE_CALLBACK)
     )
+
+
+@router.message(Command(cl.alert.name))
+async def alert(message: Message):
+    if not await validate_message(message):
+        return
+
+    if service.alert_pin is None:
+        sent_message = await message.answer(glob.SFS_ALERT_TEXT)
+        await sent_message.pin(disable_notification=True)
+        service.alert_pin = sent_message
+    else:
+        await message.reply(glob.SFS_ALERT_FAILED)
+
+
+@router.message(Command(cl.unalert.name))
+async def unalert(message: Message):
+    if not await validate_message(message):
+        return
+
+    if service.alert_pin is None:
+        await message.reply(glob.SFS_UNALERT_FAILED)
+    else:
+        await service.alert_pin.unpin()
+        service.alert_pin = None
+        await message.reply(glob.SFS_UNALERT_TEXT)

@@ -24,7 +24,7 @@ class ServiceOperationManager:
         self.operations.remove(op)
         return await op.run()
 
-    async def cancel(self, operation_id: int) -> None:
+    async def cancel(self, operation_id: int):
         op = self._get_op(operation_id)
 
         if op is None:

@@ -157,6 +157,10 @@ INFM_PERSONAL = 'personal account'
 INFM_BUSINESS = 'business account'
 INFM_TRANS_AVAILABLE = 'transactions available'
 
+AWARD_PAYMENT = 'payment'
+AWARD_ISSUED = 'issue date'
+AWARD_STORY = 'story'
+
 HIRE_JOBS = 'jobs of the member'
 
 TPAY_SENDER = 'sender'
@@ -179,6 +183,35 @@ TPOOL_BUSINESS = 'business tpool'
 TPOOL_ARTIFACT = 'artifact tpool'
 TPOOL_MATERIAL = 'material tpool'
 TPOOL_TOTAL = 'total tpool'
+
+SFS_UNALERT_FAILED = '❌ no sfs alert is issued right now'
+SFS_ALERT_FAILED = """
+*⚠️ the sfs alert is already issued!*
+please, go to the shelter. the administration will protect you from sfs. trust the administration, glory to the community!
+"""
+
+SFS_UNALERT_TEXT = '_the sfs alert is cancelled 😴_'
+SFS_ALERT_TEXT = """
+*
+‼️💀🔥 УВАГА! 🔥💀‼️
+⚠️ ОГОЛОШЕНО СТАН ТРИВОГИ! ⚠️
+
+💣 SFS У ЧАТІ!!! 💣
+💣 SFS У ЧАТІ!!! 💣
+💣 SFS У ЧАТІ!!! 💣
+
+ЦЕ НЕ НАВЧАЛЬНА ТРИВОГА
+ПОВТОРЮЮ, НЕ НАВЧАЛЬНА ТРИВОГА
+
+🚨 БЕЗ ПАНІКИ! 🚨
+📢 НЕ НЕХТУЙТЕ ВЛАСНОЮ БЕЗПЕКОЮ! СПУСКАЙТЕСЯ В УКРИТТЯ
+
+😱 ТІКАЙ, ПОКИ НЕ ПОЧАЛОСЯ!!! 😱
+📛 ПАМ'ЯТАЙ: ТВОЄ ПЕРШЕ “SFS” МОЖЕ СТАТИ ОСТАННІМ! 📛
+
+🔪💀 🔥 АДМІНІСТРАЦІЯ ЧАТУ ЗАХИСТИТЬ ВАС ВІД СФС. ВІРТЕ В АДМІНІСТРАЦІЮ, СЛАВА СПІЛЬНОТІ! 🔥 💀🔪
+*
+"""
 
 HELP_TEXT = """
 ✨ *Тікето-тяночка 🇺🇦* ✨

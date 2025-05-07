@@ -15,15 +15,6 @@ from repository import repository_core as repo
 from service import service_core as service
 
 
-async def adjust_tickets_amount(price: float) -> (float, float, float):
-    lpr = await repo.get_last_price_reset()
-
-    if lpr is None:
-        raise RuntimeError('No last price reset found!')
-
-    return price * lpr.inflation * lpr.fluctuation, lpr.inflation, lpr.fluctuation
-
-
 async def reset_prices(bot: Bot = None):
     lpr = await repo.get_last_price_reset()
 

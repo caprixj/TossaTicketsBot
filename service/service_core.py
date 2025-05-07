@@ -4,7 +4,7 @@ from typing import Union, Optional, List
 
 import aiofiles
 import yaml
-from aiogram.types import User
+from aiogram.types import User, Message
 
 import resources.const.glob as glob
 from command.parser.results.parser_result import CommandParserResult
@@ -22,6 +22,7 @@ from resources.sql.scripts import RESET_MEMBER_TPAY_AVAILABLE
 operation_manager: ServiceOperationManager = ServiceOperationManager()
 recipes: list[Recipe] = []
 materials: list[Material] = []
+alert_pin: Optional[Message] = None
 
 """ General """
 
@@ -243,12 +244,23 @@ async def laward(user_id: int) -> Optional[List[AwardDTO]]:
     return await repo.get_awards(user_id)
 
 
-async def issue_award(am: AwardMemberJunction) -> bool:
-    return await repo.insert_award_member(am)
+async def award(m: Member, a: Award, issue_date: str):
+    if a.payment > 0:
+        await pay_award(
+            member=m,
+            payment=a.payment,
+            description=a.award_id
+        )
 
+    payment = f'\n{glob.AWARD_PAYMENT}: <b>{a.payment:.2f} tc</b>' \
+        if a.payment > 0 else str()
 
-async def pay_award(member: Member, payment: float, description: str):
-    await _add_tickets(member, payment, TransactionType.award, description)
+    return (f"{glob.AWARD_SUCCESS}"
+            f"\n\n<b>{a.name}</b>"
+            f"\n\nid: <b>{a.award_id}</b>"
+            f"{payment}"
+            f"\n{glob.AWARD_ISSUED}: <b>{issue_date}</b>"
+            f"\n\n<b>{glob.AWARD_STORY}</b>: <i>{a.description}</i>")
 
 
 async def hire(user_id: int, position: str):
@@ -268,6 +280,14 @@ async def fire(user_id: int, position: str) -> bool:
         await repo.insert_employment_history(employee, get_current_datetime())
         await repo.delete_employee(user_id, position)
         return True
+
+
+async def p(price: float) -> str:
+    adjusted_price, inflation, fluctuation = await _get_infl_rate_adjustments(price)
+    return (f'{glob.P_BASE_PRICE}:\n{price:.2f} tc\n'
+            f'\n{glob.P_ADJUSTED_PRICE}: {adjusted_price:.2f} tc'
+            f'\n{glob.P_INFLATION}: {(inflation - 1) * 100:.3f}%'
+            f'\n{glob.P_FLUCTUATION}: {(fluctuation - 1) * 100:.3f}%')
 
 
 async def unreg(m: Member):
@@ -463,6 +483,17 @@ async def update_member(user: User, member: Member = None):
         await repo.update_member_names(updated_member)
 
 
+""" Award """
+
+
+async def issue_award(am: AwardMemberJunction) -> bool:
+    return await repo.insert_award_member(am)
+
+
+async def pay_award(member: Member, payment: float, description: str):
+    await _add_tickets(member, payment, TransactionType.award, description)
+
+
 """ Other """
 
 
@@ -540,3 +571,12 @@ async def _get_materials() -> list[Material]:
         materials = await get_materials_yaml()
 
     return materials
+
+
+async def _get_infl_rate_adjustments(price: float) -> (float, float, float):
+    lpr = await repo.get_last_price_reset()
+
+    if lpr is None:
+        raise RuntimeError('No last price reset found!')
+
+    return price * lpr.inflation * lpr.fluctuation, lpr.inflation, lpr.fluctuation
