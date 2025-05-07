@@ -161,7 +161,7 @@ HIRE_JOBS = 'jobs of the member'
 
 TPAY_SENDER = 'sender'
 TPAY_RECEIVER = 'receiver'
-TPAY_TOTAL = 'tpool'
+TPAY_TOTAL = 'total'
 TPAY_AMOUNT = 'amount'
 TPAY_TAX = 'tax'
 TPAY_DESCRIPTION = 'text'

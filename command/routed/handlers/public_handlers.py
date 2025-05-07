@@ -272,7 +272,7 @@ async def tpay(message: Message, callback_message: Message = None, fee_incorpora
 
     description = cpr.args.get(glob.DESCRIPTION_ARG, None)
 
-    # t - tpool, x - transfer, f - fee
+    # t - total, x - transfer, f - fee
     # -> (t, x, f)
     async def calculate_transfer(x: float) -> (float, float, float):
         if fee_incorporated:
