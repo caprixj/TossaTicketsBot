@@ -168,6 +168,17 @@ CREATE_MEMBER_MATERIALS = """
         FOREIGN KEY (material_name) REFERENCES materials(name)
     );
 """
+CREATE_ACTIVITY_DATA = """
+    CREATE TABLE IF NOT EXISTS activity_data (
+        activity_data_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER,
+        content_type TEXT NOT NULL,
+        date TEXT NOT NULL,
+        text_size INTEGER NOT NULL DEFAULT 0,
+        is_forward INTEGER NOT NULL DEFAULT 0,
+        FOREIGN KEY (user_id) REFERENCES members(user_id)
+    );
+"""
 
 """ Insert """
 

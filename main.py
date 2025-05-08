@@ -10,6 +10,7 @@ from aiogram.enums import ParseMode
 import setup
 import scheduling
 import resources.const.glob as glob
+from middleware.activity_analyzer_middleware import ActivityAnalyzerMiddleware
 from middleware.source_filter_middleware import SourceFilterMiddleware
 
 from router_loader import get_routers
@@ -38,7 +39,9 @@ async def main():
         )
     )
 
+    dp.message.middleware(ActivityAnalyzerMiddleware())
     dp.message.middleware(SourceFilterMiddleware())
+
     await scheduling.schedule(bot)
 
     await dp.start_polling(bot)

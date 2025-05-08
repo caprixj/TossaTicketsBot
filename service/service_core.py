@@ -86,64 +86,7 @@ async def _set_tickets(member: Member, tickets: float, transaction_type: Transac
     await repo.update_member_tickets(member)
 
 
-""" Interfaces """
-
-
-async def topt(size: int = 0, percent: bool = False) -> str:
-    sized = size != 0
-
-    if sized:
-        order = OrderingType.DESC if size > 0 else OrderingType.ASC
-        members = await repo.get_members_by_tickets_limited(order, abs(size))
-        result = f'{glob.TOPT_DESC if size > 0 else glob.TOPT_ASC}'
-    else:
-        order = str()
-        members = await repo.get_members_by_tickets()
-        result = f'{glob.TOPT_DESC} {glob.TOPT_FULL}'
-
-    total_tickets = await repo.get_sum_tickets()
-    result += f"\n{glob.TOPT_TICKETS_TOTAL}: {total_tickets:.2f} tc\n\n"
-
-    for i, m in enumerate(members):
-        name = get_formatted_name(Member(
-            username=m.username,
-            first_name=m.first_name,
-            last_name=m.last_name
-        ))
-
-        iterator = str()
-        if i < 3 and (not sized or order == OrderingType.DESC):
-            if i == 0:
-                iterator = '🥇'
-            elif i == 1:
-                iterator = '🥈'
-            elif i == 2:
-                iterator = '🥉'
-        else:
-            iterator = f'{i + 1}.'
-
-        if percent:
-            value = f'{m.tickets / total_tickets * 100:.2f}%' \
-                if m.tickets > 0 else glob.TOPT_BANKRUPT
-        else:
-            sign = '+' if m.tickets > 0 else str()
-            value = f'{sign}{m.tickets:.2f}'
-
-        result += f'{iterator} ( {value} )  {name[:32]}\n'
-
-        if i == 2:
-            result += '\n'
-
-    return result
-
-
-async def bal(m: Member) -> str:
-    name = get_formatted_name(member=m, ping=True)
-    sign = '+' if m.tickets > 0 else str()
-    return (f"{glob.BAL_NAME}: {name}"
-            f"\n{glob.BAL_PERSONAL}: {sign}{m.tickets:.2f}"
-            f"\n{glob.BAL_BUSINESS}: {sign}{m.business_account:.2f}"
-            f"\n{glob.BAL_TICKETS_AVAILABLE}: {m.tpay_available}")
+""" Public Interfaces """
 
 
 async def infm(m: Member) -> str:
@@ -168,16 +111,13 @@ async def infm(m: Member) -> str:
             f"\n{glob.INFM_TRANS_AVAILABLE}: {m.tpay_available}")
 
 
-async def addt(member: Member, tickets: float, description: str = None) -> None:
-    await _add_tickets(member, tickets, TransactionType.creator, description)
-
-
-async def delt(member: Member, tickets: float, description: str = None) -> None:
-    await _delete_tickets(member, tickets, TransactionType.creator, description)
-
-
-async def sett(member: Member, tickets: float, description: str = None) -> None:
-    await _set_tickets(member, tickets, TransactionType.creator, description)
+async def bal(m: Member) -> str:
+    name = get_formatted_name(member=m, ping=True)
+    sign = '+' if m.tickets > 0 else str()
+    return (f"{glob.BAL_NAME}: {name}"
+            f"\n{glob.BAL_PERSONAL}: {sign}{m.tickets:.2f}"
+            f"\n{glob.BAL_BUSINESS}: {sign}{m.business_account:.2f}"
+            f"\n{glob.BAL_TICKETS_AVAILABLE}: {m.tpay_available}")
 
 
 async def tpay(sender: Member, receiver: Member, transfer: float, description: str = None) -> TransactionResultDTO:
@@ -244,6 +184,77 @@ async def laward(user_id: int) -> Optional[List[AwardDTO]]:
     return await repo.get_awards(user_id)
 
 
+async def topt(size: int = 0, percent: bool = False) -> str:
+    sized = size != 0
+
+    if sized:
+        order = OrderingType.DESC if size > 0 else OrderingType.ASC
+        members = await repo.get_members_by_tickets_limited(order, abs(size))
+        result = f'{glob.TOPT_DESC if size > 0 else glob.TOPT_ASC}'
+    else:
+        order = str()
+        members = await repo.get_members_by_tickets()
+        result = f'{glob.TOPT_DESC} {glob.TOPT_FULL}'
+
+    total_tickets = await repo.get_sum_tickets()
+    result += f"\n{glob.TOPT_TICKETS_TOTAL}: {total_tickets:.2f} tc\n\n"
+
+    for i, m in enumerate(members):
+        name = get_formatted_name(Member(
+            username=m.username,
+            first_name=m.first_name,
+            last_name=m.last_name
+        ))
+
+        iterator = str()
+        if i < 3 and (not sized or order == OrderingType.DESC):
+            if i == 0:
+                iterator = '🥇'
+            elif i == 1:
+                iterator = '🥈'
+            elif i == 2:
+                iterator = '🥉'
+        else:
+            iterator = f'{i + 1}.'
+
+        if percent:
+            value = f'{m.tickets / total_tickets * 100:.2f}%' \
+                if m.tickets > 0 else glob.TOPT_BANKRUPT
+        else:
+            sign = '+' if m.tickets > 0 else str()
+            value = f'{sign}{m.tickets:.2f}'
+
+        result += f'{iterator} ( {value} )  {name[:32]}\n'
+
+        if i == 2:
+            result += '\n'
+
+    return result
+
+
+async def p(price: float) -> str:
+    adjusted_price, inflation, fluctuation = await _get_infl_rate_adjustments(price)
+    return (f'{glob.P_BASE_PRICE}:\n{price:.2f} tc\n'
+            f'\n{glob.P_ADJUSTED_PRICE}: {adjusted_price:.2f} tc'
+            f'\n{glob.P_INFLATION}: {(inflation - 1) * 100:.3f}%'
+            f'\n{glob.P_FLUCTUATION}: {(fluctuation - 1) * 100:.3f}%')
+
+
+""" Creator Interfaces """
+
+
+async def addt(member: Member, tickets: float, description: str = None) -> None:
+    await _add_tickets(member, tickets, TransactionType.creator, description)
+
+
+async def delt(member: Member, tickets: float, description: str = None) -> None:
+    await _delete_tickets(member, tickets, TransactionType.creator, description)
+
+
+async def sett(member: Member, tickets: float, description: str = None) -> None:
+    await _set_tickets(member, tickets, TransactionType.creator, description)
+
+
 async def award(m: Member, a: Award, issue_date: str):
     if a.payment > 0:
         await pay_award(
@@ -280,14 +291,6 @@ async def fire(user_id: int, position: str) -> bool:
         await repo.insert_employment_history(employee, get_current_datetime())
         await repo.delete_employee(user_id, position)
         return True
-
-
-async def p(price: float) -> str:
-    adjusted_price, inflation, fluctuation = await _get_infl_rate_adjustments(price)
-    return (f'{glob.P_BASE_PRICE}:\n{price:.2f} tc\n'
-            f'\n{glob.P_ADJUSTED_PRICE}: {adjusted_price:.2f} tc'
-            f'\n{glob.P_INFLATION}: {(inflation - 1) * 100:.3f}%'
-            f'\n{glob.P_FLUCTUATION}: {(fluctuation - 1) * 100:.3f}%')
 
 
 async def unreg(m: Member):
@@ -369,7 +372,7 @@ async def get_artifact_price(a: Artifact) -> float:
 async def get_artifact_creation_price(a: Artifact) -> float:
     return await get_gc_value(
         await get_gem_counts(
-            await find_recipe(
+            await _find_recipe(
                 f'{a.type_}_artifact'
             )))
 
@@ -377,7 +380,7 @@ async def get_artifact_creation_price(a: Artifact) -> float:
 async def get_material_rank(material_name: str) -> int:
     rank = 2
 
-    r = await find_recipe(material_name)
+    r = await _find_recipe(material_name)
     if r is None:
         return 1
 
@@ -410,7 +413,7 @@ async def get_gem_counts(r: Recipe) -> dict[str, float]:
             gem_counts[ingr.name] = norm
         else:
             inner_gc = await get_gem_counts(
-                await find_recipe(ingr.name)
+                await _find_recipe(ingr.name)
             )
             for key, value in inner_gc.items():
                 inner_gc[key] = value * norm
@@ -435,7 +438,7 @@ async def get_mpool_gem_counts() -> dict[str, float]:
         if mat_rank == 1:
             mpool_gem_counts[mat_name] += mat_count
         else:
-            r = await find_recipe(mat_name)
+            r = await _find_recipe(mat_name)
             for g_name, g_count in (await get_gem_counts(r)).items():
                 mpool_gem_counts[g_name] += mat_count * g_count * (glob.MAT_RANK_DEVAL ** (mat_rank - 1))
 
@@ -530,18 +533,11 @@ async def is_hired(user_id: float, position: str) -> bool:
     return await repo.get_employee(user_id, position) is not None
 
 
-async def find_recipe(name: str) -> Optional[Recipe]:
-    for r in await _get_recipes():
-        if r.result.name == name:
-            return r
-    return None
-
-
-async def claim_bhf(user_id: int):
-    bhf = 'banhammer_fragments'
-    mm = await repo.get_member_material(user_id, bhf)
-    q = 1 if mm is None else mm.quantity + 1
-    await repo.upsert_member_material(user_id, Ingredient(bhf, q))
+# async def claim_bhf(user_id: int):
+#     bhf = 'banhammer_fragments'
+#     mm = await repo.get_member_material(user_id, bhf)
+#     q = 1 if mm is None else mm.quantity + 1
+#     await repo.upsert_member_material(user_id, Ingredient(bhf, q))
 
 
 """ Private """
@@ -580,3 +576,10 @@ async def _get_infl_rate_adjustments(price: float) -> (float, float, float):
         raise RuntimeError('No last price reset found!')
 
     return price * lpr.inflation * lpr.fluctuation, lpr.inflation, lpr.fluctuation
+
+
+async def _find_recipe(name: str) -> Optional[Recipe]:
+    for r in await _get_recipes():
+        if r.result.name == name:
+            return r
+    return None

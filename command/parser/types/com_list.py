@@ -19,8 +19,6 @@ class CommandList(str, Enum):
     db = 'db'
     # cog: a1_any
     award = 'award'
-    # /p <price:pnreal>
-    p = 'p'
     # cog: a1_any
     hire = 'hire'
     # cog: a1_any
@@ -33,12 +31,16 @@ class CommandList(str, Enum):
     # # # # # # # # #
     # for all users
 
-    # /reg
-    reg = 'reg'
-    # /rusni
-    rusni = 'rusni'
     # /help
     help = 'help'
+    # cog: pure
+    infm = 'infm'
+    # cog: pure
+    bal = 'bal'
+    # /tbox
+    tbox = 'tbox'
+    # cog: tickets-pnreal
+    tpay = 'tpay'
     # cog: pure
     ltrans = 'ltrans'
     # cog: pure
@@ -48,15 +50,15 @@ class CommandList(str, Enum):
     # /topt %
     # /topt % <count:nint>
     topt = 'topt'
-    # cog: pure
-    bal = 'bal'
-    # cog: pure
-    infm = 'infm'
-    # cog: tickets-pnreal
-    tpay = 'tpay'
     # /tpool
     tpool = 'tpool'
     # /alert
     alert = 'alert'
     # /unalert
     unalert = 'unalert'
+    # /rusni
+    rusni = 'rusni'
+    # /p <price:pnreal>
+    p = 'p'
+    # /reg
+    reg = 'reg'

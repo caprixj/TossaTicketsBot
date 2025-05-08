@@ -1,4 +1,4 @@
-from .artifact import Artifact, Material, Ingredient, Recipe
+from .materials import Artifact, Material, Ingredient, Recipe
 from .awards import Award, AwardMemberJunction
 from .dynprices import Price, RateReset, PriceHistory
 from .jobs import Job, Employee, SalaryPayout

@@ -72,7 +72,8 @@ async def _get_create_table_scripts() -> list[str]:
         scripts.CREATE_PRICES,
         scripts.CREATE_PRICE_HISTORY,
         scripts.CREATE_MATERIALS,
-        scripts.CREATE_MEMBER_MATERIALS
+        scripts.CREATE_MEMBER_MATERIALS,
+        scripts.CREATE_ACTIVITY_DATA
     ]
 
 
@@ -96,8 +97,7 @@ def _parse_pathlib(xml_path: str) -> str:
     for i in range(back_seq_count, len(path_split)):
         path /= path_split[i] if (i == len(path_split) - 1) else Path(path_split[i])
 
-    p = str(path)
-    return p
+    return str(path)
 
 
 def _get_run_mode_settings(run_mode: RunMode) -> RunModeSettings:

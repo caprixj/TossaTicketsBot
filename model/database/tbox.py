@@ -1,0 +1,2 @@
+class Tbox:
+    pass
