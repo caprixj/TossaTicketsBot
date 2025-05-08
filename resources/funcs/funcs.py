@@ -1,3 +1,5 @@
+import math
+import random
 import re
 from datetime import datetime
 
@@ -46,6 +48,17 @@ async def get_materials_yaml() -> list[Material]:
             emoji=item['emoji']
         ) for item in data
     ]
+
+
+def perturb_probs(probs: dict[str, float], sigma: float) -> list[float]:
+    noises = [
+        math.exp(random.gauss(-0.5 * sigma ** 2, sigma))
+        for _ in probs
+    ]
+
+    weighted = [p * x for p, x in zip(probs.values(), noises)]
+    total = sum(weighted)
+    return [round(w / total, 5) for w in weighted]
 
 
 def _escape_markdown_v2(text: str) -> str:

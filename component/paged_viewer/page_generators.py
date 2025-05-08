@@ -1,7 +1,8 @@
 from datetime import datetime
 from math import ceil
-from typing import List, Tuple
 
+from service import service_core as service
+from model.database import Ingredient
 from model.database.member import Member
 from model.dto.award_dto import AwardDTO
 from model.dto.ltrans_dto import LTransDTO
@@ -10,36 +11,66 @@ from resources.funcs.funcs import get_formatted_name
 from resources.const.glob import PAGE_ROW_CHAR_LIMIT, PAGE_ROWS_COUNT_LIMIT
 
 
-async def ltrans(result: LTransDTO, title: str) -> List[str]:
+async def balm(data: list[Ingredient], title: str) -> list[str]:
+    if not data:
+        return [f'{title}\n\n<i>{glob.BALM_BALANCE_EMPTY}</i>']
+
+    gemstones_page = str()
+    intermediates_page = str()
+    artifact_templates_page = str()
+
+    for ing in data:
+        row = f'{ing.quantity}{await service.get_emoji(ing.name)} ({ing.name})\n'
+        if await service.is_gem(ing.name):
+            gemstones_page += row
+        elif await service.is_intermediate(ing.name):
+            intermediates_page += row
+        elif await service.is_artifact_template(ing.name):
+            artifact_templates_page += row
+
+    if not gemstones_page:
+        gemstones_page = f'<i>{glob.BALM_NO_GEMSTONES}</i>'
+    if not intermediates_page:
+        intermediates_page = f'<i>{glob.BALM_NO_INTERMEDIATES}</i>'
+    if not artifact_templates_page:
+        artifact_templates_page = f'<i>{glob.BALM_NO_ARTIFACT_TEMPLATES}</i>'
+
+    return [
+        '\n\n'.join([title, page]) for page
+        in [gemstones_page, intermediates_page, artifact_templates_page]
+    ]
+
+
+async def ltrans(dto: LTransDTO, title: str) -> list[str]:
     rows = []
 
-    if result.empty():
+    if dto.empty():
         return [f'{title}\n\n<i>{glob.LTRANS_TRANS_HISTORY_EMPTY}</i>']
 
-    for addt in result.addts:
+    for addt in dto.addts:
         row = (f"✨🔹 | id: {addt.addt_id}"
                f" | <b>+{addt.tickets:.2f}</b>"
                f" | {addt.time}"
                f" | {glob.LTRANS_TEXT}: <i>{addt.description}</i>")
         rows.append((row, addt.time))
 
-    for delt in result.delts:
+    for delt in dto.delts:
         row = (f"✨🔻 | id: {delt.delt_id}"
                f" | <b>-{delt.tickets:.2f}</b>"
                f" | {delt.time}"
                f" | {glob.LTRANS_TEXT}: <i>{delt.description}</i>")
         rows.append((row, delt.time))
 
-    for tpay in result.tpays:
-        if tpay.receiver_id == result.user_id:
-            sender_name = get_formatted_name(_find_member(result.unique_tpay_members, tpay.sender_id))
+    for tpay in dto.tpays:
+        if tpay.receiver_id == dto.user_id:
+            sender_name = get_formatted_name(_find_member(dto.unique_tpay_members, tpay.sender_id))
             row = (f"🔀🔹 | id: {tpay.tpay_id}"
                    f" | {glob.LTRANS_FROM}: <b>{sender_name}</b>"
                    f" | <b>+{tpay.transfer:.2f}</b>"
                    f" | {tpay.time}"
                    f" | {glob.LTRANS_TEXT}: <i>{tpay.description}</i>")
         else:
-            receiver_name = get_formatted_name(_find_member(result.unique_tpay_members, tpay.receiver_id))
+            receiver_name = get_formatted_name(_find_member(dto.unique_tpay_members, tpay.receiver_id))
             row = (f"🔀🔻 | id: {tpay.tpay_id}"
                    f" | {glob.LTRANS_TO}: <b>{receiver_name}</b>"
                    f" | <b>-{tpay.transfer:.2f}</b>"
@@ -52,7 +83,7 @@ async def ltrans(result: LTransDTO, title: str) -> List[str]:
     return _form_pages(title, _sorted_by_datetime(rows))
 
 
-async def laward(result: List[AwardDTO], title: str) -> List[str]:
+async def laward(result: list[AwardDTO], title: str) -> list[str]:
     pages = []
     first_page = str()
 
@@ -77,12 +108,12 @@ async def laward(result: List[AwardDTO], title: str) -> List[str]:
     return pages
 
 
-def _sorted_by_datetime(rows: List[Tuple[str, datetime]]) -> List[str]:
+def _sorted_by_datetime(rows: list[tuple[str, datetime]]) -> list[str]:
     rows.sort(key=lambda x: x[1], reverse=True)
     return [row for row, time in rows]
 
 
-def _find_member(members: List[Member], user_id: int) -> Member:
+def _find_member(members: list[Member], user_id: int) -> Member:
     for m in members:
         if m.user_id == user_id:
             return m
@@ -90,7 +121,7 @@ def _find_member(members: List[Member], user_id: int) -> Member:
     raise RuntimeError('member not found in unique_tpay_members')
 
 
-def _form_pages(title: str, rows: List[str]) -> List[str]:
+def _form_pages(title: str, rows: list[str]) -> list[str]:
     pages = []
     cur_page = []
     cur_page_size = 0

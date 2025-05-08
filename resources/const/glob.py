@@ -30,6 +30,10 @@ MIN_DELTA_GEM_RATE = 0.5
 MAX_DELTA_GEM_RATE = 2.0
 MAT_RANK_DEVAL = 0.8
 
+GEM_FREQ_SIGMA = 0.4
+MIN_GEM_COUNT_TBOX = 1
+MAX_GEM_COUNT_TBOX = 47
+
 MATERIALS_YAML_PATH = 'model/yaml/materials.yaml'
 GEM_FREQ_YAML_PATH = 'model/yaml/gem_freq.yaml'
 RECIPES_YAML_PATH = 'model/yaml/recipes.yaml'
@@ -51,6 +55,7 @@ EMPLOYEE_ARG = 'employee_position'
 TPAY_YES_CALLBACK = 'tpay_yes'
 TPAY_NO_CALLBACK = 'tpay_no'
 TPAY_FEE_INCORPORATION_CALLBACK = 'tpay_fi'
+TBOX_CALLBACK = 'tbox'
 
 DECORATIVE_KEYBOARD_BUTTON = 'decorative'
 
@@ -68,16 +73,8 @@ NO_OVERLOADS_ERROR = 'PARSING WITHOUT OVERLOADS IN COMMAND PARSER!'
 DOUBLE_TARGETING_ERROR = 'TRYING TO PUT TWO TARGET-TYPED ARGUMENTS INTO COMMAND OVERLOAD!'
 CREATOR_REQUIRED_VIOLATION = 'CREATOR_REQUIRED_VIOLATION'
 
-LAWARD_TITLE = '<b>📯 awards board</b>'
-LTRANS_TITLE = '<b>📊 income and expenses history (tickets)</b>'
-LTRANS_START_TEXT = """
-🔹 - incoming transfers  
-🔻 - outgoing transfers  
-🔀 - transfer via /tpay  
-✨ - transfer by creator
-"""
-
 RESET_TPAY_AVAILABLE_DONE = 'ℹ️ number of available transfers updated'
+RESET_TBOX_AVAILABLE_DONE = 'ℹ️ number of available tboxes updated'
 DB_BACKUP_DONE = 'ℹ️ database backup saved'
 PRICE_RESET_DONE = 'ℹ️ the prices, artifact values and ticket inflation rate have been updated'
 SALARIES_PAID_OUT = 'ℹ️ salaries paid'
@@ -86,6 +83,7 @@ CONTINUE_BTN = '✅ continue'
 CANCEL_BTN = '❌ cancel'
 INCORPORATE_FEE_BTN = '➕ tax inside'
 HIDE_BTN = '🗑 hide'
+OPEN_TBOX_BTN = '➡️ open!'
 # CLAIM_BTN = '➡️ claim'
 
 ADDT_TEXT = '📈 tickets added!'
@@ -99,6 +97,8 @@ RUSNI_TEXT = 'пизда!'
 TOPT_DESC = '*💸 ticket leaderboard*'
 TOPT_ASC = '*💩 ticket anti-leaderboard*'
 INFM_TEXT = '<b>ℹ️ member information</b>'
+TBOX_TEXT = '🎁 daily tbox'
+TBOX_OPENED_TEXT = 'your tbox reward'
 SQL_SUCCESS = '✅ command executed!'
 MEMBER_HIRED = '✅💼 member hired for the position!'
 RESET_PRICE_COMMAND_DONE = '✅ manual price reset executed based on the ticket inflation rate'
@@ -125,16 +125,40 @@ GET_MEMBER_FAILED = '❌ member not found! check the id you entered'
 GET_AWARD_FAILED = '❌ specified award does not exist! check the id you entered'
 SERVICE_OPERATION_NONE_RESULT = '😔 couldn’t complete the operation..'
 NOT_MEMBER_ERROR = '❌ to use the bot, you must be a member of the sfs chat and send the /reg command. more instructions can be found at /help'
+TBOX_UNAVAILABLE_ERROR = '❌ you already opened a tbox today!'
 
 BAL_NAME = "🪪 name"
 BAL_PERSONAL = '💳 personal account'
 BAL_BUSINESS = '💸 business account'
-BAL_TICKETS_AVAILABLE = '🔀 transactions available'
+BAL_TPAY_AVAILABLE = '🔀 tpay available'
+BAL_TBOX_AVAILABLE = '🎁 tbox available'
 
+BALM_BALANCE_EMPTY = 'you have no materials yet.. 😶‍🌫️'
+BALM_NO_GEMSTONES = 'you have no gemstones yet.. 😶‍🌫️'
+BALM_NO_INTERMEDIATES = 'you have no intermediates yet.. 😶‍🌫️'
+BALM_NO_ARTIFACT_TEMPLATES = 'you have no artifact templates yet.. 😶‍🌫️'
+BALM_TITLE = '<b>📦 materials account</b>'
+BALM_START_TEXT = """
+page 1 - gemstones
+page 2 - intermediates
+page 3 - artifact templates
+"""
+
+TBOX_MEMBER = '🪪 member'
+
+LTRANS_TITLE = '<b>📊 income and expenses history (tickets)</b>'
+LTRANS_START_TEXT = """
+🔹 - incoming transfers  
+🔻 - outgoing transfers  
+🔀 - transfer via /tpay  
+✨ - transfer by creator
+"""
 LTRANS_TRANS_HISTORY_EMPTY = 'your transactions history is empty.. 😶‍🌫️'
 LTRANS_FROM = 'from'
 LTRANS_TO = 'to'
 LTRANS_TEXT = 'text'
+
+LAWARD_TITLE = '<b>📯 awards board</b>'
 
 TOPT_FULL = '(full)'
 TOPT_TICKETS_TOTAL = 'tickets tpool'
@@ -157,6 +181,7 @@ INFM_ASSETS = '💳 assets'
 INFM_PERSONAL = 'personal account'
 INFM_BUSINESS = 'business account'
 INFM_TRANS_AVAILABLE = 'transactions available'
+INFM_TBOX_AVAILABLE = 'tboxes available'
 
 AWARD_PAYMENT = 'payment'
 AWARD_ISSUED = 'issue date'

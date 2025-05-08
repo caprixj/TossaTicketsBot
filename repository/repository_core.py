@@ -10,7 +10,8 @@ from model.database import (
     SalaryPayout, TpayTransaction, Price, Ingredient
 )
 from model.dto import AwardDTO, LTransDTO
-from model.types import TransactionType
+from model.types import TicketTransactionType
+from model.types.transaction_types import MaterialTransactionType
 from repository.ordering_type import OrderingType
 from resources.const import glob
 from resources.funcs.funcs import get_current_datetime
@@ -194,6 +195,18 @@ async def upsert_member_material(user_id: int, ingredient: Ingredient):
         await db.commit()
 
 
+async def insert_material_transaction(sender_id: int = 0, receiver_id: int = 0,
+                                      type_: MaterialTransactionType = MaterialTransactionType.tbox,
+                                      material_name: str = None, quantity: int = 0,
+                                      transfer: float = 0., tax: float = 0., date: str = get_current_datetime(),
+                                      description: str = None):
+    async with aiosqlite.connect(glob.rms.db_file_path) as db:
+        await db.execute(scripts.INSERT_MATERIAL_TRANSACTION, (
+            sender_id, receiver_id, type_, material_name, quantity, transfer, tax, date, description
+        ))
+        await db.commit()
+
+
 async def expand_price_history():
     price_history_data = [
         (p.product_name, p.product_type, p.price, get_current_datetime())
@@ -309,7 +322,7 @@ async def get_transaction_stats(user_id: int) -> LTransDTO:
         # addts
         await cursor.execute(
             scripts.SELECT_ADDT_TYPE_NOT_TPAY,
-            (user_id, TransactionType.tpay, TransactionType.tpay_fee)
+            (user_id, TicketTransactionType.tpay, TicketTransactionType.tpay_fee)
         )
         addts = await cursor.fetchall()
         addts = [AddtTransaction(*row) for row in addts]
@@ -317,7 +330,7 @@ async def get_transaction_stats(user_id: int) -> LTransDTO:
         # delts
         await cursor.execute(
             scripts.SELECT_DELT_TYPE_NOT_TPAY,
-            (user_id, TransactionType.tpay, TransactionType.tpay_fee)
+            (user_id, TicketTransactionType.tpay, TicketTransactionType.tpay_fee)
         )
         delts = await cursor.fetchall()
         delts = [DeltTransaction(*row) for row in delts]
@@ -391,14 +404,16 @@ async def get_each_material_count() -> dict[str, int]:
         return {row[0]: row[1] for row in rows}
 
 
-async def get_member_material(user_id, bhf) -> Optional[Ingredient]:
+async def get_all_member_materials(user_id: int) -> list[Ingredient]:
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
-        cursor = await db.execute(scripts.SELECT_MEMBER_MATERIAL, (user_id, bhf))
-        row = await cursor.fetchone()
-        return Ingredient(
-            name=row[1],
-            quantity=int(row[2])
-        ) if row else None
+        cursor = await db.execute(scripts.SELECT_ALL_MEMBER_MATERIALS, (user_id,))
+        rows = await cursor.fetchall()
+        return [
+            Ingredient(
+                name=row[0],
+                quantity=int(row[1])
+            ) for row in rows
+        ]
 
 
 """ Update """
@@ -427,6 +442,13 @@ async def spend_tpay_available(member: Member):
     ))
 
 
+async def spend_tbox_available(member: Member):
+    await _execute(scripts.UPDATE_MEMBER_TBOX_AVAILABLE, (
+        member.tbox_available - 1,
+        member.user_id
+    ))
+
+
 async def set_salary_paid_out(plan_date: str, fact_date: str):
     await _execute(scripts.UPDATE_SALARY_PAYOUT, (
         1,
@@ -436,7 +458,7 @@ async def set_salary_paid_out(plan_date: str, fact_date: str):
 
 
 async def reset_prices(diff: float):
-    await _execute(scripts.RESET_PRICES, (diff, ))
+    await _execute(scripts.RESET_PRICES, (diff,))
 
 
 async def reset_gem_rate(name: str, price: float):
@@ -444,7 +466,7 @@ async def reset_gem_rate(name: str, price: float):
 
 
 async def reset_artifact_values(diff: float):
-    await _execute(scripts.RESET_ARTIFACT_VALUES, (diff, ))
+    await _execute(scripts.RESET_ARTIFACT_VALUES, (diff,))
 
 
 """ Delete """
@@ -458,4 +480,4 @@ async def delete_employee(user_id: int, position: str):
 
 
 async def delete_member(user_id: int):
-    await _execute(scripts.DELETE_MEMBER, (user_id, ))
+    await _execute(scripts.DELETE_MEMBER, (user_id,))

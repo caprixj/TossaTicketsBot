@@ -7,13 +7,12 @@ from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 
-import setup
-import scheduling
+from service import setup, scheduling
 import resources.const.glob as glob
 from middleware.activity_analyzer_middleware import ActivityAnalyzerMiddleware
 from middleware.source_filter_middleware import SourceFilterMiddleware
 
-from router_loader import get_routers
+from service.router_loader import get_routers
 
 dp = Dispatcher()
 for router in get_routers():

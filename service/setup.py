@@ -73,6 +73,7 @@ async def _get_create_table_scripts() -> list[str]:
         scripts.CREATE_PRICE_HISTORY,
         scripts.CREATE_MATERIALS,
         scripts.CREATE_MEMBER_MATERIALS,
+        scripts.CREATE_MATERIAL_TRANSACTIONS,
         scripts.CREATE_ACTIVITY_DATA
     ]
 

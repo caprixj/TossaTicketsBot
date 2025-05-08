@@ -8,7 +8,8 @@ CREATE_MEMBERS = """
         last_name TEXT,
         tickets REAL NOT NULL DEFAULT 0,
         tpay_available INTEGER NOT NULL DEFAULT 3,
-        business_account REAL NOT NULL DEFAULT 0
+        business_account REAL NOT NULL DEFAULT 0,
+        tbox_available INTEGER NOT NULL DEFAULT 1
     );
 """
 CREATE_ARTIFACTS = """
@@ -168,6 +169,23 @@ CREATE_MEMBER_MATERIALS = """
         FOREIGN KEY (material_name) REFERENCES materials(name)
     );
 """
+CREATE_MATERIAL_TRANSACTIONS = """
+    CREATE TABLE IF NOT EXISTS material_transactions (
+        material_transaction_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        sender_id INTEGER NOT NULL,
+        receiver_id INTEGER NOT NULL,
+        type TEXT NOT NULL DEFAULT "unknown",
+        material_name TEXT,
+        quantity INTEGER NOT NULL CHECK(quantity >= 0),
+        transfer REAL NOT NULL DEFAULT 0,
+        tax REAL NOT NULL,
+        date TEXT NOT NULL,
+        description TEXT,
+        FOREIGN KEY (sender_id) REFERENCES members (user_id) ON DELETE RESTRICT,
+        FOREIGN KEY (receiver_id) REFERENCES members (user_id) ON DELETE RESTRICT,
+        FOREIGN KEY (material_name) REFERENCES materials(name) ON DELETE RESTRICT
+    );
+"""
 CREATE_ACTIVITY_DATA = """
     CREATE TABLE IF NOT EXISTS activity_data (
         activity_data_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -199,6 +217,8 @@ INSERT_JOB = "INSERT INTO jobs (position, name, salary) VALUES (?, ?, ?)"
 INSERT_PRICE_HISTORY = "INSERT INTO price_history (product_name, product_type, price, reset_date) VALUES (?, ?, ?, ?)"
 INSERT_OR_IGNORE_MATERIALS = "INSERT OR IGNORE INTO materials VALUES (?, ?)"
 UPSERT_MEMBER_MATERIAL = "INSERT OR REPLACE INTO member_materials (user_id, material_name, quantity) VALUES (?, ?, ?)"
+INSERT_MATERIAL_TRANSACTION = ("INSERT INTO material_transactions (sender_id, receiver_id, type, material_name, "
+                               "quantity, transfer, tax, date, description) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
 
 """ Select """
 
@@ -220,7 +240,7 @@ SELECT_SALARY_PAYOUT = "SELECT * FROM salary_payouts ORDER BY plan_date DESC LIM
 SELECT_JOBS = "SELECT * FROM jobs"
 SELECT_PRICES = "SELECT * FROM prices"
 SELECT_GEM_PRICES = "SELECT * FROM prices WHERE product_type = 'gemstone'"
-SELECT_MEMBER_MATERIAL = "SELECT * FROM member_materials WHERE user_id = ? AND material_name = ?"
+SELECT_ALL_MEMBER_MATERIALS = "SELECT material_name, quantity FROM member_materials WHERE user_id = ?"
 SELECT_TOPTALL = """
     SELECT m.*
     FROM members m
@@ -301,7 +321,9 @@ UPDATE_MEMBER_NAMES = "UPDATE members SET username = ?, first_name = ?, last_nam
 UPDATE_MEMBER_TICKETS = "UPDATE members SET tickets = ? WHERE user_id = ?"
 UPDATE_MEMBER_BUSINESS_ACCOUNT = "UPDATE members SET business_account = ? WHERE user_id = ?"
 UPDATE_MEMBER_TPAY_AVAILABLE = "UPDATE members SET tpay_available = ? WHERE user_id = ?"
+UPDATE_MEMBER_TBOX_AVAILABLE = "UPDATE members SET tbox_available = ? WHERE user_id = ?"
 RESET_MEMBER_TPAY_AVAILABLE = "UPDATE members SET tpay_available = 3"
+RESET_MEMBER_TBOX_AVAILABLE = "UPDATE members SET tbox_available = 1"
 UPDATE_SALARY_PAYOUT = "UPDATE salary_payouts SET paid_out = ?, fact_date = ? WHERE plan_date = ?"
 UPDATE_JOB_SALARY = "UPDATE jobs SET salary = ? WHERE position = ?"
 RESET_PRICES = "UPDATE prices SET price = price * ?"

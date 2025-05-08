@@ -37,6 +37,8 @@ class CommandList(str, Enum):
     infm = 'infm'
     # cog: pure
     bal = 'bal'
+    # cog: pure
+    balm = 'balm'
     # /tbox
     tbox = 'tbox'
     # cog: tickets-pnreal

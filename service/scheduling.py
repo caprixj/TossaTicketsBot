@@ -17,6 +17,7 @@ aiosch = AsyncIOScheduler()
 
 async def schedule(bot: Bot):
     aiosch.add_job(_reset_tpay_available, args=[bot], trigger='cron', hour=0, minute=1)
+    aiosch.add_job(_reset_tbox_available, args=[bot], trigger='cron', hour=0, minute=1)
     aiosch.add_job(_db_backup, args=[bot], trigger='cron', hour=0, minute=1)
 
     # if random.random() < 3/7:
@@ -41,6 +42,14 @@ async def _reset_tpay_available(bot: Bot):
     await bot.send_message(
         chat_id=glob.rms.group_chat_id,
         text=glob.RESET_TPAY_AVAILABLE_DONE
+    )
+
+
+async def _reset_tbox_available(bot: Bot):
+    await service.reset_tbox_available()
+    await bot.send_message(
+        chat_id=glob.rms.group_chat_id,
+        text=glob.RESET_TBOX_AVAILABLE_DONE
     )
 
 

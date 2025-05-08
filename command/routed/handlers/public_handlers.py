@@ -8,7 +8,7 @@ from aiogram.types import Message, LinkPreviewOptions
 import resources.const.glob as glob
 from service import service_core as service
 from command.routed.handlers.validations import validate_message, validate_user
-from command.routed.keyboards.keyboards import tpay_keyboard, hide_keyboard
+from command.routed.keyboards.keyboards import tpay_keyboard, hide_keyboard, one_btn_keyboard
 from command.parser.core import cog
 from command.parser.core.overload import CommandOverload, CommandOverloadGroup
 from command.parser.core.parser import CommandParser
@@ -81,12 +81,57 @@ async def bal(message: Message):
     )
 
 
+@router.message(Command(cl.balm.name))
+async def balm(message: Message):
+    if not await validate_message(message):
+        return
+
+    cpr = await CommandParser(message, cog.pure()).parse()
+
+    if not cpr.valid:
+        await message.answer(glob.COM_PARSER_FAILED)
+        return
+
+    target_member = await service.get_target_member(cpr)
+
+    if target_member is None:
+        await message.answer(glob.GET_MEMBER_FAILED)
+        return
+
+    viewer = PagedViewer(
+        title=f'{glob.BALM_TITLE}\nmember: {funcs.get_formatted_name(target_member)}',
+        data_extractor=functools.partial(service.balm, target_member.user_id),
+        page_generator=page_generators.balm,
+        page_message=message,
+        start_text=glob.BALM_START_TEXT,
+        parse_mode=ParseMode.HTML
+    )
+
+    operation_id = await service.operation_manager.register(
+        func=functools.partial(keep_paged_viewer, viewer)
+    )
+
+    await viewer.view(operation_id)
+
+
 @router.message(Command(cl.tbox.name))
 async def tbox(message: Message):
     if not await validate_message(message):
         return
 
-    #
+    member = await service.get_member(message.from_user.id)
+    if member.tbox_available == 0:
+        await message.answer(glob.TBOX_UNAVAILABLE_ERROR)
+        return
+
+    await message.reply(
+        text=glob.TBOX_TEXT,
+        reply_markup=one_btn_keyboard(
+            text=glob.OPEN_TBOX_BTN,
+            callback_name=glob.TBOX_CALLBACK,
+            sender_id=member.user_id
+        )
+    )
 
 
 @router.message(Command(cl.tpay.name))

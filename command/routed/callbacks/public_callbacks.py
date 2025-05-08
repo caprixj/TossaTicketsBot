@@ -8,7 +8,7 @@ import resources.const.glob as glob
 from command.routed.handlers.public_handlers import tpay
 from component.paged_viewer.paged_viewer import pmove, phide
 from model.dto.transaction_dto import TransactionResultDTO
-from command.routed.callbacks.callback_data import get_callback_data
+from command.routed.callbacks.custom_callback_data import get_callback_data
 
 router = Router()
 
@@ -111,6 +111,24 @@ async def tpay_fi(callback: CallbackQuery):
         callback_message=callback.message,
         fee_incorporated=True
     )
+
+
+""" /tbox """
+
+
+@router.callback_query(lambda c: c.data.startswith(glob.TBOX_CALLBACK))
+async def tbox_open(callback: CallbackQuery):
+    data = await get_callback_data(callback.data)
+
+    if callback.from_user.id != data.sender_id:
+        await callback.answer(glob.ALERT_CALLBACK_ACTION, show_alert=True)
+        return
+
+    response = await service.tbox(data.sender_id)
+
+    await callback.message.edit_reply_markup(reply_markup=None)
+    await callback.message.edit_text(response)
+    await callback.answer()
 
 
 """ Other """

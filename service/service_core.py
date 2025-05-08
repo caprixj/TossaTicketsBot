@@ -1,4 +1,5 @@
 import copy
+import random
 from datetime import datetime
 from typing import Union, Optional, List
 
@@ -12,17 +13,60 @@ from command.parser.types.target_type import CommandTargetType as ctt
 from model.database import Award, AwardMemberJunction, Member, AddtTransaction, DeltTransaction, TpayTransaction, \
     Recipe, Ingredient, Artifact, Material
 from model.dto import AwardDTO, LTransDTO, TransactionResultDTO
-from model.types import TransactionResultErrors as TRE, TransactionType
+from model.types import TransactionResultErrors as TRE, TicketTransactionType
+from model.types.transaction_types import MaterialTransactionType
 from repository.ordering_type import OrderingType
 from repository import repository_core as repo
+from resources.funcs import funcs
+from resources.sql import scripts
 from service.operation_manager import ServiceOperationManager
 from resources.funcs.funcs import get_formatted_name, get_fee, get_current_datetime, strdate, get_materials_yaml
-from resources.sql.scripts import RESET_MEMBER_TPAY_AVAILABLE
 
 operation_manager: ServiceOperationManager = ServiceOperationManager()
-recipes: list[Recipe] = []
-materials: list[Material] = []
+_recipes: list[Recipe] = list()
+_materials: list[Material] = list()
+_gem_freq: dict[str, float] = dict()
 alert_pin: Optional[Message] = None
+
+
+""" Global Getters """
+
+
+async def _get_recipes() -> List[Recipe]:
+    global _recipes
+
+    if not _recipes:
+        async with aiofiles.open(glob.RECIPES_YAML_PATH, 'r', encoding='utf-8') as f:
+            data = yaml.safe_load(await f.read())
+
+        _recipes = [
+            Recipe(
+                result=Ingredient(**item['result']),
+                ingredients=[Ingredient(**ingr) for ingr in item['ingredients']]
+            ) for item in data
+        ]
+
+    return _recipes
+
+
+async def _get_materials() -> list[Material]:
+    global _materials
+
+    if not _materials:
+        _materials = await get_materials_yaml()
+
+    return _materials
+
+
+async def _get_gem_freq() -> dict[str, float]:
+    global _gem_freq
+
+    if not _gem_freq:
+        async with aiofiles.open(glob.GEM_FREQ_YAML_PATH, 'r', encoding='utf-8') as f:
+            _gem_freq = yaml.safe_load(await f.read())
+
+    return _gem_freq
+
 
 """ General """
 
@@ -31,7 +75,7 @@ async def execute_sql(query: str) -> (bool, str):
     return await repo.execute_external(query)
 
 
-async def _add_tickets(member: Member, tickets: float, transaction_type: TransactionType, description: str = None):
+async def _add_tickets(member: Member, tickets: float, transaction_type: TicketTransactionType, description: str = None):
     member.tickets += tickets
     time = get_current_datetime()
 
@@ -45,7 +89,7 @@ async def _add_tickets(member: Member, tickets: float, transaction_type: Transac
     ))
 
 
-async def _delete_tickets(member: Member, tickets: float, transaction_type: TransactionType, description: str = None):
+async def _delete_tickets(member: Member, tickets: float, transaction_type: TicketTransactionType, description: str = None):
     member.tickets -= tickets
     time = get_current_datetime()
 
@@ -59,7 +103,7 @@ async def _delete_tickets(member: Member, tickets: float, transaction_type: Tran
     ))
 
 
-async def _set_tickets(member: Member, tickets: float, transaction_type: TransactionType, description: str = None):
+async def _set_tickets(member: Member, tickets: float, transaction_type: TicketTransactionType, description: str = None):
     if member.tickets == tickets:
         return
 
@@ -108,7 +152,8 @@ async def infm(m: Member) -> str:
             f"\n\n<b>{glob.INFM_ASSETS}</b>"
             f"\n{glob.INFM_PERSONAL}: {'+' if m.tickets > 0 else str()}{m.tickets:.2f}"
             f"\n{glob.INFM_BUSINESS}: {'+' if m.business_account > 0 else str()}{m.business_account:.2f}"
-            f"\n{glob.INFM_TRANS_AVAILABLE}: {m.tpay_available}")
+            f"\n{glob.INFM_TRANS_AVAILABLE}: {m.tpay_available}"
+            f"\n{glob.INFM_TBOX_AVAILABLE}: {m.tbox_available}")
 
 
 async def bal(m: Member) -> str:
@@ -117,7 +162,31 @@ async def bal(m: Member) -> str:
     return (f"{glob.BAL_NAME}: {name}"
             f"\n{glob.BAL_PERSONAL}: {sign}{m.tickets:.2f}"
             f"\n{glob.BAL_BUSINESS}: {sign}{m.business_account:.2f}"
-            f"\n{glob.BAL_TICKETS_AVAILABLE}: {m.tpay_available}")
+            f"\n{glob.BAL_TPAY_AVAILABLE}: {m.tpay_available}"
+            f"\n{glob.BAL_TBOX_AVAILABLE}: {m.tbox_available}")
+
+
+async def balm(user_id: int) -> list[Ingredient]:
+    return await repo.get_all_member_materials(user_id)
+
+
+async def tbox(user_id: int) -> str:
+    member = await get_member(user_id)
+    gems = await _get_rand_gemstones()
+
+    await repo.upsert_member_material(member.user_id, gems)
+    await repo.spend_tbox_available(member)
+    await repo.insert_material_transaction(
+        receiver_id=member.user_id,
+        type_=MaterialTransactionType.tbox,
+        material_name=gems.name,
+        quantity=gems.quantity,
+        date=get_current_datetime()
+    )
+
+    return (f"*{glob.TBOX_OPENED_TEXT}*\n"
+            f"{glob.TBOX_MEMBER}: {get_formatted_name(member)}\n\n"
+            f"+{gems.quantity}{await get_emoji(gems.name)} ({gems.name})")
 
 
 async def tpay(sender: Member, receiver: Member, transfer: float, description: str = None) -> TransactionResultDTO:
@@ -138,7 +207,7 @@ async def tpay(sender: Member, receiver: Member, transfer: float, description: s
         tickets=transfer,
         time=time,
         description=description,
-        type_=TransactionType.tpay
+        type_=TicketTransactionType.tpay
     ))
 
     # sender: -fee
@@ -149,7 +218,7 @@ async def tpay(sender: Member, receiver: Member, transfer: float, description: s
         tickets=fee,
         time=time,
         description=description,
-        type_=TransactionType.tpay_fee
+        type_=TicketTransactionType.tpay_fee
     ))
 
     # receiver: +transfer
@@ -160,7 +229,7 @@ async def tpay(sender: Member, receiver: Member, transfer: float, description: s
         tickets=transfer,
         time=time,
         description=description,
-        type_=TransactionType.tpay
+        type_=TicketTransactionType.tpay
     ))
 
     # save tpay transaction
@@ -246,15 +315,15 @@ async def p(price: float) -> str:
 
 
 async def addt(member: Member, tickets: float, description: str = None) -> None:
-    await _add_tickets(member, tickets, TransactionType.creator, description)
+    await _add_tickets(member, tickets, TicketTransactionType.creator, description)
 
 
 async def delt(member: Member, tickets: float, description: str = None) -> None:
-    await _delete_tickets(member, tickets, TransactionType.creator, description)
+    await _delete_tickets(member, tickets, TicketTransactionType.creator, description)
 
 
 async def sett(member: Member, tickets: float, description: str = None) -> None:
-    await _set_tickets(member, tickets, TransactionType.creator, description)
+    await _set_tickets(member, tickets, TicketTransactionType.creator, description)
 
 
 async def award(m: Member, a: Award, issue_date: str):
@@ -299,7 +368,7 @@ async def unreg(m: Member):
     await _set_tickets(
         member=m,
         tickets=0,
-        transaction_type=TransactionType.creator,
+        transaction_type=TicketTransactionType.creator,
         description='unreg'
     )
     await repo.delete_member(m.user_id)
@@ -387,14 +456,22 @@ async def get_material_rank(material_name: str) -> int:
         return 1
 
     for ingr in r.ingredients:
-        if not any(ingr.name == m.name for m in await get_gems()):
+        if not any(ingr.name == m.name for m in await get_gems_list()):
             rank = max(rank, 1 + await get_material_rank(ingr.name))
 
     return rank
 
 
-async def get_gems() -> list[Material]:
+async def get_gems_list() -> list[Material]:
     return (await _get_materials())[:7]
+
+
+async def get_intermediates_list() -> list[Material]:
+    return (await _get_materials())[7:-5]
+
+
+async def get_artifact_templates_list() -> list[Material]:
+    return (await _get_materials())[-5:]
 
 
 async def get_gc_value(gem_counts: dict[str, float]) -> float:
@@ -406,7 +483,7 @@ async def get_gc_value(gem_counts: dict[str, float]) -> float:
 
 
 async def get_gem_counts(r: Recipe) -> dict[str, float]:
-    gem_counts = {g.name: 0. for g in await get_gems()}
+    gem_counts = {g.name: 0. for g in await get_gems_list()}
     all_inner_gc = []
 
     for ingr in r.ingredients:
@@ -422,7 +499,7 @@ async def get_gem_counts(r: Recipe) -> dict[str, float]:
             all_inner_gc.append(inner_gc)
 
     if all_inner_gc:
-        result = {g.name: 0. for g in await get_gems()}
+        result = {g.name: 0. for g in await get_gems_list()}
         all_gc = [gem_counts, *all_inner_gc]
         for pc in all_gc:
             for key, value in pc.items():
@@ -433,7 +510,7 @@ async def get_gem_counts(r: Recipe) -> dict[str, float]:
 
 
 async def get_mpool_gem_counts() -> dict[str, float]:
-    mpool_gem_counts = {g.name: 0. for g in await get_gems()}
+    mpool_gem_counts = {g.name: 0. for g in await get_gems_list()}
 
     for mat_name, mat_count in (await repo.get_each_material_count()).items():
         mat_rank = await get_material_rank(mat_name)
@@ -445,6 +522,12 @@ async def get_mpool_gem_counts() -> dict[str, float]:
                 mpool_gem_counts[g_name] += mat_count * g_count * (glob.MAT_RANK_DEVAL ** (mat_rank - 1))
 
     return mpool_gem_counts
+
+
+async def get_emoji(material_name: str) -> str:
+    for m in await _get_materials():
+        if m.name == material_name:
+            return m.emoji
 
 
 """ Member """
@@ -496,14 +579,18 @@ async def issue_award(am: AwardMemberJunction) -> bool:
 
 
 async def pay_award(member: Member, payment: float, description: str):
-    await _add_tickets(member, payment, TransactionType.award, description)
+    await _add_tickets(member, payment, TicketTransactionType.award, description)
 
 
 """ Other """
 
 
 async def reset_tpay_available() -> (bool, str):
-    return await repo.execute_external(RESET_MEMBER_TPAY_AVAILABLE)
+    return await repo.execute_external(scripts.RESET_MEMBER_TPAY_AVAILABLE)
+
+
+async def reset_tbox_available() -> (bool, str):
+    return await repo.execute_external(scripts.RESET_MEMBER_TBOX_AVAILABLE)
 
 
 async def payout_salaries(lsp_plan_date: datetime):
@@ -521,8 +608,8 @@ async def payout_salaries(lsp_plan_date: datetime):
             await _add_tickets(
                 member=await repo.get_member_by_user_id(e.user_id),
                 tickets=e.salary,
-                transaction_type=TransactionType.salary,
-                description=TransactionType.salary
+                transaction_type=TicketTransactionType.salary,
+                description=TicketTransactionType.salary
             )
 
     await repo.set_salary_paid_out(
@@ -535,40 +622,19 @@ async def is_hired(user_id: float, position: str) -> bool:
     return await repo.get_employee(user_id, position) is not None
 
 
-# async def claim_bhf(user_id: int):
-#     bhf = 'banhammer_fragments'
-#     mm = await repo.get_member_material(user_id, bhf)
-#     q = 1 if mm is None else mm.quantity + 1
-#     await repo.upsert_member_material(user_id, Ingredient(bhf, q))
+async def is_gem(material_name: str) -> bool:
+    return any(material_name == g.name for g in await get_gems_list())
+
+
+async def is_intermediate(material_name: str) -> bool:
+    return any(material_name == im.name for im in await get_intermediates_list())
+
+
+async def is_artifact_template(material_name: str) -> bool:
+    return any(material_name == at.name for at in await get_artifact_templates_list())
 
 
 """ Private """
-
-
-async def _get_recipes() -> List[Recipe]:
-    global recipes
-
-    if not recipes:
-        async with aiofiles.open(glob.RECIPES_YAML_PATH, 'r', encoding='utf-8') as f:
-            data = yaml.safe_load(await f.read())
-
-        recipes = [
-            Recipe(
-                result=Ingredient(**item['result']),
-                ingredients=[Ingredient(**ingr) for ingr in item['ingredients']]
-            ) for item in data
-        ]
-
-    return recipes
-
-
-async def _get_materials() -> list[Material]:
-    global materials
-
-    if not materials:
-        materials = await get_materials_yaml()
-
-    return materials
 
 
 async def _get_infl_rate_adjustments(price: float) -> (float, float, float):
@@ -585,3 +651,27 @@ async def _find_recipe(name: str) -> Optional[Recipe]:
         if r.result.name == name:
             return r
     return None
+
+
+async def _get_rand_gemstones() -> Ingredient:
+    schema = funcs.perturb_probs(
+        probs=await _get_gem_freq(),
+        sigma=glob.GEM_FREQ_SIGMA
+    )
+    gem = random.choices(
+        population=await get_gems_list(),
+        weights=schema
+    )[0]
+    quantity = random.randint(
+        glob.MIN_GEM_COUNT_TBOX,
+        glob.MAX_GEM_COUNT_TBOX
+    )
+
+    return Ingredient(
+        name=gem.name,
+        quantity=quantity
+    )
+
+
+async def _get_formatted_material_name(material_name: str) -> str:
+    return material_name.replace('_', ' ')

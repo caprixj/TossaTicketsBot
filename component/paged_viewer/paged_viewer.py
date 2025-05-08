@@ -8,7 +8,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from service import service_core as service
 from resources.const import glob
-from command.routed.callbacks.callback_data import generate_callback_data, get_callback_data
+from command.routed.callbacks.custom_callback_data import get_callback_data, CustomCallbackData
 
 
 class PagedViewer:
@@ -62,19 +62,19 @@ class PagedViewer:
     def reply_markup(self, operation_id: int, sender_id: int) -> InlineKeyboardMarkup:
         builder = InlineKeyboardBuilder()
 
-        back = generate_callback_data(glob.PV_BACK_CALLBACK, operation_id, sender_id)
-        forward = generate_callback_data(glob.PV_FORWARD_CALLBACK, operation_id, sender_id)
+        back = CustomCallbackData(glob.PV_BACK_CALLBACK, sender_id, operation_id)
+        forward = CustomCallbackData(glob.PV_FORWARD_CALLBACK, sender_id, operation_id)
         builder.row(
-            InlineKeyboardButton(text='<<', callback_data=back),
+            InlineKeyboardButton(text='<<', callback_data=back.tostr()),
             InlineKeyboardButton(
                 text=f'{self.current_page_number} / {len(self.pages)}',
                 callback_data=glob.DECORATIVE_KEYBOARD_BUTTON
             ),
-            InlineKeyboardButton(text='>>', callback_data=forward),
+            InlineKeyboardButton(text='>>', callback_data=forward.tostr()),
         )
 
-        hide = generate_callback_data(glob.PV_HIDE_CALLBACK, operation_id, sender_id)
-        builder.row(InlineKeyboardButton(text=glob.HIDE_BTN, callback_data=hide))
+        hide = CustomCallbackData(glob.PV_HIDE_CALLBACK, sender_id, operation_id)
+        builder.row(InlineKeyboardButton(text=glob.HIDE_BTN, callback_data=hide.tostr()))
 
         return builder.as_markup()
 
