@@ -10,8 +10,8 @@ async def _message_important(m: Message) -> bool:
 
 
 class ActivityAnalyzerMiddleware(BaseMiddleware):
-    async def __call__(self, handler, message: Message, data: dict):
-        if await _message_important(message):
-            await activity_analyzer.save(message)
+    async def __call__(self, handler, event: Message, data: dict):
+        if await _message_important(event):
+            await activity_analyzer.save(event)
 
-        return await handler(message, data)
+        return await handler(event, data)

@@ -414,8 +414,3 @@ async def tag(message: Message):
 
     nametag = cpr.args[glob.USER_ID_ARG]
     await message.answer(f"[tag](tg://user?id={nametag})", parse_mode=ParseMode.MARKDOWN)
-
-
-@router.message()
-async def _catch_all(message: Message):
-    pass
