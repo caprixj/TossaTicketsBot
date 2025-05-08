@@ -31,7 +31,7 @@ async def _get_unique_members(cursor: Cursor, user_id: int, tpays: List[TpayTran
     for member_id in unique_ids:
         await cursor.execute(scripts.SELECT_MEMBER_BY_USER_ID, (member_id,))
         row = await cursor.fetchone()
-        unique_members.append(Member(*row) if row else None)
+        unique_members.append(Member(*row) if row else Member(user_id=member_id, first_name='[deleted]'))
 
     return unique_members
 
@@ -68,7 +68,7 @@ async def execute_external(query: str) -> (bool, str):
 """ Insert """
 
 
-async def insert_member(member: Member) -> None:
+async def insert_member(member: Member):
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
         await db.execute(scripts.INSERT_MEMBER, (
             member.user_id,
@@ -80,7 +80,7 @@ async def insert_member(member: Member) -> None:
         await db.commit()
 
 
-async def insert_addt(addt: AddtTransaction) -> None:
+async def insert_addt(addt: AddtTransaction):
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
         await db.execute(scripts.INSERT_ADDT, (
             addt.user_id,
@@ -92,7 +92,7 @@ async def insert_addt(addt: AddtTransaction) -> None:
         await db.commit()
 
 
-async def insert_delt(delt: DeltTransaction) -> None:
+async def insert_delt(delt: DeltTransaction):
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
         await db.execute(scripts.INSERT_DELT, (
             delt.user_id,
@@ -419,7 +419,7 @@ async def get_all_member_materials(user_id: int) -> list[Ingredient]:
 """ Update """
 
 
-async def update_member_names(member: Member) -> None:
+async def update_member_names(member: Member):
     await _execute(scripts.UPDATE_MEMBER_NAMES, (
         member.username,
         member.first_name,
@@ -428,7 +428,7 @@ async def update_member_names(member: Member) -> None:
     ))
 
 
-async def update_member_tickets(member: Member) -> None:
+async def update_member_tickets(member: Member):
     await _execute(scripts.UPDATE_MEMBER_TICKETS, (
         member.tickets,
         member.user_id
