@@ -74,6 +74,17 @@ class PercentSpecialArgument(TicketonomicsType):
             raise ValueError()
 
 
+class IdSpecialArgument(TicketonomicsType):
+    def __init__(self, data: str):
+        super().__init__(data)
+
+    async def cast(self) -> str:
+        if self.data == 'id':
+            return self.data
+        else:
+            raise ValueError()
+
+
 # all double
 class Real(TicketonomicsType):
     def __init__(self, data: str):

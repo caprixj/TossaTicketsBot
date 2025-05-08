@@ -44,6 +44,7 @@ SIZE_ARG = 'size'
 AWARD_ID_ARG = 'award_id'
 PAGE_ARG = 'page'
 PERCENT_ARG = 'percent'
+ID_ARG = 'id'
 PRICE_ARG = 'price'
 EMPLOYEE_ARG = 'employee_position'
 

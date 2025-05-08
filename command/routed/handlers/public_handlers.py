@@ -238,6 +238,10 @@ async def topt(message: Message):
         CommandOverload(oid='percent').add_percent(),
         # /topt <%> <size:nint>
         CommandOverload(oid='percent-size').add_percent().add(glob.SIZE_ARG, NInt),
+        # /topt <id>
+        CommandOverload(oid='id').add_id(),
+        # /topt <id> <size:nint>
+        CommandOverload(oid='id-size').add_id().add(glob.SIZE_ARG, NInt),
     ])
 
     cpr = await CommandParser(message, og).parse()
@@ -259,13 +263,24 @@ async def topt(message: Message):
         )
     elif cpr.overload.oid == 'percent':
         await message.answer(
-            text=await service.topt(percent=True),
+            text=await service.topt(percent_mode=True),
             reply_markup=hide_keyboard(glob.TOPT_HIDE_CALLBACK)
         )
-    else:  # cpr.overload.oid == 'percent-size'
+    elif cpr.overload.oid == 'percent-size':
         size = cpr.args[glob.SIZE_ARG]
         await message.answer(
-            text=await service.topt(size, percent=True),
+            text=await service.topt(size, percent_mode=True),
+            reply_markup=hide_keyboard(glob.TOPT_HIDE_CALLBACK)
+        )
+    elif cpr.overload.oid == 'id':
+        await message.answer(
+            text=await service.topt(id_mode=True),
+            reply_markup=hide_keyboard(glob.TOPT_HIDE_CALLBACK)
+        )
+    elif cpr.overload.oid == 'id-size':
+        size = cpr.args[glob.SIZE_ARG]
+        await message.answer(
+            text=await service.topt(size, id_mode=True),
             reply_markup=hide_keyboard(glob.TOPT_HIDE_CALLBACK)
         )
 

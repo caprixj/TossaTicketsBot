@@ -1,6 +1,7 @@
 from typing import Type, List
 
-from model.types.ticketonomics_types import TicketonomicsType, Username, UserID, PercentSpecialArgument
+from model.types.ticketonomics_types import TicketonomicsType, Username, UserID, PercentSpecialArgument, \
+    IdSpecialArgument
 from command.parser.types.target_type import CommandTargetType as ctt
 from resources.const import glob
 
@@ -36,6 +37,10 @@ class CommandOverload:
 
     def add_percent(self):
         self.schema[glob.PERCENT_ARG] = PercentSpecialArgument
+        return self
+
+    def add_id(self):
+        self.schema[glob.ID_ARG] = IdSpecialArgument
         return self
 
     def get_order_value(self) -> int:

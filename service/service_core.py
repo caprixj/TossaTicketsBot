@@ -184,7 +184,7 @@ async def laward(user_id: int) -> Optional[List[AwardDTO]]:
     return await repo.get_awards(user_id)
 
 
-async def topt(size: int = 0, percent: bool = False) -> str:
+async def topt(size: int = 0, percent_mode: bool = False, id_mode: bool = False) -> str:
     sized = size != 0
 
     if sized:
@@ -217,14 +217,16 @@ async def topt(size: int = 0, percent: bool = False) -> str:
         else:
             iterator = f'{i + 1}.'
 
-        if percent:
+        if percent_mode:
             value = f'{m.tickets / total_tickets * 100:.2f}%' \
                 if m.tickets > 0 else glob.TOPT_BANKRUPT
         else:
             sign = '+' if m.tickets > 0 else str()
             value = f'{sign}{m.tickets:.2f}'
 
-        result += f'{iterator} ( {value} )  {name[:32]}\n'
+        uid = f'[{m.user_id}] ' if id_mode else str()
+
+        result += f'{iterator} {uid}( {value} )  {name[:32]}\n'
 
         if i == 2:
             result += '\n'
