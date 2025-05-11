@@ -338,13 +338,17 @@ async def tpool(message: Message):
     personal_tpool = await service.get_total_tickets()
     business_tpool = await service.get_business_tpool()
     artifact_tpool = await service.get_artifact_tpool()
+
+    nbt_tpool = await service.get_nbt_tpool()
     material_tpool = await service.get_material_tpool()
+
     total_tpool = personal_tpool + business_tpool + artifact_tpool
 
     await message.answer(
         text=f'{glob.TPOOL_PERSONAL}: {personal_tpool:.2f} tc'
              f'\n{glob.TPOOL_BUSINESS}: {business_tpool:.2f} tc'
              f'\n{glob.TPOOL_ARTIFACT}: {artifact_tpool:.2f} tc'
+             f'\n\n{glob.TPOOL_NBT}: {nbt_tpool:.2f} tc'
              f'\n{glob.TPOOL_MATERIAL}: {material_tpool:.2f} tc'
              f'\n\n*{glob.TPOOL_TOTAL}: {total_tpool:.2f} tc*',
         reply_markup=hide_keyboard(glob.HELP_HIDE_CALLBACK)

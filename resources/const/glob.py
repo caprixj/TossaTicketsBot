@@ -12,6 +12,8 @@ CREATOR_USERNAME = '@capri_xj'
 
 DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S'
 
+NBT_SQL_VAR = 'nbt'
+
 UNI_TAX = 0.17  # F
 MIN_FEE = 1      # M
 
@@ -32,7 +34,7 @@ MAT_RANK_DEVAL = 0.8
 
 GEM_FREQ_SIGMA = 0.4
 MIN_GEM_COUNT_TBOX = 1
-MAX_GEM_COUNT_TBOX = 47
+MAX_GEM_COUNT_TBOX = 29
 
 MATERIALS_YAML_PATH = 'model/yaml/materials.yaml'
 GEM_FREQ_YAML_PATH = 'model/yaml/gem_freq.yaml'
@@ -204,11 +206,12 @@ PAGE_GEN_PAYMENT = 'payment'
 PAGE_GEN_ISSUED = 'issued'
 PAGE_GEN_STORY = 'story'
 
-TPOOL_PERSONAL = 'personal tpool'
-TPOOL_BUSINESS = 'business tpool'
-TPOOL_ARTIFACT = 'artifact tpool'
-TPOOL_MATERIAL = 'material tpool'
-TPOOL_TOTAL = 'total tpool'
+TPOOL_NBT = 'national bank'
+TPOOL_PERSONAL = 'personal accounts'
+TPOOL_BUSINESS = 'business accounts'
+TPOOL_ARTIFACT = 'artifacts'
+TPOOL_MATERIAL = 'materials'
+TPOOL_TOTAL = 'tpool'
 
 SFS_ALERT_TRIGGER_RESPONSE = '_ААААА, СФС!_'
 CRYING_STICKER_FILE_ID = 'CAACAgIAAxkBAAILdmgbiHhqbcRyeRFPoPZ4v5B7T-_XAAKbcAACGXLYSEUEtQbR1SvMNgQ'

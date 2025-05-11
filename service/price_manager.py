@@ -83,7 +83,8 @@ async def _reset_gem_rates(updated_rate: float):
     }
 
     for name, df in delta_freq.items():
-        gem_price = GEM_BASE_PRICE * updated_rate
+        fluct = random.uniform(0.98, 1.02)
+        gem_price = GEM_BASE_PRICE * updated_rate * fluct
         if df < MIN_DELTA_GEM_RATE:
             await repo.reset_gem_rate(name, gem_price / MIN_DELTA_GEM_RATE)
         elif df > MAX_DELTA_GEM_RATE:

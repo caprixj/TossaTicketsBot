@@ -36,6 +36,7 @@ async def create_databases():
     os.makedirs(os.path.dirname(glob.rms.db_file_path), exist_ok=True)
     await _create_tables()
     await _insert_materials()
+    await _insert_sql_vars()
 
 
 async def _create_tables():
@@ -54,8 +55,20 @@ async def _insert_materials():
         await db.commit()
 
 
+async def _insert_sql_vars():
+    async with aiosqlite.connect(glob.rms.db_file_path) as db:
+        await db.executemany(
+            scripts.INSERT_OR_IGNORE_SQL_VARS,
+            [
+                (glob.NBT_SQL_VAR, '0.00')
+            ]
+        )
+        await db.commit()
+
+
 async def _get_create_table_scripts() -> list[str]:
     return [
+        scripts.CREATE_VARS,
         scripts.CREATE_MEMBERS,
         scripts.CREATE_ARTIFACTS,
         scripts.CREATE_ARTIFACT_VALUE_HISTORY,
@@ -74,6 +87,7 @@ async def _get_create_table_scripts() -> list[str]:
         scripts.CREATE_MATERIALS,
         scripts.CREATE_MEMBER_MATERIALS,
         scripts.CREATE_MATERIAL_TRANSACTIONS,
+        scripts.CREATE_MATERIAL_TRANSACTION_REQUESTS,
         scripts.CREATE_ACTIVITY_DATA
     ]
 

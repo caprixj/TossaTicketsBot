@@ -1,5 +1,11 @@
 """ Create Tables """
 
+CREATE_VARS = """
+    CREATE TABLE IF NOT EXISTS vars (
+        name TEXT PRIMARY KEY,
+        value TEXT
+    );
+"""
 CREATE_MEMBERS = """
     CREATE TABLE IF NOT EXISTS members (
         user_id INTEGER PRIMARY KEY,
@@ -172,8 +178,25 @@ CREATE_MEMBER_MATERIALS = """
 CREATE_MATERIAL_TRANSACTIONS = """
     CREATE TABLE IF NOT EXISTS material_transactions (
         material_transaction_id INTEGER PRIMARY KEY AUTOINCREMENT,
-        sender_id INTEGER NOT NULL,
-        receiver_id INTEGER NOT NULL,
+        sender_id INTEGER NOT NULL DEFAULT -1,
+        receiver_id INTEGER NOT NULL DEFAULT -1,
+        type TEXT NOT NULL DEFAULT "unknown",
+        material_name TEXT,
+        quantity INTEGER NOT NULL CHECK(quantity >= 0),
+        transfer REAL NOT NULL DEFAULT 0,
+        tax REAL NOT NULL,
+        date TEXT NOT NULL,
+        description TEXT,
+        FOREIGN KEY (sender_id) REFERENCES members (user_id) ON DELETE RESTRICT,
+        FOREIGN KEY (receiver_id) REFERENCES members (user_id) ON DELETE RESTRICT,
+        FOREIGN KEY (material_name) REFERENCES materials(name) ON DELETE RESTRICT
+    );
+"""
+CREATE_MATERIAL_TRANSACTION_REQUESTS = """
+CREATE TABLE IF NOT EXISTS material_transaction_requests (
+        material_transaction_request_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        sender_id INTEGER NOT NULL DEFAULT -1,
+        receiver_id INTEGER NOT NULL DEFAULT -1,
         type TEXT NOT NULL DEFAULT "unknown",
         material_name TEXT,
         quantity INTEGER NOT NULL CHECK(quantity >= 0),
@@ -216,7 +239,8 @@ INSERT_EMPLOYMENT_HISTORY = ("INSERT INTO employment_history (user_id, position,
 INSERT_JOB = "INSERT INTO jobs (position, name, salary) VALUES (?, ?, ?)"
 INSERT_PRICE_HISTORY = "INSERT INTO price_history (product_name, product_type, price, reset_date) VALUES (?, ?, ?, ?)"
 INSERT_OR_IGNORE_MATERIALS = "INSERT OR IGNORE INTO materials VALUES (?, ?)"
-UPSERT_MEMBER_MATERIAL = "INSERT OR REPLACE INTO member_materials (user_id, material_name, quantity) VALUES (?, ?, ?)"
+INSERT_OR_IGNORE_SQL_VARS = "INSERT OR IGNORE INTO vars VALUES (?, ?)"
+INSERT_MEMBER_MATERIAL = "INSERT INTO member_materials (user_id, material_name, quantity) VALUES (?, ?, ?)"
 INSERT_MATERIAL_TRANSACTION = ("INSERT INTO material_transactions (sender_id, receiver_id, type, material_name, "
                                "quantity, transfer, tax, date, description) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
 
@@ -240,7 +264,9 @@ SELECT_SALARY_PAYOUT = "SELECT * FROM salary_payouts ORDER BY plan_date DESC LIM
 SELECT_JOBS = "SELECT * FROM jobs"
 SELECT_PRICES = "SELECT * FROM prices"
 SELECT_GEM_PRICES = "SELECT * FROM prices WHERE product_type = 'gemstone'"
+SELECT_MEMBER_MATERIAL = "SELECT material_name, quantity FROM member_materials WHERE user_id = ? AND material_name = ?"
 SELECT_ALL_MEMBER_MATERIALS = "SELECT material_name, quantity FROM member_materials WHERE user_id = ?"
+SELECT_SQL_VAR = "SELECT value FROM vars WHERE name = ?"
 SELECT_TOPTALL = """
     SELECT m.*
     FROM members m
@@ -324,6 +350,7 @@ UPDATE_MEMBER_TPAY_AVAILABLE = "UPDATE members SET tpay_available = ? WHERE user
 UPDATE_MEMBER_TBOX_AVAILABLE = "UPDATE members SET tbox_available = ? WHERE user_id = ?"
 RESET_MEMBER_TPAY_AVAILABLE = "UPDATE members SET tpay_available = 3"
 RESET_MEMBER_TBOX_AVAILABLE = "UPDATE members SET tbox_available = 1"
+UPDATE_MEMBER_MATERIAL = "UPDATE member_materials SET quantity = ? WHERE user_id = ? AND material_name = ?"
 UPDATE_SALARY_PAYOUT = "UPDATE salary_payouts SET paid_out = ?, fact_date = ? WHERE plan_date = ?"
 UPDATE_JOB_SALARY = "UPDATE jobs SET salary = ? WHERE position = ?"
 RESET_PRICES = "UPDATE prices SET price = price * ?"

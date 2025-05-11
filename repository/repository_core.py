@@ -185,9 +185,9 @@ async def insert_employment_history(paid_member: Employee, fired_date: str):
         await db.commit()
 
 
-async def upsert_member_material(user_id: int, ingredient: Ingredient):
+async def insert_member_material(user_id: int, ingredient: Ingredient):
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
-        await db.execute(scripts.UPSERT_MEMBER_MATERIAL, (
+        await db.execute(scripts.INSERT_MEMBER_MATERIAL, (
             user_id,
             ingredient.name,
             ingredient.quantity
@@ -195,7 +195,7 @@ async def upsert_member_material(user_id: int, ingredient: Ingredient):
         await db.commit()
 
 
-async def insert_material_transaction(sender_id: int = 0, receiver_id: int = 0,
+async def insert_material_transaction(sender_id: int = -1, receiver_id: int = -1,
                                       type_: MaterialTransactionType = MaterialTransactionType.tbox,
                                       material_name: str = None, quantity: int = 0,
                                       transfer: float = 0., tax: float = 0., date: str = get_current_datetime(),
@@ -294,6 +294,13 @@ async def get_awards_count(user_id: int) -> int:
         cursor = await db.execute(scripts.SELECT_AWARDS_COUNT_BY_OWNER_ID, (user_id,))
         row = await cursor.fetchone()
         return int(row[0]) if row else 0
+
+
+async def get_nbt() -> float:
+    async with aiosqlite.connect(glob.rms.db_file_path) as db:
+        cursor = await db.execute(scripts.SELECT_SQL_VAR, (glob.NBT_SQL_VAR, ))
+        row = await cursor.fetchone()
+        return float(row[0]) if row else 0
 
 
 async def get_sum_tickets() -> float:
@@ -404,6 +411,13 @@ async def get_each_material_count() -> dict[str, int]:
         return {row[0]: row[1] for row in rows}
 
 
+async def get_member_material(user_id: int, material_name: str) -> Optional[Ingredient]:
+    async with aiosqlite.connect(glob.rms.db_file_path) as db:
+        cursor = await db.execute(scripts.SELECT_MEMBER_MATERIAL, (user_id, material_name))
+        row = await cursor.fetchone()
+        return Ingredient(*row) if row else None
+
+
 async def get_all_member_materials(user_id: int) -> list[Ingredient]:
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
         cursor = await db.execute(scripts.SELECT_ALL_MEMBER_MATERIALS, (user_id,))
@@ -447,6 +461,16 @@ async def spend_tbox_available(member: Member):
         member.tbox_available - 1,
         member.user_id
     ))
+
+
+async def update_member_material_quantity(user_id: int, ingredient: Ingredient):
+    async with aiosqlite.connect(glob.rms.db_file_path) as db:
+        await db.execute(scripts.UPDATE_MEMBER_MATERIAL, (
+            ingredient.quantity,
+            user_id,
+            ingredient.name
+        ))
+        await db.commit()
 
 
 async def set_salary_paid_out(plan_date: str, fact_date: str):

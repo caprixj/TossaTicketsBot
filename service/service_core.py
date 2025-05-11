@@ -174,10 +174,19 @@ async def tbox(user_id: int) -> str:
     member = await get_member(user_id)
     gems = await _get_rand_gemstones()
 
-    await repo.upsert_member_material(member.user_id, gems)
-    await repo.spend_tbox_available(member)
+    mm = await repo.get_member_material(user_id, gems.name)
+    if mm is None:
+        await repo.insert_member_material(user_id, gems)
+    else:
+        gems_total = Ingredient(
+            name=gems.name,
+            quantity=mm.quantity + gems.quantity
+        )
+        await repo.update_member_material_quantity(user_id, gems_total)
+
+    # await repo.spend_tbox_available(member)
     await repo.insert_material_transaction(
-        receiver_id=member.user_id,
+        receiver_id=user_id,
         type_=MaterialTransactionType.tbox,
         material_name=gems.name,
         quantity=gems.quantity,
@@ -409,6 +418,10 @@ async def get_total_tpool() -> float:
         await get_artifact_tpool(),
         await get_material_tpool()
     ])
+
+
+async def get_nbt_tpool() -> float:
+    return await repo.get_nbt()
 
 
 async def get_total_tickets() -> float:
