@@ -184,7 +184,7 @@ async def tbox(user_id: int) -> str:
         )
         await repo.update_member_material_quantity(user_id, gems_total)
 
-    # await repo.spend_tbox_available(member)
+    await repo.spend_tbox_available(member)
     await repo.insert_material_transaction(
         receiver_id=user_id,
         type_=MaterialTransactionType.tbox,
