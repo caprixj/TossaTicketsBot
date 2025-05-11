@@ -411,7 +411,7 @@ async def get_job_names(user_id: float) -> Optional[List[str]]:
     return await repo.get_employee_position_names(user_id)
 
 
-async def get_total_tpool() -> float:
+async def get_tpool() -> float:
     return sum([
         await get_total_tickets(),
         await get_business_tpool(),

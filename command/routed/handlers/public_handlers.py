@@ -341,7 +341,7 @@ async def tpool(message: Message):
     material_tpool = await service.get_material_tpool()
 
     nbt_tpool = await service.get_nbt_tpool()
-    total_tpool = personal_tpool + business_tpool + artifact_tpool
+    total_tpool = await service.get_tpool()
 
     await message.answer(
         text=f'{glob.TPOOL_PERSONAL}: {personal_tpool:.2f} tc'

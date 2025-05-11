@@ -29,7 +29,7 @@ async def reset_prices(bot: Bot = None):
         return
 
     pr_days_dist = abs((datetime.now().date() - lpr.plan_date.date()).days)
-    total_tpool = await service.get_total_tpool()
+    total_tpool = await service.get_tpool()
     updated_inflation = _get_updated_inflation(total_tpool)
     updated_fluctuation = _get_updated_fluctuation(lpr.fluctuation)
     updated_rate = updated_inflation * updated_fluctuation
