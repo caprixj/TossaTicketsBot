@@ -124,7 +124,9 @@ async def tbox_open(callback: CallbackQuery):
         await callback.answer(glob.ALERT_CALLBACK_ACTION, show_alert=True)
         return
 
-    response = await service.tbox(data.sender_id)
+    member = await service.get_member(data.sender_id)
+    response = await service.tbox(data.sender_id) if member.tbox_available != 0 \
+        else glob.TBOX_UNAVAILABLE_ERROR
 
     await callback.message.edit_reply_markup(reply_markup=None)
     await callback.message.edit_text(response)
@@ -137,16 +139,3 @@ async def tbox_open(callback: CallbackQuery):
 @router.callback_query(lambda c: c.data.startswith(glob.DECORATIVE_KEYBOARD_BUTTON))
 async def decorative_keyboard_button(callback: CallbackQuery):
     await callback.answer()
-
-
-# @router.callback_query(lambda c: c.data.startswith(glob.CLAIM_BHF_CALLBACK))
-# async def claim_bhf(callback: CallbackQuery):
-#     if not await validate_callback(callback):
-#         return
-#
-#     await callback.message.delete()
-#
-#     member = await service.get_member(callback.from_user.id)
-#
-#     await service.claim_bhf(member.user_id)
-#     await callback.message.answer(f'*{glob.BHF_CLAIMED_TEXT}*: {get_formatted_name(member, ping=True)}')
