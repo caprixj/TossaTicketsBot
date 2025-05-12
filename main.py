@@ -6,6 +6,7 @@ from typing import Union
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
+from aiogram.methods import DeleteWebhook
 
 from service import setup, scheduling
 import resources.const.glob as glob
@@ -37,6 +38,8 @@ async def main():
             parse_mode=ParseMode.MARKDOWN
         )
     )
+
+    await bot(DeleteWebhook(drop_pending_updates=True))
 
     dp.message.middleware(ActivityAnalyzerMiddleware())
     dp.message.middleware(SourceFilterMiddleware())
