@@ -48,7 +48,7 @@ async def reset_prices(bot: Bot = None):
     ))
 
     await bot.send_message(
-        chat_id=glob.rms.group_chat_id,
+        chat_id=glob.rms.main_chat_id,
         text=f'{glob.PRICE_RESET_DONE}\n'
              f'{glob.RATE_RESET_TEXT}: {"+" if diff - 1 > 0 else str()}{(diff - 1) * 100:.2f}%'
     )

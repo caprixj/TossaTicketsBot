@@ -40,7 +40,7 @@ async def schedule(bot: Bot):
 async def _reset_tpay_available(bot: Bot):
     await service.reset_tpay_available()
     await bot.send_message(
-        chat_id=glob.rms.group_chat_id,
+        chat_id=glob.rms.main_chat_id,
         text=glob.RESET_TPAY_AVAILABLE_DONE
     )
 
@@ -48,7 +48,7 @@ async def _reset_tpay_available(bot: Bot):
 async def _reset_tbox_available(bot: Bot):
     await service.reset_tbox_available()
     await bot.send_message(
-        chat_id=glob.rms.group_chat_id,
+        chat_id=glob.rms.main_chat_id,
         text=glob.RESET_TBOX_AVAILABLE_DONE
     )
 
@@ -59,14 +59,14 @@ async def _db_backup(bot: Bot):
         document=FSInputFile(glob.rms.db_file_path)
     )
     await bot.send_message(
-        chat_id=glob.rms.group_chat_id,
+        chat_id=glob.rms.main_chat_id,
         text=glob.DB_BACKUP_DONE
     )
 
 
 # async def _spawn_bhf(bot: Bot):
 #     await bot.send_message(
-#         chat_id=glob.rms.group_chat_id,
+#         chat_id=glob.rms.main_chat_id,
 #         text=f'*{glob.SPAWN_BHF_TEXT}*',
 #         reply_markup=bhf_keyboard()
 #     )
@@ -87,7 +87,7 @@ async def _salary_control(bot: Bot):
     if not lsp.paid_out and lsp.plan_date.date() <= datetime.now().date():
         await payout_salaries(lsp.plan_date)
         await bot.send_message(
-            chat_id=glob.rms.group_chat_id,
+            chat_id=glob.rms.main_chat_id,
             text=glob.SALARIES_PAID_OUT
         )
 

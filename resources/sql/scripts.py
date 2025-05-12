@@ -13,9 +13,9 @@ CREATE_MEMBERS = """
         first_name TEXT,
         last_name TEXT,
         tickets REAL NOT NULL DEFAULT 0,
-        tpay_available INTEGER NOT NULL DEFAULT 3,
+        tpay_available INTEGER NOT NULL DEFAULT 3 CHECK(tpay_available >= 0),
         business_account REAL NOT NULL DEFAULT 0,
-        tbox_available INTEGER NOT NULL DEFAULT 1
+        tbox_available INTEGER NOT NULL DEFAULT 1 CHECK(tbox_available >= 0)
     );
 """
 CREATE_ARTIFACTS = """

@@ -11,6 +11,6 @@ class RunMode(str, Enum):
 @dataclass
 class RunModeSettings:
     bot_token: str = None
-    group_chat_id: int = 0
+    main_chat_id: int = 0
     db_backup_chat_id: int = 0
     db_file_path: str = None

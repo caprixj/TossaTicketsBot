@@ -127,15 +127,15 @@ def _get_run_mode_settings(run_mode: RunMode) -> RunModeSettings:
 
         root = ET.parse(fp).getroot()
 
-        for settings in root.findall(".//settings"):
-            if settings.attrib.get("mode") == run_mode.value:
+        for settings in root.findall('.//settings'):
+            if settings.attrib.get('mode') == run_mode.value:
                 return RunModeSettings(
-                    bot_token=settings.find("bot-token").text,
-                    group_chat_id=int(settings.find("group-chat-id").text),
-                    db_backup_chat_id=int(settings.find("db-backup-chat-id").text),
-                    db_file_path=_parse_pathlib(settings.find("db-file-path").text)
+                    bot_token=settings.find('bot-token').text,
+                    main_chat_id=int(settings.find('main-chat-id').text),
+                    db_backup_chat_id=int(settings.find('db-backup-chat-id').text),
+                    db_file_path=_parse_pathlib(settings.find('db-file-path').text)
                 )
 
         raise ValueError(f"No settings found with name '{run_mode.value}'")
 
-    raise IOError("All provided paths do not exist!")
+    raise IOError('All provided paths do not exist!')

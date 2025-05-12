@@ -6,7 +6,7 @@ import resources.const.glob as glob
 
 
 async def _message_important(m: Message) -> bool:
-    return m.chat.id == glob.rms.group_chat_id and not m.from_user.is_bot
+    return m.chat.id == glob.rms.main_chat_id and not m.from_user.is_bot
 
 
 class ActivityAnalyzerMiddleware(BaseMiddleware):
