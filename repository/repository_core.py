@@ -503,7 +503,7 @@ async def spend_tbox_available(user_id: int):
 async def add_member_material(user_id: int, diff: Ingredient):
     mm = await get_member_material(user_id, diff.name)
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
-        if not mm:
+        if mm:
             await db.execute(scripts.ADD_MEMBER_MATERIAL, (
                 diff.quantity,
                 user_id,
