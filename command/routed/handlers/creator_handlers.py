@@ -9,7 +9,7 @@ import resources.const.glob as glob
 from command.parser.keyboards.keyboards import hide_keyboard
 from model.database import AwardMemberJunction
 from resources.funcs.funcs import get_formatted_name
-from service import service_core as service
+from service import service_core as service, scheduling
 from service.price_manager import reset_prices
 from command.parser.core import cog
 from command.parser.core.overload import CommandOverload, CommandOverloadGroup
@@ -239,6 +239,24 @@ async def reset_price(message: Message):
 
     await reset_prices()
     await message.answer(glob.RESET_PRICE_COMMAND_DONE)
+
+
+@router.message(Command(cl.sched.name))
+async def sched(message: Message):
+    if not await validate_message(message):
+        return
+
+    og = CommandOverloadGroup([
+        CommandOverload(creator_required=True)
+    ])
+    cpr = await CommandParser(message, og).parse()
+
+    if not cpr.valid:
+        await _reply_by_crv(message, cpr)
+        return
+
+    await scheduling.daily_sched()
+    await message.answer(glob.DAILY_SCHEDULE_DONE)
 
 
 @router.message(Command(cl.unreg.name))

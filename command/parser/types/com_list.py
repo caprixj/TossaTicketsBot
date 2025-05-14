@@ -23,6 +23,8 @@ class CommandList(str, Enum):
     hire = 'hire'
     # cog: a1_any
     fire = 'fire'
+    # /sched
+    sched = 'sched'
     # /resetprice
     resetprice = 'resetprice'
     # /unreg

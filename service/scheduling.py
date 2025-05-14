@@ -19,7 +19,7 @@ async def schedule(bot: Bot):
     aiosch.add_job(_db_backup, args=[bot], trigger='cron', hour=12, minute=1)
 
     for h in range(1, 24):
-        aiosch.add_job(_daily_schedule, args=[bot], trigger='cron', hour=h, minute=0)
+        aiosch.add_job(daily_sched, args=[bot], trigger='cron', hour=h, minute=0)
 
     aiosch.start()
 
@@ -31,7 +31,7 @@ async def _db_backup(bot: Bot):
     )
 
 
-async def _daily_schedule(bot: Bot):
+async def daily_sched(bot: Bot = None):
     lds = await repo.get_last_daily_schedule_date()
 
     # next cases mean that something must have gone wrong in the database records
@@ -51,10 +51,11 @@ async def _daily_schedule(bot: Bot):
 
     await repo.insert_daily_schedule(date=funcs.get_current_datetime())
 
-    await bot.send_message(
-        chat_id=glob.rms.main_chat_id,
-        text=f'*{glob.DAILY_SCHEDULE_DONE}*'
-    )
+    if bot:
+        await bot.send_message(
+            chat_id=glob.rms.main_chat_id,
+            text=f'*{glob.DAILY_SCHEDULE_DONE}*'
+        )
 
 
 async def _salary_control():

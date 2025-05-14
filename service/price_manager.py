@@ -47,10 +47,11 @@ async def reset_prices(bot: Bot = None):
         fact_date=get_current_datetime()
     ))
 
-    await bot.send_message(
-        chat_id=glob.rms.main_chat_id,
-        text=f'{glob.RATE_RESET_TEXT}: {"+" if diff - 1 > 0 else str()}{(diff - 1) * 100:.2f}%'
-    )
+    if bot:
+        await bot.send_message(
+            chat_id=glob.rms.main_chat_id,
+            text=f'{glob.RATE_RESET_TEXT}: {"+" if diff - 1 > 0 else str()}{(diff - 1) * 100:.2f}%'
+        )
 
 
 def _get_updated_fluctuation(last_fluctuation: float) -> float:
