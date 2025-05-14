@@ -15,18 +15,27 @@ async def balm(data: list[Ingredient], title: str) -> list[str]:
     if not data:
         return [f'{title}\n\n<i>{glob.BALM_BALANCE_EMPTY}</i>']
 
-    gemstones_page = str()
-    intermediates_page = str()
-    artifact_templates_page = str()
+    # dict[str, int]
+    gemstones_rows = {}
+    intermediates_rows = {}
+    artifact_templates_rows = {}
 
     for ing in data:
-        row = f'{ing.quantity}{await service.get_emoji(ing.name)} ({ing.name})\n'
+        row = (f'{ing.quantity}{await service.get_emoji(ing.name)} '
+               f'({await service.get_formatted_material_name(ing.name)})\n')
         if await service.is_gem(ing.name):
-            gemstones_page += row
+            gemstones_rows[row] = ing.quantity
         elif await service.is_intermediate(ing.name):
-            intermediates_page += row
+            intermediates_rows[row] = ing.quantity
         elif await service.is_artifact_template(ing.name):
-            artifact_templates_page += row
+            artifact_templates_rows[row] = ing.quantity
+
+    def _form_page(rows: dict[str, int]) -> str:
+        return ''.join(sorted(rows, key=rows.get, reverse=True))
+
+    gemstones_page = _form_page(gemstones_rows)
+    intermediates_page = _form_page(intermediates_rows)
+    artifact_templates_page = _form_page(artifact_templates_rows)
 
     if not gemstones_page:
         gemstones_page = f'<i>{glob.BALM_NO_GEMSTONES}</i>'
@@ -80,7 +89,26 @@ async def ltrans(dto: LTransDTO, title: str) -> list[str]:
 
         rows.append((row, tpay.time))
 
-    return _form_pages(title, _sorted_by_datetime(rows))
+    pages = []
+    cur_page = []
+    cur_page_size = 0
+    sorted_rows = _sorted_by_datetime(rows)
+
+    for row in sorted_rows:
+        row_size = 1 + ceil(len(row) / PAGE_ROW_CHAR_LIMIT)
+
+        if cur_page_size + row_size <= PAGE_ROWS_COUNT_LIMIT:
+            cur_page.append(row)
+            cur_page_size += row_size
+        else:
+            pages.append('\n\n'.join([title, *cur_page]))
+            cur_page = [row]
+            cur_page_size = row_size
+
+    if cur_page:
+        pages.append('\n\n'.join([title, *cur_page]))
+
+    return pages
 
 
 async def laward(result: list[AwardDTO], title: str) -> list[str]:
@@ -119,25 +147,3 @@ def _find_member(members: list[Member], user_id: int) -> Member:
             return m
 
     raise RuntimeError('member not found in unique_tpay_members')
-
-
-def _form_pages(title: str, rows: list[str]) -> list[str]:
-    pages = []
-    cur_page = []
-    cur_page_size = 0
-
-    for row in rows:
-        row_size = 1 + ceil(len(row) / PAGE_ROW_CHAR_LIMIT)
-
-        if cur_page_size + row_size <= PAGE_ROWS_COUNT_LIMIT:
-            cur_page.append(row)
-            cur_page_size += row_size
-        else:
-            pages.append('\n\n'.join([title, *cur_page]))
-            cur_page = [row]
-            cur_page_size = row_size
-
-    if cur_page:
-        pages.append('\n\n'.join([title, *cur_page]))
-
-    return pages

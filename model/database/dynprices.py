@@ -7,7 +7,7 @@ from resources.const.glob import DATETIME_FORMAT
 class Price:
     def __init__(self,
                  product_name: str = None,
-                 product_type: ProductType = ProductType.unclassified,
+                 product_type: ProductType = ProductType.unknown,
                  price: float = 0.0):
         self.product_name = product_name
         self.product_type = product_type
@@ -32,7 +32,7 @@ class PriceHistory:
     def __init__(self,
                  price_history_id: int = 0,
                  product_name: str = None,
-                 product_type: ProductType = ProductType.unclassified,
+                 product_type: ProductType = ProductType.unknown,
                  price: float = 0.0,
                  reset_date: str = None):
         self.price_history_id = price_history_id

@@ -16,7 +16,7 @@ from service import service_core as service
 
 
 async def reset_prices(bot: Bot = None):
-    lpr = await repo.get_last_price_reset()
+    lpr = await repo.get_last_rate_history()
 
     # theoretically means something happened to the database records
     if lpr is None:
@@ -36,7 +36,7 @@ async def reset_prices(bot: Bot = None):
     diff = updated_rate / (lpr.inflation * lpr.fluctuation)
 
     await repo.reset_prices(diff)
-    await repo.reset_artifact_values(diff)
+    await repo.reset_artifact_investments(diff)
     await _reset_gem_rates(updated_rate)
 
     await repo.expand_price_history()
@@ -49,8 +49,7 @@ async def reset_prices(bot: Bot = None):
 
     await bot.send_message(
         chat_id=glob.rms.main_chat_id,
-        text=f'{glob.PRICE_RESET_DONE}\n'
-             f'{glob.RATE_RESET_TEXT}: {"+" if diff - 1 > 0 else str()}{(diff - 1) * 100:.2f}%'
+        text=f'{glob.RATE_RESET_TEXT}: {"+" if diff - 1 > 0 else str()}{(diff - 1) * 100:.2f}%'
     )
 
 
@@ -85,9 +84,12 @@ async def _reset_gem_rates(updated_rate: float):
     for name, df in delta_freq.items():
         fluct = random.uniform(0.98, 1.02)
         gem_price = GEM_BASE_PRICE * updated_rate * fluct
+
         if df < MIN_DELTA_GEM_RATE:
-            await repo.reset_gem_rate(name, gem_price / MIN_DELTA_GEM_RATE)
+            updated_price = round(gem_price / MIN_DELTA_GEM_RATE, 7)
         elif df > MAX_DELTA_GEM_RATE:
-            await repo.reset_gem_rate(name, gem_price / MAX_DELTA_GEM_RATE)
+            updated_price = round(gem_price / MAX_DELTA_GEM_RATE, 7)
         else:
-            await repo.reset_gem_rate(name, gem_price / df)
+            updated_price = round(gem_price / df, 7)
+
+        await repo.reset_gem_rate(name, updated_price)

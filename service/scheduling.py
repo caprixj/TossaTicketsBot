@@ -3,54 +3,25 @@ from datetime import datetime, timedelta
 from aiogram import Bot
 
 from model.database import SalaryPayout
-from service import service_core as service
+from resources.funcs import funcs
+from service import service_core as service, price_manager
 from aiogram.types import FSInputFile
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 import resources.const.glob as glob
-# from service.price_manager import reset_prices
-from service.service_core import payout_salaries
 from repository import repository_core as repo
 
 aiosch = AsyncIOScheduler()
 
 
 async def schedule(bot: Bot):
-    aiosch.add_job(_reset_tpay_available, args=[bot], trigger='cron', hour=0, minute=1)
-    aiosch.add_job(_reset_tbox_available, args=[bot], trigger='cron', hour=0, minute=1)
     aiosch.add_job(_db_backup, args=[bot], trigger='cron', hour=0, minute=1)
+    aiosch.add_job(_db_backup, args=[bot], trigger='cron', hour=12, minute=1)
 
-    # if random.random() < 3/7:
-    #     h = random.randint(0, 23)
-    #     m = random.randint(0, 59)
-    #     aiosch.add_job(_spawn_bhf, args=[bot], trigger='cron', hour=h, minute=m)
-
-    # (!) DO NOT DELETE (!)
-
-    # for h in range(1, 24):
-    #     aiosch.add_job(reset_prices, args=[bot], trigger='cron', hour=h, minute=0)
-
-    aiosch.add_job(_salary_control, args=[bot], trigger='cron', hour=6, minute=0)
-    aiosch.add_job(_salary_control, args=[bot], trigger='cron', hour=12, minute=0)
-    aiosch.add_job(_salary_control, args=[bot], trigger='cron', hour=18, minute=0)
+    for h in range(1, 24):
+        aiosch.add_job(_daily_schedule, args=[bot], trigger='cron', hour=h, minute=0)
 
     aiosch.start()
-
-
-async def _reset_tpay_available(bot: Bot):
-    await service.reset_tpay_available()
-    await bot.send_message(
-        chat_id=glob.rms.main_chat_id,
-        text=glob.RESET_TPAY_AVAILABLE_DONE
-    )
-
-
-async def _reset_tbox_available(bot: Bot):
-    await service.reset_tbox_available()
-    await bot.send_message(
-        chat_id=glob.rms.main_chat_id,
-        text=glob.RESET_TBOX_AVAILABLE_DONE
-    )
 
 
 async def _db_backup(bot: Bot):
@@ -58,21 +29,35 @@ async def _db_backup(bot: Bot):
         chat_id=glob.rms.db_backup_chat_id,
         document=FSInputFile(glob.rms.db_file_path)
     )
+
+
+async def _daily_schedule(bot: Bot):
+    lds = await repo.get_last_daily_schedule_date()
+
+    # next cases mean that something must have gone wrong in the database records
+    if lds is None:
+        raise RuntimeError('No last daily schedule found!')
+
+    # if the last daily schedule from db is today
+    # then we skip the update
+    if datetime.now().date() == lds.date():
+        return
+
+    await service.reset_tpay_available()
+    await service.reset_tbox_available()
+    await price_manager.reset_prices(bot)
+    await service.payout_profits()
+    await _salary_control()
+
+    await repo.insert_daily_schedule(date=funcs.get_current_datetime())
+
     await bot.send_message(
         chat_id=glob.rms.main_chat_id,
-        text=glob.DB_BACKUP_DONE
+        text=f'*{glob.DAILY_SCHEDULE_DONE}*'
     )
 
 
-# async def _spawn_bhf(bot: Bot):
-#     await bot.send_message(
-#         chat_id=glob.rms.main_chat_id,
-#         text=f'*{glob.SPAWN_BHF_TEXT}*',
-#         reply_markup=bhf_keyboard()
-#     )
-
-
-async def _salary_control(bot: Bot):
+async def _salary_control():
     lsp = await repo.get_last_salary_payout()
 
     # next cases mean that something must have gone wrong in the database records
@@ -85,11 +70,7 @@ async def _salary_control(bot: Bot):
     # and we passed the date of the last salary payout (or today is the payout day)
     # then we pay out the salaries
     if not lsp.paid_out and lsp.plan_date.date() <= datetime.now().date():
-        await payout_salaries(lsp.plan_date)
-        await bot.send_message(
-            chat_id=glob.rms.main_chat_id,
-            text=glob.SALARIES_PAID_OUT
-        )
+        await service.payout_salaries(lsp.plan_date)
 
     # if the next payout is not present in db
     # then we create and insert it into db

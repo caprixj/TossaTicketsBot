@@ -13,19 +13,22 @@ CREATOR_USERNAME = '@capri_xj'
 DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S'
 
 NBT_SQL_VAR = 'nbt'
+NBT_ID = -1
 
 UNI_TAX = 0.17  # F
-MIN_FEE = 1      # M
+MIN_FEE = 1     # M
 
 INFL_ALPHA = 0.9
 FLUCT_GAUSS_SIGMA = 0.009
 MAX_FLUCT = 1.1
 MIN_FLUCT = 0.9
-INIT_TPOOL = 1315.15  # 2025-03-17
-# INIT_TPOOL = 4333.62  # 2025-05-06 00:25:00
+INIT_TPOOL = 4400.0  # ~ for 2025-05-13
 
 PAGE_ROW_CHAR_LIMIT = 25
 PAGE_ROWS_COUNT_LIMIT = 40
+
+MSELL_BTN_ROW_LIMIT = 5
+MSELL_ITEMS_LIMIT = 30
 
 GEM_BASE_PRICE = 0.2972122
 MIN_DELTA_GEM_RATE = 0.5
@@ -36,8 +39,13 @@ GEM_FREQ_SIGMA = 0.4
 MIN_GEM_COUNT_TBOX = 1
 MAX_GEM_COUNT_TBOX = 29
 
-MATERIALS_YAML_PATH = 'model/yaml/materials.yaml'
+ARTIFACT_AGE_MULTIPLIER = 0.002
+ARTIFACT_OWNER_PROFIT_RATE = 0.01
+MIN_ARTIFACT_INIT_INVEST = 10
+
+ARTIFACT_PROFIT_YAML_PATH = 'model/yaml/artifact_profit.yaml'
 GEM_FREQ_YAML_PATH = 'model/yaml/gem_freq.yaml'
+MATERIALS_YAML_PATH = 'model/yaml/materials.yaml'
 RECIPES_YAML_PATH = 'model/yaml/recipes.yaml'
 
 TICKETS_ARG = 'tickets'
@@ -65,6 +73,9 @@ HELP_HIDE_CALLBACK = 'help_hide'
 AWARD_HIDE_CALLBACK = 'award_hide'
 TOPT_HIDE_CALLBACK = 'topt_hide'
 CLAIM_BHF_CALLBACK = 'claim_bhf'
+MSELL_CHOOSE_MATERIAL_CALLBACK = 'msell_cm'
+MSELL_YES_CALLBACK = 'msell_yes'
+MSELL_NO_CALLBACK = 'msell_no'
 
 PV_BACK_CALLBACK = 'pv_back'
 PV_FORWARD_CALLBACK = 'pv_forward'
@@ -75,23 +86,20 @@ NO_OVERLOADS_ERROR = 'PARSING WITHOUT OVERLOADS IN COMMAND PARSER!'
 DOUBLE_TARGETING_ERROR = 'TRYING TO PUT TWO TARGET-TYPED ARGUMENTS INTO COMMAND OVERLOAD!'
 CREATOR_REQUIRED_VIOLATION = 'CREATOR_REQUIRED_VIOLATION'
 
-RESET_TPAY_AVAILABLE_DONE = 'ℹ️ number of available transfers updated'
-RESET_TBOX_AVAILABLE_DONE = 'ℹ️ number of available tboxes updated'
-DB_BACKUP_DONE = 'ℹ️ database backup saved'
-PRICE_RESET_DONE = 'ℹ️ the prices, artifact values and ticket inflation rate have been updated'
-SALARIES_PAID_OUT = 'ℹ️ salaries paid'
-
 CONTINUE_BTN = '✅ continue'
 CANCEL_BTN = '❌ cancel'
 INCORPORATE_FEE_BTN = '➕ tax inside'
 HIDE_BTN = '🗑 hide'
 OPEN_TBOX_BTN = '➡️ open!'
-# CLAIM_BTN = '➡️ claim'
 
+DAILY_SCHEDULE_DONE = 'ℹ️ updated!'
 ADDT_TEXT = '📈 tickets added!'
 DELT_TEXT = '📉 tickets removed!'
 SETT_TEXT = '🔄 tickets reset!'
 TPAY_TEXT = '🔀 tickets transferred!'
+MSELL_TEXT = (f'📦 choose the material to sell to the national bank of ticketonomics'
+              f'\n\nℹ️ the limit is {MSELL_ITEMS_LIMIT} items per day'
+              f'\n_material emoji (amount you own)_')
 AWARD_SUCCESS = '🎖 the member has been awarded!'
 REG_SUCCESS = '🎉 successfully signed up!\nwelcome to ticketonomics'
 UNREG_TEXT = '☠️ mercilessly kicked out of ticketonomics'
@@ -104,8 +112,6 @@ TBOX_OPENED_TEXT = 'your tbox reward'
 SQL_SUCCESS = '✅ command executed!'
 MEMBER_HIRED = '✅💼 member hired for the position!'
 RESET_PRICE_COMMAND_DONE = '✅ manual price reset executed based on the ticket inflation rate'
-# SPAWN_BHF_TEXT = '🔨 banhammer fragments found!'
-# BHF_CLAIMED_TEXT = '🔨 banhammer fragments claimed!\nby member'
 MEMBER_ALREADY_HIRED = '❌ member already holds this position!'
 MEMBER_FIRED = '❌💼 member has been fired!'
 MEMBER_ALREADY_FIRED = '❌ cannot fire member as he does not hold this position!'
@@ -117,17 +123,21 @@ ALERT_CALLBACK_NO = 'you cannot cancel this action!'
 ALERT_CALLBACK_ACTION = 'you cannot perform this action!'
 CALLBACK_FLOOD_CONTROL = 'not so fast! at this rate, telegram will send ticketo-chan to hell.. (wait at least 20 seconds)'
 
+PRIVATE_REQUIRED_VIOLATION = '⚠️ this command can be used only in the private messages of the bot'
 AWARD_DUPLICATE = '❌ participant already has this award!'
 REG_DENIED_CTT_NONE = '❌ you are already a participant in ticketonomics!'
 REG_DENIED_CTT_REPLY = '❌ this participant is already part of ticketonomics!'
 SQL_FAILED = '❌ command rejected!'
-COM_PARSER_FAILED = '❌ invalid command format!'
+COM_PARSER_FAILED = '❌ invalid command!'
 TARGET_NOT_MEMBER_ERROR = '❌ the specified user is not a ticketonomics member!'
 GET_MEMBER_FAILED = '❌ member not found! check the id you entered'
 GET_AWARD_FAILED = '❌ specified award does not exist! check the id you entered'
 SERVICE_OPERATION_NONE_RESULT = '😔 couldn’t complete the operation..'
 NOT_MEMBER_ERROR = '❌ to use the bot, you must be a member of the sfs chat and send the /reg command. more instructions can be found at /help'
 TBOX_UNAVAILABLE_ERROR = '❌ you already opened a tbox today!'
+TPAY_UNAVAILABLE_ERROR = '❌ rejected! daily transaction limit reached'
+MSELL_QUANTITY_INVALID = '❌ invalid input! try again (reply required!)'
+MSELL_ITEMS_LIMIT_REACHED = "❌ too much! consider the limit. *sell cancelled*"
 
 BAL_NAME = "🪪 name"
 BAL_PERSONAL = '💳 personal account'
@@ -140,6 +150,7 @@ BALM_NO_GEMSTONES = 'you have no gemstones yet.. 😶‍🌫️'
 BALM_NO_INTERMEDIATES = 'you have no intermediates yet.. 😶‍🌫️'
 BALM_NO_ARTIFACT_TEMPLATES = 'you have no artifact templates yet.. 😶‍🌫️'
 BALM_TITLE = '<b>📦 materials account</b>'
+BALM_MEMBER = 'member'
 BALM_START_TEXT = """
 page 1 - gemstones
 page 2 - intermediates
@@ -156,6 +167,7 @@ LTRANS_START_TEXT = """
 ✨ - transfer by creator
 """
 LTRANS_TRANS_HISTORY_EMPTY = 'your transactions history is empty.. 😶‍🌫️'
+LTRANS_MEMBER = 'member'
 LTRANS_FROM = 'from'
 LTRANS_TO = 'to'
 LTRANS_TEXT = 'text'
@@ -165,6 +177,10 @@ LAWARD_TITLE = '<b>📯 awards board</b>'
 TOPT_FULL = '(full)'
 TOPT_TICKETS_TOTAL = 'tickets tpool'
 TOPT_BANKRUPT = 'bankrupt'
+
+RATES_REAL_INFL = 'real inflation'
+RATES_PURE_INFL = 'pure inflation'
+RATES_FLUCT = 'fluctuation'
 
 P_BASE_PRICE = 'base price (17 march 2025)'
 P_ADJUSTED_PRICE = 'adjusted price'
@@ -198,7 +214,19 @@ TPAY_AMOUNT = 'amount'
 TPAY_TAX = 'tax'
 TPAY_DESCRIPTION = 'text'
 
-RATE_RESET_TEXT = 'the ticket rate change'
+MSELL_CHOSEN_MATERIAL_EMOJI = '📦 chosen material'
+MSELL_CHOSEN_MATERIAL = 'chosen material'
+MSELL_ASK_QUANTITY = 'enter how many to sell\n_(reply required!)_'
+MSELL_FIELD_PLACEHOLDER = 'for example, 73'
+MSELL_MATERIALS_TO_SELL = '📄 materials to sell'
+MSELL_PRICE = 'price'
+MSELL_REVENUE = 'revenue'
+MSELL_TAX = 'tax'
+MSELL_INCOME = 'income'
+MSELL_YES = '✅ sold for'
+MSELL_NO = '✖️ sell cancelled'
+
+RATE_RESET_TEXT = 'ℹ️ inflation'
 
 PAGE_GEN_NO_AWARDS = 'you have no awards yet.. 😔'
 PAGE_GEN_AWARDS = 'awards'

@@ -5,6 +5,7 @@ from datetime import datetime
 
 import aiofiles
 import yaml
+from aiogram.types import Message
 
 from model.database import Material
 from model.database.member import Member
@@ -36,6 +37,10 @@ def get_formatted_name(member: Member, ping: bool = False) -> str:
 
     return f"[{_escape_brackets(name)}](tg://user?id={member.user_id})" \
         if ping else _escape_markdown_v2(name)
+
+
+def get_command(message: Message) -> str:
+    return message.text.split()[0].split('@')[0].lstrip('/')
 
 
 async def get_materials_yaml() -> list[Material]:

@@ -11,9 +11,11 @@ class CommandParserResult:
                  message: Message = None,
                  overload: Optional[CommandOverload] = None,
                  args: Optional[Dict[str, Any]] = None,
-                 creator_required_violation: bool = False):
+                 creator_required_violation: bool = False,
+                 private_required_violation: bool = False):
         self.valid = valid
         self.message = message
         self.overload = overload
         self.args = args
         self.creator_required_violation = creator_required_violation
+        self.private_required_violation = private_required_violation

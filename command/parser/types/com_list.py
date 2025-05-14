@@ -28,6 +28,9 @@ class CommandList(str, Enum):
     # /unreg
     unreg = 'unreg'
 
+    # cog: pure
+    xltrans = 'xltrans'
+
     # # # # # # # # #
     # for all users
 
@@ -43,7 +46,11 @@ class CommandList(str, Enum):
     tbox = 'tbox'
     # cog: tickets-pnreal
     tpay = 'tpay'
-    # cog: pure
+    # /mbuy
+    mbuy = 'mbuy'
+    # /msell
+    msell = 'msell'
+    # /ltrans
     ltrans = 'ltrans'
     # cog: pure
     laward = 'laward'
@@ -54,6 +61,8 @@ class CommandList(str, Enum):
     topt = 'topt'
     # /tpool
     tpool = 'tpool'
+    # /rates
+    rates = 'rates'
     # /alert
     alert = 'alert'
     # /unalert

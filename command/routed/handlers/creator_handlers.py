@@ -6,7 +6,7 @@ from aiogram.filters import Command
 from aiogram.types import Message
 
 import resources.const.glob as glob
-from command.routed.keyboards.keyboards import hide_keyboard
+from command.parser.keyboards.keyboards import hide_keyboard
 from model.database import AwardMemberJunction
 from resources.funcs.funcs import get_formatted_name
 from service import service_core as service

@@ -2,7 +2,7 @@ from enum import Enum
 
 
 class ProductType(str, Enum):
-    unclassified = 'unclassified'
-    prime = 'prime'
+    unknown = 'unknown'
+    gemstone = 'gemstone'
     craft = 'craft'
     service = 'service'

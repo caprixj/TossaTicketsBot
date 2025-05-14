@@ -1,7 +1,7 @@
 import copy
 import random
 from datetime import datetime
-from typing import Union, Optional, List
+from typing import Optional, List, Any
 
 import aiofiles
 import yaml
@@ -12,8 +12,10 @@ from command.parser.results.parser_result import CommandParserResult
 from command.parser.types.target_type import CommandTargetType as ctt
 from model.database import Award, AwardMemberJunction, Member, AddtTransaction, DeltTransaction, TpayTransaction, \
     Recipe, Ingredient, Artifact, Material
+from model.database.transactions import BusinessProfitTransaction, MaterialTransaction
 from model.dto import AwardDTO, LTransDTO, TransactionResultDTO
-from model.types import TransactionResultErrors as TRE, TicketTransactionType
+from model.types import TransactionResultErrors as TRE, TicketTransactionType, ArtifactType
+from model.types.profit_type import ProfitType
 from model.types.transaction_types import MaterialTransactionType
 from repository.ordering_type import OrderingType
 from repository import repository_core as repo
@@ -26,8 +28,8 @@ operation_manager: ServiceOperationManager = ServiceOperationManager()
 _recipes: list[Recipe] = list()
 _materials: list[Material] = list()
 _gem_freq: dict[str, float] = dict()
+_artifact_profit: dict[str, float] = dict()
 alert_pin: Optional[Message] = None
-
 
 """ Global Getters """
 
@@ -68,6 +70,16 @@ async def _get_gem_freq() -> dict[str, float]:
     return _gem_freq
 
 
+async def _get_artifact_profits_dict() -> dict[str, float]:
+    global _artifact_profit
+
+    if not _artifact_profit:
+        async with aiofiles.open(glob.ARTIFACT_PROFIT_YAML_PATH, 'r', encoding='utf-8') as f:
+            _artifact_profit = yaml.safe_load(await f.read())
+
+    return _artifact_profit
+
+
 """ General """
 
 
@@ -75,8 +87,9 @@ async def execute_sql(query: str) -> (bool, str):
     return await repo.execute_external(query)
 
 
-async def _add_tickets(member: Member, tickets: float, transaction_type: TicketTransactionType, description: str = None):
-    member.tickets += tickets
+async def _add_tickets(member: Member, tickets: float, transaction_type: TicketTransactionType,
+                       description: str = None):
+    member.tickets = round(member.tickets + tickets, 2)
     time = get_current_datetime()
 
     await repo.update_member_tickets(member)
@@ -89,8 +102,9 @@ async def _add_tickets(member: Member, tickets: float, transaction_type: TicketT
     ))
 
 
-async def _delete_tickets(member: Member, tickets: float, transaction_type: TicketTransactionType, description: str = None):
-    member.tickets -= tickets
+async def _delete_tickets(member: Member, tickets: float, transaction_type: TicketTransactionType,
+                          description: str = None):
+    member.tickets = round(member.tickets - tickets, 2)
     time = get_current_datetime()
 
     await repo.update_member_tickets(member)
@@ -103,7 +117,8 @@ async def _delete_tickets(member: Member, tickets: float, transaction_type: Tick
     ))
 
 
-async def _set_tickets(member: Member, tickets: float, transaction_type: TicketTransactionType, description: str = None):
+async def _set_tickets(member: Member, tickets: float, transaction_type: TicketTransactionType,
+                       description: str = None):
     if member.tickets == tickets:
         return
 
@@ -128,6 +143,20 @@ async def _set_tickets(member: Member, tickets: float, transaction_type: TicketT
 
     member.tickets = tickets
     await repo.update_member_tickets(member)
+
+
+async def _profit_business_account(member: Member, transfer: float, profit_type: ProfitType, artifact_id: int):
+    member.business_account = round(member.business_account + transfer, 2)
+    date = get_current_datetime()
+
+    await repo.update_member_business_account(member)
+    await repo.insert_business_profit(BusinessProfitTransaction(
+        user_id=member.user_id,
+        profit_type=profit_type,
+        transfer=transfer,
+        date=date,
+        artifact_id=artifact_id
+    ))
 
 
 """ Public Interfaces """
@@ -172,26 +201,20 @@ async def balm(user_id: int) -> list[Ingredient]:
 
 async def tbox(user_id: int) -> str:
     member = await get_member(user_id)
+
+    if member.tbox_available == 0:
+        return glob.TBOX_UNAVAILABLE_ERROR
+
     gems = await _get_rand_gemstones()
-
-    mm = await repo.get_member_material(user_id, gems.name)
-    if mm is None:
-        await repo.insert_member_material(user_id, gems)
-    else:
-        gems_total = Ingredient(
-            name=gems.name,
-            quantity=mm.quantity + gems.quantity
-        )
-        await repo.update_member_material_quantity(user_id, gems_total)
-
-    await repo.spend_tbox_available(member)
-    await repo.insert_material_transaction(
+    await repo.spend_tbox_available(member.user_id)
+    await repo.add_member_material(user_id, gems)
+    await repo.insert_material_transaction(MaterialTransaction(
         receiver_id=user_id,
         type_=MaterialTransactionType.tbox,
         material_name=gems.name,
         quantity=gems.quantity,
         date=get_current_datetime()
-    )
+    ))
 
     return (f"*{glob.TBOX_OPENED_TEXT}*\n"
             f"{glob.TBOX_MEMBER}: {get_formatted_name(member)}\n\n"
@@ -205,16 +228,16 @@ async def tpay(sender: Member, receiver: Member, transfer: float, description: s
     if total > sender.tickets:
         return TransactionResultDTO(TRE.insufficient_funds)
 
-    time = get_current_datetime()
+    current_datetime = get_current_datetime()
 
     # sender: -transfer -tpay_available
     sender.tickets -= transfer
+    await repo.spend_tpay_available(sender.user_id)
     await repo.update_member_tickets(sender)
-    await repo.spend_tpay_available(sender)
     await repo.insert_delt(DeltTransaction(
         user_id=sender.user_id,
         tickets=transfer,
-        time=time,
+        time=current_datetime,
         description=description,
         type_=TicketTransactionType.tpay
     ))
@@ -225,9 +248,9 @@ async def tpay(sender: Member, receiver: Member, transfer: float, description: s
     await repo.insert_delt(DeltTransaction(
         user_id=sender.user_id,
         tickets=fee,
-        time=time,
+        time=current_datetime,
         description=description,
-        type_=TicketTransactionType.tpay_fee
+        type_=TicketTransactionType.tpay_tax
     ))
 
     # receiver: +transfer
@@ -236,7 +259,7 @@ async def tpay(sender: Member, receiver: Member, transfer: float, description: s
     await repo.insert_addt(AddtTransaction(
         user_id=receiver.user_id,
         tickets=transfer,
-        time=time,
+        time=current_datetime,
         description=description,
         type_=TicketTransactionType.tpay
     ))
@@ -247,7 +270,7 @@ async def tpay(sender: Member, receiver: Member, transfer: float, description: s
         receiver_id=receiver.user_id,
         transfer=transfer,
         fee=fee,
-        time=time,
+        time=current_datetime,
         description=description
     ))
 
@@ -310,6 +333,36 @@ async def topt(size: int = 0, percent_mode: bool = False, id_mode: bool = False)
             result += '\n'
 
     return result
+
+
+async def tpool() -> str:
+    personal_tpool = await get_total_tickets()
+    business_tpool = await get_business_tpool()
+    artifact_tpool = await get_artifact_tpool()
+    material_tpool = await get_material_tpool()
+
+    nbt_tpool = await get_nbt_tpool()
+    total_tpool = await get_tpool()
+
+    return (f'{glob.TPOOL_PERSONAL}: {personal_tpool:.2f} tc'
+            f'\n{glob.TPOOL_BUSINESS}: {business_tpool:.2f} tc'
+            f'\n{glob.TPOOL_ARTIFACT}: {artifact_tpool:.2f} tc'
+            f'\n{glob.TPOOL_MATERIAL}: {material_tpool:.2f} tc'
+            f'\n\n{glob.TPOOL_NBT}: {nbt_tpool:.2f} tc'
+            f'\n*{glob.TPOOL_TOTAL}: {total_tpool:.2f} tc*')
+
+
+async def rates() -> str:
+    rh = await repo.get_last_rate_history()
+
+    gem_rates_view = str()
+    for name, rate in (await repo.get_gem_prices_dict()).items():
+        gem_rates_view += f'\n{await get_emoji(name)}*{name}*: {rate:.7f} tc'
+
+    return (f'*\n{glob.RATES_REAL_INFL}: {(rh.inflation * rh.fluctuation - 1) * 100:.2f}%*'
+            f'\n\n{glob.RATES_PURE_INFL}: {(rh.inflation - 1) * 100:.2f}%'
+            f'\n{glob.RATES_FLUCT}: {(rh.fluctuation - 1) * 100:.2f}%'
+            f'\n{gem_rates_view}')
 
 
 async def p(price: float) -> str:
@@ -433,7 +486,7 @@ async def get_business_tpool() -> float:
 
 
 async def get_artifact_tpool() -> float:
-    return sum(a.investment for a in await repo.get_all_artifacts())
+    return sum(a.age_multiplier() * a.investment for a in await repo.get_all_artifacts())
 
 
 async def get_material_tpool() -> float:
@@ -446,11 +499,11 @@ async def get_material_tpool() -> float:
         for a in await repo.get_all_artifacts()
     ])
 
-    return artifact_mtpool + raw_mtpool
+    return round(artifact_mtpool + (1 - glob.UNI_TAX) * raw_mtpool, 2)
 
 
 async def get_artifact_price(a: Artifact) -> float:
-    return a.investment + await get_artifact_creation_price(a)
+    return a.age_multiplier() * a.investment + await get_artifact_creation_price(a)
 
 
 async def get_artifact_creation_price(a: Artifact) -> float:
@@ -543,22 +596,30 @@ async def get_emoji(material_name: str) -> str:
             return m.emoji
 
 
+async def get_material_name(emoji: str) -> str:
+    for m in await _get_materials():
+        if m.emoji == emoji:
+            return m.name
+
+
+async def get_sold_items_count_today(user_id: int) -> int:
+    return await repo.get_sold_items_count_today(user_id)
+
+
+async def get_material_price(material_name: str) -> float:
+    return await repo.get_material_price(material_name)
+
+
 """ Member """
 
 
-async def create_member(value: Union[Member, User]) -> None:
-    if isinstance(value, Member):
-        await repo.insert_member(value)
-    elif isinstance(value, User):
-        member = Member(
-            user_id=value.id,
-            username=value.username,
-            first_name=value.first_name,
-            last_name=value.last_name
-        )
-        await repo.insert_member(member)
-    else:
-        raise TypeError()
+async def create_member(user: User) -> None:
+    await repo.insert_member(Member(
+        user_id=user.id,
+        username=user.username,
+        first_name=user.first_name,
+        last_name=user.last_name
+    ))
 
 
 async def update_member(user: User, member: Member = None):
@@ -595,6 +656,95 @@ async def pay_award(member: Member, payment: float, description: str):
     await _add_tickets(member, payment, TicketTransactionType.award, description)
 
 
+""" Msell """
+
+
+async def msell_markup(user_id: int) -> list[list[str]]:
+    materials = await repo.get_all_member_materials(user_id)
+
+    # dict[str, int]
+    gemstone_buttons = {}
+    intermediates_buttons = {}
+    artifact_templates_buttons = {}
+
+    for ing in materials:
+        btn = f'{await get_emoji(ing.name)} {ing.quantity}\n'
+        if await is_gem(ing.name):
+            gemstone_buttons[btn] = ing.quantity
+        elif await is_intermediate(ing.name):
+            intermediates_buttons[btn] = ing.quantity
+        elif await is_artifact_template(ing.name):
+            artifact_templates_buttons[btn] = ing.quantity
+
+    def _form_button_groups(rows: dict[str, int]) -> list[str]:
+        return sorted(rows, key=rows.get, reverse=True)
+
+    gemstones_group = _form_button_groups(gemstone_buttons)
+    intermediates_group = _form_button_groups(intermediates_buttons)
+    artifact_templates_group = _form_button_groups(artifact_templates_buttons)
+
+    def _split_into_rows(button_group: list[str]) -> list[list[str]]:
+        btn_count = int(len(button_group) / glob.MSELL_BTN_ROW_LIMIT) + 1
+        rows = list()
+        for i in range(0, btn_count):
+            beg = glob.MSELL_BTN_ROW_LIMIT * i
+            end = glob.MSELL_BTN_ROW_LIMIT * (i + 1)
+            rows.append(button_group[beg:end])
+        return rows
+
+    return list(filter(bool, [
+        *_split_into_rows(gemstones_group),
+        *_split_into_rows(intermediates_group),
+        *_split_into_rows(artifact_templates_group)
+    ]))
+
+
+async def msell_transaction(data: dict[str, Any]):
+    user_id: int = data['user_id']
+    material: Material = data['material']
+    quantity: int = data['quantity']
+    revenue: float = data['revenue']
+    tax: float = data['tax']
+    member = await get_member(user_id)
+    current_datetime = get_current_datetime()
+
+    # -transaction -materials
+    diff = Ingredient(material.name, quantity)
+    await repo.spend_tpay_available(user_id)
+    await repo.spend_member_material(user_id, diff)
+    await repo.insert_material_transaction(MaterialTransaction(
+        sender_id=user_id,
+        type_=MaterialTransactionType.nbt,
+        material_name=material.name,
+        quantity=quantity,
+        transfer=revenue - tax,
+        tax=tax,
+        date=current_datetime
+    ))
+
+    # +transfer
+    member.tickets = round(member.tickets + revenue, 2)
+    await repo.update_member_tickets(member)
+    await repo.insert_addt(AddtTransaction(
+        user_id=user_id,
+        tickets=revenue,
+        time=current_datetime,
+        description=TicketTransactionType.nbt,
+        type_=TicketTransactionType.nbt
+    ))
+
+    # -tax
+    member.tickets = round(member.tickets - tax, 2)
+    await repo.update_member_tickets(member)
+    await repo.insert_delt(DeltTransaction(
+        user_id=user_id,
+        tickets=tax,
+        time=current_datetime,
+        description=TicketTransactionType.nbt_tax,
+        type_=TicketTransactionType.nbt_tax
+    ))
+
+
 """ Other """
 
 
@@ -604,6 +754,30 @@ async def reset_tpay_available() -> (bool, str):
 
 async def reset_tbox_available() -> (bool, str):
     return await repo.execute_external(scripts.RESET_MEMBER_TBOX_AVAILABLE)
+
+
+async def payout_profits():
+    for a in await repo.get_all_artifacts():
+        profit_rate = await _get_artifact_profit_rate(a.type_)
+        owner = await get_member(a.owner_id)
+        creator = await get_member(a.creator_id)
+
+        await _profit_business_account(
+            member=owner,
+            transfer=round(profit_rate * a.investment, 2),
+            profit_type=ProfitType.artifact_owner,
+            artifact_id=a.artifact_id
+        )
+
+        # only if creator was not unreg from ticketonomics
+        # only if the owner is not the creator of the artifact
+        if creator is not None and creator.user_id != owner.user_id:
+            await _profit_business_account(
+                member=creator,
+                transfer=a.get_owner_profit(),
+                profit_type=ProfitType.artifact_creator,
+                artifact_id=a.artifact_id
+            )
 
 
 async def payout_salaries(lsp_plan_date: datetime):
@@ -617,13 +791,19 @@ async def payout_salaries(lsp_plan_date: datetime):
         return
 
     for e in employees:
-        if e.salary != 0:
-            await _add_tickets(
-                member=await repo.get_member_by_user_id(e.user_id),
-                tickets=e.salary,
-                transaction_type=TicketTransactionType.salary,
-                description=TicketTransactionType.salary
-            )
+        if e.salary <= 0:
+            continue
+
+        member = await get_member(e.user_id)
+        if member is None:
+            continue
+
+        await _add_tickets(
+            member=member,
+            tickets=e.salary,
+            transaction_type=TicketTransactionType.salary,
+            description=TicketTransactionType.salary
+        )
 
     await repo.set_salary_paid_out(
         plan_date=strdate(lsp_plan_date),
@@ -651,7 +831,7 @@ async def is_artifact_template(material_name: str) -> bool:
 
 
 async def _get_infl_rate_adjustments(price: float) -> (float, float, float):
-    lpr = await repo.get_last_price_reset()
+    lpr = await repo.get_last_rate_history()
 
     if lpr is None:
         raise RuntimeError('No last price reset found!')
@@ -686,5 +866,10 @@ async def _get_rand_gemstones() -> Ingredient:
     )
 
 
-async def _get_formatted_material_name(material_name: str) -> str:
-    return material_name.replace('_', ' ')
+async def get_formatted_material_name(material_name: str) -> str:
+    if material_name:
+        return material_name.replace('_', ' ')
+
+
+async def _get_artifact_profit_rate(artifact_type: ArtifactType) -> float:
+    return (await _get_artifact_profits_dict())[artifact_type]

@@ -11,11 +11,13 @@ class CommandOverload:
                  oid: str = None,
                  creator_required: bool = False,
                  reply_required: bool = False,
-                 no_self_reply_required: bool = False):
+                 no_self_reply_required: bool = False,
+                 private_required: bool = False):
         self.oid = oid
         self.creator_required = creator_required
         self.reply_required = reply_required
         self.no_self_reply_required = no_self_reply_required
+        self.private_required = private_required
         self.schema = {}
         self.target_type = ctt.reply if reply_required else ctt.none
 
@@ -51,9 +53,11 @@ class CommandOverload:
 class CommandOverloadGroup:
     def __init__(self,
                  overloads: List[CommandOverload],
-                 creator_required: bool = False):
+                 creator_required: bool = False,
+                 private_required: bool = False):
         self.overloads = overloads
         self.creator_required = creator_required
+        self.private_required = private_required
 
         if self.creator_required:
             for o in overloads:
@@ -63,6 +67,16 @@ class CommandOverloadGroup:
             for o in overloads:
                 if not o.creator_required:
                     self.creator_required = False
+                    break
+
+        if self.private_required:
+            for o in overloads:
+                o.private_required = True
+        else:
+            self.private_required = True
+            for o in overloads:
+                if not o.private_required:
+                    self.private_required = False
                     break
 
     def __iter__(self):

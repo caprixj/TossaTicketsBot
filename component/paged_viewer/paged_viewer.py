@@ -8,7 +8,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from service import service_core as service
 from resources.const import glob
-from command.routed.callbacks.custom_callback_data import get_callback_data, CustomCallbackData
+from command.routed.callbacks.custom_callback_data import get_operation_callback_data, OperationCallbackData
 
 
 class PagedViewer:
@@ -62,8 +62,8 @@ class PagedViewer:
     def reply_markup(self, operation_id: int, sender_id: int) -> InlineKeyboardMarkup:
         builder = InlineKeyboardBuilder()
 
-        back = CustomCallbackData(glob.PV_BACK_CALLBACK, sender_id, operation_id)
-        forward = CustomCallbackData(glob.PV_FORWARD_CALLBACK, sender_id, operation_id)
+        back = OperationCallbackData(glob.PV_BACK_CALLBACK, sender_id, operation_id)
+        forward = OperationCallbackData(glob.PV_FORWARD_CALLBACK, sender_id, operation_id)
         builder.row(
             InlineKeyboardButton(text='<<', callback_data=back.tostr()),
             InlineKeyboardButton(
@@ -73,7 +73,7 @@ class PagedViewer:
             InlineKeyboardButton(text='>>', callback_data=forward.tostr()),
         )
 
-        hide = CustomCallbackData(glob.PV_HIDE_CALLBACK, sender_id, operation_id)
+        hide = OperationCallbackData(glob.PV_HIDE_CALLBACK, sender_id, operation_id)
         builder.row(InlineKeyboardButton(text=glob.HIDE_BTN, callback_data=hide.tostr()))
 
         return builder.as_markup()
@@ -84,7 +84,7 @@ async def keep_paged_viewer(viewer: PagedViewer) -> PagedViewer:
 
 
 async def phide(callback: CallbackQuery):
-    data = await get_callback_data(callback.data)
+    data = await get_operation_callback_data(callback.data)
 
     if callback.from_user.id != data.sender_id:
         await callback.answer(glob.ALERT_CALLBACK_ACTION, show_alert=True)
@@ -102,7 +102,7 @@ async def phide(callback: CallbackQuery):
 
 
 async def pmove(callback: CallbackQuery, move: str):
-    data = await get_callback_data(callback.data)
+    data = await get_operation_callback_data(callback.data)
 
     if callback.from_user.id != data.sender_id:
         await callback.answer(glob.ALERT_CALLBACK_ACTION, show_alert=True)

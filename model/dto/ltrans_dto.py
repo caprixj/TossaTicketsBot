@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import List
 
 from model.database import AddtTransaction, DeltTransaction, TpayTransaction, Member
 
@@ -7,10 +6,10 @@ from model.database import AddtTransaction, DeltTransaction, TpayTransaction, Me
 @dataclass
 class LTransDTO:
     user_id: int
-    tpays: List[TpayTransaction]
-    addts: List[AddtTransaction]
-    delts: List[DeltTransaction]
-    unique_tpay_members: List[Member]
+    tpays: list[TpayTransaction]
+    addts: list[AddtTransaction]
+    delts: list[DeltTransaction]
+    unique_tpay_members: list[Member]
 
     def empty(self) -> bool:
         return not self.tpays and not self.addts and not self.delts

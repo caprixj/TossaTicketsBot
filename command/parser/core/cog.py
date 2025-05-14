@@ -5,17 +5,17 @@ from model.types.ticketonomics_types import xreal, TicketonomicsType, Text256, U
 from resources.const.glob import TICKETS_ARG, DESCRIPTION_ARG, USERNAME_ARG, USER_ID_ARG
 
 
-# <reply> /command
-# /command
-# /command <username:username>
-# /command <operation_id:pnint>
-def pure() -> CommandOverloadGroup:
+# [<creator>] <reply> /command
+# [<creator>] /command
+# [<creator>] /command <username:username>
+# [<creator>] /command <operation_id:pnint>
+def pure(creator_required: bool = False) -> CommandOverloadGroup:
     return CommandOverloadGroup([
         CommandOverload(reply_required=True),
         CommandOverload(),
         CommandOverload().add(USERNAME_ARG, Username),
         CommandOverload().add(USER_ID_ARG, UserID)
-    ])
+    ], creator_required=creator_required)
 
 
 # <creator> <reply> /command <tickets:xreal>

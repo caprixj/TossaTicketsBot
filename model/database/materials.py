@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from datetime import datetime
 
 from model.types import ArtifactType
-from resources.const.glob import DATETIME_FORMAT
+from resources.const.glob import DATETIME_FORMAT, ARTIFACT_AGE_MULTIPLIER, ARTIFACT_OWNER_PROFIT_RATE
 
 
 class Artifact:
@@ -26,10 +26,16 @@ class Artifact:
         self.description = description
         self.created_date = datetime.strptime(created_date, DATETIME_FORMAT)
 
-    # def get_destroy_refund(self) -> float:
-    #     days_passed = (datetime.now() - self.created_date).days
-    #     time_fine = max((100 - days_passed / 2) / 100, 0)
-    #     return round(self.investment * time_fine, 2)
+    # +0.2% per day
+    def age_multiplier(self) -> float:
+        return 1 + self.age() * ARTIFACT_AGE_MULTIPLIER
+
+    # неповні дні
+    def age(self) -> int:
+        return 1 + (datetime.now() - self.created_date).days
+
+    def get_owner_profit(self) -> float:
+        return round(ARTIFACT_OWNER_PROFIT_RATE * self.investment, 2)
 
 
 @dataclass

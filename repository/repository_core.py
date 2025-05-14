@@ -1,3 +1,4 @@
+from datetime import datetime
 from sqlite3 import IntegrityError
 from typing import Optional, List
 
@@ -9,11 +10,12 @@ from model.database import (
     DeltTransaction, Employee, Job, RateReset,
     SalaryPayout, TpayTransaction, Price, Ingredient
 )
+from model.database.transactions import BusinessProfitTransaction, MaterialTransaction
 from model.dto import AwardDTO, LTransDTO
 from model.types import TicketTransactionType
-from model.types.transaction_types import MaterialTransactionType
 from repository.ordering_type import OrderingType
 from resources.const import glob
+from resources.const.glob import DATETIME_FORMAT
 from resources.funcs.funcs import get_current_datetime
 from resources.sql import scripts
 
@@ -117,6 +119,18 @@ async def insert_tpay(tpay: TpayTransaction):
         await db.commit()
 
 
+async def insert_business_profit(bpt: BusinessProfitTransaction):
+    async with aiosqlite.connect(glob.rms.db_file_path) as db:
+        await db.execute(scripts.INSERT_BUSINESS_PROFIT, (
+            bpt.user_id,
+            bpt.profit_type,
+            bpt.transfer,
+            bpt.date,
+            bpt.artifact_id
+        ))
+        await db.commit()
+
+
 async def insert_award(award: Award):
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
         await db.execute(scripts.INSERT_AWARD, (
@@ -185,25 +199,25 @@ async def insert_employment_history(paid_member: Employee, fired_date: str):
         await db.commit()
 
 
-async def insert_member_material(user_id: int, ingredient: Ingredient):
+async def insert_material_transaction(mt: MaterialTransaction):
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
-        await db.execute(scripts.INSERT_MEMBER_MATERIAL, (
-            user_id,
-            ingredient.name,
-            ingredient.quantity
+        await db.execute(scripts.INSERT_MATERIAL_TRANSACTION, (
+            mt.sender_id,
+            mt.receiver_id,
+            mt.type_,
+            mt.material_name,
+            mt.quantity,
+            mt.transfer,
+            mt.tax,
+            mt.date,
+            mt.description
         ))
         await db.commit()
 
 
-async def insert_material_transaction(sender_id: int = -1, receiver_id: int = -1,
-                                      type_: MaterialTransactionType = MaterialTransactionType.tbox,
-                                      material_name: str = None, quantity: int = 0,
-                                      transfer: float = 0., tax: float = 0., date: str = get_current_datetime(),
-                                      description: str = None):
+async def insert_daily_schedule(date: str):
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
-        await db.execute(scripts.INSERT_MATERIAL_TRANSACTION, (
-            sender_id, receiver_id, type_, material_name, quantity, transfer, tax, date, description
-        ))
+        await db.execute(scripts.INSERT_DAILY_SCHEDULE, (date, ))
         await db.commit()
 
 
@@ -329,7 +343,7 @@ async def get_transaction_stats(user_id: int) -> LTransDTO:
         # addts
         await cursor.execute(
             scripts.SELECT_ADDT_TYPE_NOT_TPAY,
-            (user_id, TicketTransactionType.tpay, TicketTransactionType.tpay_fee)
+            (user_id, TicketTransactionType.tpay, TicketTransactionType.tpay_tax)
         )
         addts = await cursor.fetchall()
         addts = [AddtTransaction(*row) for row in addts]
@@ -337,7 +351,7 @@ async def get_transaction_stats(user_id: int) -> LTransDTO:
         # delts
         await cursor.execute(
             scripts.SELECT_DELT_TYPE_NOT_TPAY,
-            (user_id, TicketTransactionType.tpay, TicketTransactionType.tpay_fee)
+            (user_id, TicketTransactionType.tpay, TicketTransactionType.tpay_tax)
         )
         delts = await cursor.fetchall()
         delts = [DeltTransaction(*row) for row in delts]
@@ -348,16 +362,23 @@ async def get_transaction_stats(user_id: int) -> LTransDTO:
         return LTransDTO(user_id, tpays, addts, delts, unique_tpay_members)
 
 
-async def get_last_price_reset() -> Optional[RateReset]:
+async def get_last_daily_schedule_date() -> Optional[datetime]:
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
-        cursor = await db.execute(scripts.SELECT_RATE_HISTORY)
+        cursor = await db.execute(scripts.SELECT_LAST_DAILY_SCHEDULE)
+        row = await cursor.fetchone()
+        return datetime.strptime(row[1], glob.DATETIME_FORMAT) if row else None
+
+
+async def get_last_rate_history() -> Optional[RateReset]:
+    async with aiosqlite.connect(glob.rms.db_file_path) as db:
+        cursor = await db.execute(scripts.SELECT_LAST_RATE_HISTORY)
         row = await cursor.fetchone()
         return RateReset(*row) if row else None
 
 
 async def get_last_salary_payout() -> Optional[SalaryPayout]:
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
-        cursor = await db.execute(scripts.SELECT_SALARY_PAYOUT)
+        cursor = await db.execute(scripts.SELECT_LAST_SALARY_PAYOUT)
         row = await cursor.fetchone()
         return SalaryPayout(*row) if row else None
 
@@ -430,6 +451,21 @@ async def get_all_member_materials(user_id: int) -> list[Ingredient]:
         ]
 
 
+async def get_sold_items_count_today(user_id: int) -> int:
+    today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0).strftime(DATETIME_FORMAT)
+    async with aiosqlite.connect(glob.rms.db_file_path) as db:
+        cursor = await db.execute(scripts.SELECT_SOLD_ITEMS_COUNT_TODAY, (user_id, today))
+        row = await cursor.fetchone()
+        return int(row[0]) if row[0] else 0
+
+
+async def get_material_price(material_name: str) -> float:
+    async with aiosqlite.connect(glob.rms.db_file_path) as db:
+        cursor = await db.execute(scripts.SELECT_GEMSTONE_PRICE, (material_name, ))
+        row = await cursor.fetchone()
+        return float(row[0]) if row else 0
+
+
 """ Update """
 
 
@@ -449,27 +485,53 @@ async def update_member_tickets(member: Member):
     ))
 
 
-async def spend_tpay_available(member: Member):
-    await _execute(scripts.UPDATE_MEMBER_TPAY_AVAILABLE, (
-        member.tpay_available - 1,
+async def update_member_business_account(member: Member):
+    await _execute(scripts.UPDATE_MEMBER_BUSINESS_ACCOUNT, (
+        member.business_account,
         member.user_id
     ))
 
 
-async def spend_tbox_available(member: Member):
-    await _execute(scripts.UPDATE_MEMBER_TBOX_AVAILABLE, (
-        member.tbox_available - 1,
-        member.user_id
-    ))
+async def spend_tpay_available(user_id: int):
+    await _execute(scripts.SPEND_MEMBER_TPAY_AVAILABLE, (user_id, ))
 
 
-async def update_member_material_quantity(user_id: int, ingredient: Ingredient):
+async def spend_tbox_available(user_id: int):
+    await _execute(scripts.SPEND_MEMBER_TBOX_AVAILABLE, (user_id, ))
+
+
+async def add_member_material(user_id: int, diff: Ingredient):
+    mm = await get_member_material(user_id, diff.name)
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
-        await db.execute(scripts.UPDATE_MEMBER_MATERIAL, (
-            ingredient.quantity,
-            user_id,
-            ingredient.name
-        ))
+        if not mm:
+            await db.execute(scripts.ADD_MEMBER_MATERIAL, (
+                diff.quantity,
+                user_id,
+                diff.name
+            ))
+        else:
+            await db.execute(scripts.INSERT_MEMBER_MATERIAL, (
+                user_id,
+                diff.name,
+                diff.quantity
+            ))
+        await db.commit()
+
+
+async def spend_member_material(user_id: int, diff: Ingredient):
+    mm = await get_member_material(user_id, diff.name)
+    async with aiosqlite.connect(glob.rms.db_file_path) as db:
+        if mm.quantity - diff.quantity > 0:
+            await db.execute(scripts.SPEND_MEMBER_MATERIAL, (
+                diff.quantity,
+                user_id,
+                diff.name
+            ))
+        else:
+            await db.execute(scripts.DELETE_MEMBER_MATERIAL, (
+                user_id,
+                diff.name
+            ))
         await db.commit()
 
 
@@ -489,7 +551,7 @@ async def reset_gem_rate(name: str, price: float):
     await _execute(scripts.RESET_GEM_RATE, (price, name))
 
 
-async def reset_artifact_values(diff: float):
+async def reset_artifact_investments(diff: float):
     await _execute(scripts.RESET_ARTIFACT_VALUES, (diff,))
 
 

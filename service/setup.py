@@ -75,6 +75,8 @@ async def _get_create_table_scripts() -> list[str]:
         scripts.CREATE_ADDT,
         scripts.CREATE_DELT,
         scripts.CREATE_TPAY,
+        scripts.CREATE_BUSINESS_PROFITS,
+        scripts.CREATE_BUSINESS_WITHDRAWS,
         scripts.CREATE_AWARDS,
         scripts.CREATE_AWARD_MEMBER,
         scripts.CREATE_RATE_HISTORY,
@@ -88,6 +90,7 @@ async def _get_create_table_scripts() -> list[str]:
         scripts.CREATE_MEMBER_MATERIALS,
         scripts.CREATE_MATERIAL_TRANSACTIONS,
         scripts.CREATE_MATERIAL_TRANSACTION_REQUESTS,
+        scripts.CREATE_DAILY_SCHEDULES,
         scripts.CREATE_ACTIVITY_DATA
     ]
 

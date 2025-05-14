@@ -1,4 +1,6 @@
 """ Create Tables """
+from model.types import ProductType
+from resources.const import glob
 
 CREATE_VARS = """
     CREATE TABLE IF NOT EXISTS vars (
@@ -96,6 +98,27 @@ CREATE_TPAY = """
         FOREIGN KEY (receiver_id) REFERENCES members (user_id) ON DELETE RESTRICT
     );
 """
+CREATE_BUSINESS_PROFITS = """
+    CREATE TABLE IF NOT EXISTS business_profits (
+        business_profit_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        profit_type TEXT NOT NULL DEFAULT 'unknown',
+        transfer REAL CHECK(transfer > 0),
+        date TEXT NOT NULL,
+        artifact_id INTEGER,
+        FOREIGN KEY (user_id) REFERENCES members (user_id) ON DELETE RESTRICT,
+        FOREIGN KEY (artifact_id) REFERENCES artifacts (artifact_id) ON DELETE RESTRICT
+    );
+"""
+CREATE_BUSINESS_WITHDRAWS = """
+    CREATE TABLE IF NOT EXISTS business_withdraws (
+        business_withdraw_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        transfer REAL CHECK(transfer > 0),
+        date TEXT NOT NULL,
+        FOREIGN KEY (user_id) REFERENCES members (user_id) ON DELETE RESTRICT
+    );
+"""
 CREATE_RATE_HISTORY = """
     CREATE TABLE IF NOT EXISTS rate_history (
         rate_history_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -119,7 +142,7 @@ CREATE_EMPLOYEES = """
         position TEXT,
         hired_date TEXT NOT NULL,
         PRIMARY KEY (user_id, position),
-        FOREIGN KEY (user_id) REFERENCES members (user_id) ON DELETE RESTRICT,
+        FOREIGN KEY (user_id) REFERENCES members (user_id) ON DELETE CASCADE,
         FOREIGN KEY (position) REFERENCES jobs (position) ON DELETE RESTRICT
     );
 """
@@ -180,7 +203,7 @@ CREATE_MATERIAL_TRANSACTIONS = """
         material_transaction_id INTEGER PRIMARY KEY AUTOINCREMENT,
         sender_id INTEGER NOT NULL DEFAULT -1,
         receiver_id INTEGER NOT NULL DEFAULT -1,
-        type TEXT NOT NULL DEFAULT "unknown",
+        type TEXT NOT NULL DEFAULT 'unknown',
         material_name TEXT,
         quantity INTEGER NOT NULL CHECK(quantity >= 0),
         transfer REAL NOT NULL DEFAULT 0,
@@ -209,6 +232,12 @@ CREATE TABLE IF NOT EXISTS material_transaction_requests (
         FOREIGN KEY (material_name) REFERENCES materials(name) ON DELETE RESTRICT
     );
 """
+CREATE_DAILY_SCHEDULES = """
+    CREATE TABLE IF NOT EXISTS daily_schedules (
+        daily_schedule_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        date TEXT NOT NULL
+    );
+"""
 CREATE_ACTIVITY_DATA = """
     CREATE TABLE IF NOT EXISTS activity_data (
         activity_data_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -231,6 +260,8 @@ INSERT_AWARD_MEMBER = "INSERT INTO award_member (award_id, owner_id, issue_date)
 INSERT_ADDT = "INSERT INTO addt (user_id, tickets, time, description, type_) VALUES (?, ?, ?, ?, ?)"
 INSERT_DELT = "INSERT INTO delt (user_id, tickets, time, description, type_) VALUES (?, ?, ?, ?, ?)"
 INSERT_TPAY = "INSERT INTO tpay (sender_id, receiver_id, transfer, fee, time, description) VALUES (?, ?, ?, ?, ?, ?)"
+INSERT_BUSINESS_PROFIT = ("INSERT INTO business_profits (user_id, profit_type, transfer, date, artifact_id) "
+                          "VALUES (?, ?, ?, ?, ?)")
 INSERT_RATE_HISTORY = "INSERT INTO rate_history (inflation, fluctuation, plan_date, fact_date) VALUES (?, ?, ?, ?)"
 INSERT_SALARY_PAYOUT = "INSERT INTO salary_payouts (plan_date, fact_date, paid_out) VALUES (?, ?, ?)"
 INSERT_EMPLOYEE = "INSERT INTO employees (user_id, position, hired_date) VALUES (?, ?, ?)"
@@ -243,6 +274,7 @@ INSERT_OR_IGNORE_SQL_VARS = "INSERT OR IGNORE INTO vars VALUES (?, ?)"
 INSERT_MEMBER_MATERIAL = "INSERT INTO member_materials (user_id, material_name, quantity) VALUES (?, ?, ?)"
 INSERT_MATERIAL_TRANSACTION = ("INSERT INTO material_transactions (sender_id, receiver_id, type, material_name, "
                                "quantity, transfer, tax, date, description) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
+INSERT_DAILY_SCHEDULE = "INSERT INTO daily_schedules (date) VALUES (?)"
 
 """ Select """
 
@@ -259,14 +291,18 @@ SELECT_ARTIFACTS_COUNT_BY_OWNER_ID = "SELECT COUNT(a.artifact_id) FROM artifacts
 SELECT_SUM_TICKETS = "SELECT SUM(tickets) FROM members"
 SELECT_SUM_BUSINESS_ACCOUNTS = "SELECT SUM(business_account) FROM members"
 SELECT_ARTIFACTS = "SELECT * FROM artifacts"
-SELECT_RATE_HISTORY = "SELECT * FROM rate_history ORDER BY plan_date DESC LIMIT 1"
-SELECT_SALARY_PAYOUT = "SELECT * FROM salary_payouts ORDER BY plan_date DESC LIMIT 1"
+SELECT_LAST_DAILY_SCHEDULE = "SELECT * FROM daily_schedules ORDER BY date DESC LIMIT 1"
+SELECT_LAST_RATE_HISTORY = "SELECT * FROM rate_history ORDER BY plan_date DESC LIMIT 1"
+SELECT_LAST_SALARY_PAYOUT = "SELECT * FROM salary_payouts ORDER BY plan_date DESC LIMIT 1"
 SELECT_JOBS = "SELECT * FROM jobs"
 SELECT_PRICES = "SELECT * FROM prices"
-SELECT_GEM_PRICES = "SELECT * FROM prices WHERE product_type = 'gemstone'"
+SELECT_GEM_PRICES = f"SELECT * FROM prices WHERE product_type = '{ProductType.gemstone}'"
 SELECT_MEMBER_MATERIAL = "SELECT material_name, quantity FROM member_materials WHERE user_id = ? AND material_name = ?"
 SELECT_ALL_MEMBER_MATERIALS = "SELECT material_name, quantity FROM member_materials WHERE user_id = ?"
 SELECT_SQL_VAR = "SELECT value FROM vars WHERE name = ?"
+SELECT_GEMSTONE_PRICE = f"SELECT price FROM prices WHERE product_name = ? AND product_type = '{ProductType.gemstone}'"
+SELECT_SOLD_ITEMS_COUNT_TODAY = (f"SELECT SUM(quantity) FROM material_transactions "
+                                 f"WHERE sender_id = ? and receiver_id = {glob.NBT_ID} and date >= ?")
 SELECT_TOPTALL = """
     SELECT m.*
     FROM members m
@@ -346,19 +382,21 @@ SELECT_EACH_MATERIAL_COUNT = """
 UPDATE_MEMBER_NAMES = "UPDATE members SET username = ?, first_name = ?, last_name = ? WHERE user_id = ?"
 UPDATE_MEMBER_TICKETS = "UPDATE members SET tickets = ? WHERE user_id = ?"
 UPDATE_MEMBER_BUSINESS_ACCOUNT = "UPDATE members SET business_account = ? WHERE user_id = ?"
-UPDATE_MEMBER_TPAY_AVAILABLE = "UPDATE members SET tpay_available = ? WHERE user_id = ?"
-UPDATE_MEMBER_TBOX_AVAILABLE = "UPDATE members SET tbox_available = ? WHERE user_id = ?"
+SPEND_MEMBER_TPAY_AVAILABLE = "UPDATE members SET tpay_available = tpay_available - 1 WHERE user_id = ?"
+SPEND_MEMBER_TBOX_AVAILABLE = "UPDATE members SET tbox_available = tbox_available - 1 WHERE user_id = ?"
 RESET_MEMBER_TPAY_AVAILABLE = "UPDATE members SET tpay_available = 3"
 RESET_MEMBER_TBOX_AVAILABLE = "UPDATE members SET tbox_available = 1"
-UPDATE_MEMBER_MATERIAL = "UPDATE member_materials SET quantity = ? WHERE user_id = ? AND material_name = ?"
+ADD_MEMBER_MATERIAL = "UPDATE member_materials SET quantity = quantity + ? WHERE user_id = ? AND material_name = ?"
+SPEND_MEMBER_MATERIAL = "UPDATE member_materials SET quantity = quantity - ? WHERE user_id = ? AND material_name = ?"
 UPDATE_SALARY_PAYOUT = "UPDATE salary_payouts SET paid_out = ?, fact_date = ? WHERE plan_date = ?"
 UPDATE_JOB_SALARY = "UPDATE jobs SET salary = ? WHERE position = ?"
 RESET_PRICES = "UPDATE prices SET price = price * ?"
-RESET_ARTIFACT_VALUES = "UPDATE artifacts SET investment = investment * ?"
+RESET_ARTIFACT_VALUES = "UPDATE artifacts SET investment = ROUND(investment * ?, 2)"
 RESET_GEM_RATE = "UPDATE prices SET price = ? WHERE product_type = 'gemstone' AND product_name = ?"
 
 """ Delete """
 
 DELETE_MEMBER = "DELETE FROM members WHERE user_id = ?"
+DELETE_MEMBER_MATERIAL = "DELETE FROM member_materials WHERE user_id = ? AND material_name = ?"
 DELETE_PAID_MEMBER = "DELETE FROM employees WHERE user_id = ? AND position = ?"
 DELETE_POSITION_CATALOGUE = "DELETE FROM jobs WHERE position = ?"

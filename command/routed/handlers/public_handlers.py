@@ -2,13 +2,17 @@ import functools
 
 from aiogram import Router, F
 from aiogram.enums import ParseMode
-from aiogram.filters import Command
+from aiogram.filters import Command, StateFilter
+from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, LinkPreviewOptions
 
 import resources.const.glob as glob
+from command.routed.states.states import MsellStates
+from model.database import Member, Material
 from service import service_core as service
 from command.routed.handlers.validations import validate_message, validate_user
-from command.routed.keyboards.keyboards import tpay_keyboard, hide_keyboard, one_btn_keyboard
+from command.parser.keyboards.keyboards import tpay_keyboard, hide_keyboard, one_btn_keyboard, \
+    msell_choose_material_keyboard, msell_confirmation_keyboard
 from command.parser.core import cog
 from command.parser.core.overload import CommandOverload, CommandOverloadGroup
 from command.parser.core.parser import CommandParser
@@ -17,7 +21,6 @@ from component.paged_viewer.paged_viewer import PagedViewer, keep_paged_viewer
 from model.types.ticketonomics_types import PNReal, NInt, UserID
 from command.parser.types.com_list import CommandList as cl
 from command.parser.types.target_type import CommandTargetType as ctt
-from model.types.transaction_result_errors import TransactionResultErrors as tre
 from resources.funcs import funcs
 
 router = Router()
@@ -99,7 +102,7 @@ async def balm(message: Message):
         return
 
     viewer = PagedViewer(
-        title=f'{glob.BALM_TITLE}\nmember: {funcs.get_formatted_name(target_member)}',
+        title=f'{glob.BALM_TITLE}\n{glob.BALM_MEMBER}: {funcs.get_formatted_name(target_member)}',
         data_extractor=functools.partial(service.balm, target_member.user_id),
         page_generator=page_generators.balm,
         page_message=message,
@@ -154,7 +157,7 @@ async def tpay(message: Message, callback_message: Message = None, fee_incorpora
     sender = await service.get_member(message.from_user.id)
 
     if sender.tpay_available == 0:
-        await message.answer(tre.tpay_unavailable)
+        await message.answer(glob.TPAY_UNAVAILABLE_ERROR)
         return
 
     description = cpr.args.get(glob.DESCRIPTION_ARG, None)
@@ -204,25 +207,94 @@ async def tpay(message: Message, callback_message: Message = None, fee_incorpora
         )
 
 
-@router.message(Command(cl.ltrans.name))
+@router.message(Command(cl.msell.name))
+async def msell(message: Message):
+    if not await validate_message(message):
+        return
+
+    og = CommandOverloadGroup([
+        CommandOverload(private_required=True)
+    ])
+
+    cpr = await CommandParser(message, og).parse()
+
+    if not cpr.valid:
+        if cpr.private_required_violation:
+            await message.answer(glob.PRIVATE_REQUIRED_VIOLATION)
+        else:
+            await message.answer(glob.COM_PARSER_FAILED)
+        return
+
+    keyboard_data = await service.msell_markup(message.from_user.id)
+
+    await message.reply(
+        text=glob.MSELL_TEXT,
+        reply_markup=msell_choose_material_keyboard(
+            keyboard_data=keyboard_data,
+            sender_id=message.from_user.id
+        )
+    )
+
+
+@router.message(StateFilter(MsellStates.waiting_for_quantity), F.chat.type == 'private')
+async def msell_quantity(message: Message, state: FSMContext):
+    data = await state.get_data()
+    quantity_message_id = data['quantity_message_id']
+
+    if not message.reply_to_message or message.reply_to_message.message_id != quantity_message_id:
+        return
+
+    if not message.text.isdigit() or int(message.text) <= 0:
+        return await message.answer(glob.MSELL_QUANTITY_INVALID)
+
+    quantity = int(message.text)
+    material: Material = data['material']
+
+    price = await service.get_material_price(material.name)
+
+    revenue = round(price * quantity, 2)
+    tax = round(glob.UNI_TAX * revenue, 2)
+    income = revenue - tax
+
+    await state.update_data(quantity=quantity, revenue=revenue, tax=tax)
+    await state.set_state(MsellStates.waiting_for_confirmation)
+
+    await message.answer(
+        text=(f'{glob.MSELL_MATERIALS_TO_SELL}: *{quantity}*'
+              f'\n{glob.MSELL_CHOSEN_MATERIAL}: {material.name}{material.emoji}'
+              f'\n{glob.MSELL_PRICE}: {price:.7f} tc'
+              f'\n\n{glob.MSELL_REVENUE}: {revenue:.2f} tc'
+              f'\n{glob.MSELL_TAX}: {tax:.2f} tc _({int(glob.UNI_TAX * 100)}%)_'
+              f'\n*{glob.MSELL_INCOME}: {income:.2f} tc*'),
+        reply_markup=msell_confirmation_keyboard()
+    )
+
+
+@router.message(Command(cl.ltrans.name, cl.xltrans.name))
 async def ltrans(message: Message):
     if not await validate_message(message):
         return
 
-    cpr = await CommandParser(message, cog.pure()).parse()
+    com = funcs.get_command(message)
+    target_member: Member
 
-    if not cpr.valid:
-        await message.answer(glob.COM_PARSER_FAILED)
-        return
+    if com == cl.xltrans.name:
+        cpr = await CommandParser(message, cog.pure(creator_required=True)).parse()
 
-    target_member = await service.get_target_member(cpr)
+        if not cpr.valid:
+            await message.answer(glob.COM_PARSER_FAILED)
+            return
 
-    if target_member is None:
-        await message.answer(glob.GET_MEMBER_FAILED)
-        return
+        target_member = await service.get_target_member(cpr)
+
+        if target_member is None:
+            await message.answer(glob.GET_MEMBER_FAILED)
+            return
+    else:  # if co.command == cl.ltrans.name
+        target_member = await service.get_member(message.from_user.id)
 
     viewer = PagedViewer(
-        title=f'{glob.LTRANS_TITLE}\nmember: {funcs.get_formatted_name(target_member)}',
+        title=f'{glob.LTRANS_TITLE}\n{glob.LTRANS_MEMBER}: {funcs.get_formatted_name(target_member)}',
         data_extractor=functools.partial(service.ltrans, target_member.user_id),
         page_generator=page_generators.ltrans,
         page_message=message,
@@ -335,21 +407,19 @@ async def tpool(message: Message):
     if not await validate_message(message):
         return
 
-    personal_tpool = await service.get_total_tickets()
-    business_tpool = await service.get_business_tpool()
-    artifact_tpool = await service.get_artifact_tpool()
-    material_tpool = await service.get_material_tpool()
+    await message.answer(
+        text=await service.tpool(),
+        reply_markup=hide_keyboard(glob.HELP_HIDE_CALLBACK)
+    )
 
-    nbt_tpool = await service.get_nbt_tpool()
-    total_tpool = await service.get_tpool()
+
+@router.message(Command(cl.rates.name))
+async def rates(message: Message):
+    if not await validate_message(message):
+        return
 
     await message.answer(
-        text=f'{glob.TPOOL_PERSONAL}: {personal_tpool:.2f} tc'
-             f'\n{glob.TPOOL_BUSINESS}: {business_tpool:.2f} tc'
-             f'\n{glob.TPOOL_ARTIFACT}: {artifact_tpool:.2f} tc'
-             f'\n{glob.TPOOL_MATERIAL}: {material_tpool:.2f} tc'
-             f'\n\n{glob.TPOOL_NBT}: {nbt_tpool:.2f} tc'
-             f'\n*{glob.TPOOL_TOTAL}: {total_tpool:.2f} tc*',
+        text=await service.rates(),
         reply_markup=hide_keyboard(glob.HELP_HIDE_CALLBACK)
     )
 
