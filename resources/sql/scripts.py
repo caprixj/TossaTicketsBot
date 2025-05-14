@@ -296,11 +296,11 @@ SELECT_LAST_RATE_HISTORY = "SELECT * FROM rate_history ORDER BY plan_date DESC L
 SELECT_LAST_SALARY_PAYOUT = "SELECT * FROM salary_payouts ORDER BY plan_date DESC LIMIT 1"
 SELECT_JOBS = "SELECT * FROM jobs"
 SELECT_PRICES = "SELECT * FROM prices"
-SELECT_GEM_PRICES = f"SELECT * FROM prices WHERE product_type = '{ProductType.gemstone}'"
+SELECT_GEM_PRICES = f"SELECT * FROM prices WHERE product_type = {ProductType.gemstone}"
 SELECT_MEMBER_MATERIAL = "SELECT material_name, quantity FROM member_materials WHERE user_id = ? AND material_name = ?"
 SELECT_ALL_MEMBER_MATERIALS = "SELECT material_name, quantity FROM member_materials WHERE user_id = ?"
 SELECT_SQL_VAR = "SELECT value FROM vars WHERE name = ?"
-SELECT_GEMSTONE_PRICE = f"SELECT price FROM prices WHERE product_name = ? AND product_type = '{ProductType.gemstone}'"
+SELECT_GEMSTONE_PRICE = f"SELECT price FROM prices WHERE product_name = ? AND product_type = {ProductType.gemstone}"
 SELECT_SOLD_ITEMS_COUNT_TODAY = (f"SELECT SUM(quantity) FROM material_transactions "
                                  f"WHERE sender_id = ? and receiver_id = {glob.NBT_ID} and date >= ?")
 SELECT_TOPTALL = """
