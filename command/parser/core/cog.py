@@ -11,11 +11,11 @@ from resources.const.glob import TICKETS_ARG, DESCRIPTION_ARG, USERNAME_ARG, USE
 # [<creator>] /command <operation_id:pnint>
 def pure(creator_required: bool = False) -> CommandOverloadGroup:
     return CommandOverloadGroup([
-        CommandOverload(reply_required=True),
+        CommandOverload(reply=True),
         CommandOverload(),
         CommandOverload().add(USERNAME_ARG, Username),
         CommandOverload().add(USER_ID_ARG, UserID)
-    ], creator_required=creator_required)
+    ], creator=creator_required)
 
 
 # <creator> <reply> /command <tickets:xreal>
@@ -43,8 +43,8 @@ def a1_any(a1_name: str, a1_type: Type[TicketonomicsType], creator_required: boo
            no_self_reply_required: bool = False) -> CommandOverloadGroup:
     return CommandOverloadGroup([
         CommandOverload(
-            reply_required=True,
-            no_self_reply_required=no_self_reply_required)
+            reply=True,
+            no_self_reply=no_self_reply_required)
         .add(a1_name, a1_type),
 
         CommandOverload()
@@ -54,7 +54,7 @@ def a1_any(a1_name: str, a1_type: Type[TicketonomicsType], creator_required: boo
         CommandOverload()
         .add(USER_ID_ARG, UserID)
         .add(a1_name, a1_type)
-    ], creator_required=creator_required)
+    ], creator=creator_required)
 
 
 # <creator> <reply> /command <a1:any>
@@ -67,13 +67,13 @@ def a1d_any(a1_name: str, a1_type: Type[TicketonomicsType], creator_required: bo
             no_self_reply_required: bool = False) -> CommandOverloadGroup:
     return CommandOverloadGroup([
         CommandOverload(
-            reply_required=True,
-            no_self_reply_required=no_self_reply_required)
+            reply=True,
+            no_self_reply=no_self_reply_required)
         .add(a1_name, a1_type),
 
         CommandOverload(
-            reply_required=True,
-            no_self_reply_required=no_self_reply_required)
+            reply=True,
+            no_self_reply=no_self_reply_required)
         .add(a1_name, a1_type)
         .add(DESCRIPTION_ARG, Text256),
 
@@ -94,4 +94,4 @@ def a1d_any(a1_name: str, a1_type: Type[TicketonomicsType], creator_required: bo
         .add(USER_ID_ARG, UserID)
         .add(a1_name, a1_type)
         .add(DESCRIPTION_ARG, Text256)
-    ], creator_required=creator_required)
+    ], creator=creator_required)

@@ -9,17 +9,19 @@ from resources.const import glob
 class CommandOverload:
     def __init__(self,
                  oid: str = None,
-                 creator_required: bool = False,
-                 reply_required: bool = False,
-                 no_self_reply_required: bool = False,
-                 private_required: bool = False):
+                 creator: bool = False,
+                 reply: bool = False,
+                 no_self_reply: bool = False,
+                 private: bool = False,
+                 public: bool = False):
         self.oid = oid
-        self.creator_required = creator_required
-        self.reply_required = reply_required
-        self.no_self_reply_required = no_self_reply_required
-        self.private_required = private_required
+        self.creator = creator
+        self.reply = reply
+        self.no_self_reply = no_self_reply
+        self.private = private
+        self.public = public
         self.schema = {}
-        self.target_type = ctt.reply if reply_required else ctt.none
+        self.target_type = ctt.reply if reply else ctt.none
 
     def add(self, name: str, arg_type: Type[TicketonomicsType]):
         if arg_type == Username:
@@ -47,37 +49,34 @@ class CommandOverload:
 
     def get_order_value(self) -> int:
         v = 2 * len(self.schema)
-        return v + 1 if self.reply_required else v
+        return v + 1 if self.reply else v
 
 
 class CommandOverloadGroup:
     def __init__(self,
                  overloads: List[CommandOverload],
-                 creator_required: bool = False,
-                 private_required: bool = False):
+                 creator: bool = False,
+                 private: bool = False,
+                 public: bool = False):
         self.overloads = overloads
-        self.creator_required = creator_required
-        self.private_required = private_required
+        self.creator = creator
+        self.private = private
+        self.public = public
 
-        if self.creator_required:
-            for o in overloads:
-                o.creator_required = True
-        else:
-            self.creator_required = True
-            for o in overloads:
-                if not o.creator_required:
-                    self.creator_required = False
-                    break
+        forced = {
+            'creator': creator,
+            'private': private,
+            'public': public,
+        }
 
-        if self.private_required:
-            for o in overloads:
-                o.private_required = True
-        else:
-            self.private_required = True
-            for o in overloads:
-                if not o.private_required:
-                    self.private_required = False
-                    break
+        for name, is_forced in forced.items():
+            if is_forced:
+                setattr(self, name, True)
+                for o in overloads:
+                    setattr(o, name, True)
+            else:
+                all_on = all(getattr(o, name) for o in overloads)
+                setattr(self, name, all_on)
 
     def __iter__(self):
         return iter(self.overloads)

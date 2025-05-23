@@ -7,7 +7,7 @@ from aiogram.types import Message
 
 import resources.const.glob as glob
 from command.parser.keyboards.keyboards import hide_keyboard
-from model.database import AwardMemberJunction
+from model.database import AwardMember
 from resources.funcs.funcs import get_formatted_name
 from service import service_core as service, scheduling
 from service.price_manager import reset_prices
@@ -29,14 +29,13 @@ async def sql(message: Message):
     og = CommandOverloadGroup(
         # /sql <query:text>
         overloads=[CommandOverload().add(glob.QUERY_ARG, BaseText)],
-        creator_required=True
+        creator=True
     )
 
     cpr = await CommandParser(message, og).parse()
 
     if not cpr.valid:
-        await _reply_by_crv(message, cpr)
-        return
+        return await _reply_by_crv(message, cpr)
 
     (executed, response) = await service.execute_sql(
         query=cpr.args[glob.QUERY_ARG]
@@ -46,7 +45,7 @@ async def sql(message: Message):
     await message.reply(
         text=f'{status}\n\n{response}',
         parse_mode=None,
-        reply_markup=hide_keyboard(glob.HELP_HIDE_CALLBACK)
+        reply_markup=hide_keyboard()
     )
 
 
@@ -55,14 +54,12 @@ async def addt(message: Message):
     cpr = await CommandParser(message, cog.tickets(PNReal, creator_required=True)).parse()
 
     if not cpr.valid:
-        await _reply_by_crv(message, cpr)
-        return
+        return await _reply_by_crv(message, cpr)
 
     target_member = await service.get_target_member(cpr)
 
     if target_member is None:
-        await message.answer(glob.GET_MEMBER_FAILED)
-        return
+        return await message.answer(glob.GET_MEMBER_FAILED)
 
     await service.addt(
         member=target_member,
@@ -78,14 +75,12 @@ async def delt(message: Message):
     cpr = await CommandParser(message, cog.tickets(PNReal, creator_required=True)).parse()
 
     if not cpr.valid:
-        await _reply_by_crv(message, cpr)
-        return
+        return await _reply_by_crv(message, cpr)
 
     target_member = await service.get_target_member(cpr)
 
     if target_member is None:
-        await message.answer(glob.GET_MEMBER_FAILED)
-        return
+        return await message.answer(glob.GET_MEMBER_FAILED)
 
     await service.delt(
         member=target_member,
@@ -101,14 +96,12 @@ async def sett(message: Message):
     cpr = await CommandParser(message, cog.tickets(Real, creator_required=True)).parse()
 
     if not cpr.valid:
-        await _reply_by_crv(message, cpr)
-        return
+        return await _reply_by_crv(message, cpr)
 
     target_member = await service.get_target_member(cpr)
 
     if target_member is None:
-        await message.answer(glob.GET_MEMBER_FAILED)
-        return
+        return await message.answer(glob.GET_MEMBER_FAILED)
 
     await service.sett(
         member=target_member,
@@ -128,22 +121,19 @@ async def award(message: Message):
     cpr = await CommandParser(message, og).parse()
 
     if not cpr.valid:
-        await _reply_by_crv(message, cpr)
-        return
+        return await _reply_by_crv(message, cpr)
 
     target_member = await service.get_target_member(cpr)
 
     if target_member is None:
-        await message.answer(glob.GET_MEMBER_FAILED)
-        return
+        return await message.answer(glob.GET_MEMBER_FAILED)
 
     award_ = await service.get_award(cpr)
 
     if award_ is None:
-        await message.answer(glob.GET_AWARD_FAILED)
-        return
+        return await message.answer(glob.GET_AWARD_FAILED)
 
-    am = AwardMemberJunction(
+    am = AwardMember(
         award_id=award_.award_id,
         owner_id=target_member.user_id
     )
@@ -152,7 +142,7 @@ async def award(message: Message):
         response = await service.award(target_member, award_, am.issue_date)
         await message.answer(
             text=response,
-            reply_markup=hide_keyboard(glob.AWARD_HIDE_CALLBACK),
+            reply_markup=hide_keyboard(),
             parse_mode=ParseMode.HTML
         )
     else:
@@ -168,28 +158,21 @@ async def hire(message: Message):
     cpr = await CommandParser(message, og).parse()
 
     if not cpr.valid:
-        await _reply_by_crv(message, cpr)
-        return
+        return await _reply_by_crv(message, cpr)
 
     target_member = await service.get_target_member(cpr)
 
     if target_member is None:
-        await message.answer(glob.GET_MEMBER_FAILED)
-        return
+        return await message.answer(glob.GET_MEMBER_FAILED)
 
     employee_position = cpr.args[glob.EMPLOYEE_ARG]
 
     if await service.is_hired(target_member.user_id, employee_position):
-        await message.answer(glob.MEMBER_ALREADY_HIRED)
-        return
+        return await message.answer(glob.MEMBER_ALREADY_HIRED)
 
-    await service.hire(target_member.user_id, employee_position)
+    response = await service.hire(target_member, employee_position)
 
-    positions = f'{glob.HIRE_JOBS} {get_formatted_name(target_member)}:'
-    for pn in await service.get_job_names(target_member.user_id):
-        positions += f'\n~ {pn}'
-
-    await message.answer(f'{glob.MEMBER_HIRED}\n\n{positions}')
+    await message.answer(response)
 
 
 @router.message(Command(cl.fire.name))
@@ -201,14 +184,12 @@ async def fire(message: Message):
     cpr = await CommandParser(message, og).parse()
 
     if not cpr.valid:
-        await _reply_by_crv(message, cpr)
-        return
+        return await _reply_by_crv(message, cpr)
 
     target_member = await service.get_target_member(cpr)
 
     if target_member is None:
-        await message.answer(glob.GET_MEMBER_FAILED)
-        return
+        return await message.answer(glob.GET_MEMBER_FAILED)
 
     employee_position = cpr.args[glob.EMPLOYEE_ARG]
 
@@ -223,19 +204,17 @@ async def reset_price(message: Message):
         return
 
     og = CommandOverloadGroup([
-        CommandOverload(creator_required=True)
+        CommandOverload(creator=True)
     ])
     cpr = await CommandParser(message, og).parse()
 
     if not cpr.valid:
-        await _reply_by_crv(message, cpr)
-        return
+        return await _reply_by_crv(message, cpr)
 
     target_member = await service.get_target_member(cpr)
 
     if target_member is None:
-        await message.answer(glob.GET_MEMBER_FAILED)
-        return
+        return await message.answer(glob.GET_MEMBER_FAILED)
 
     await reset_prices()
     await message.answer(glob.RESET_PRICE_COMMAND_DONE)
@@ -247,13 +226,12 @@ async def sched(message: Message):
         return
 
     og = CommandOverloadGroup([
-        CommandOverload(creator_required=True)
+        CommandOverload(creator=True)
     ])
     cpr = await CommandParser(message, og).parse()
 
     if not cpr.valid:
-        await _reply_by_crv(message, cpr)
-        return
+        return await _reply_by_crv(message, cpr)
 
     await scheduling.daily_sched()
     await message.answer(glob.DAILY_SCHEDULE_DONE)
@@ -262,26 +240,23 @@ async def sched(message: Message):
 @router.message(Command(cl.unreg.name))
 async def unreg(message: Message):
     og = CommandOverloadGroup([
-        CommandOverload(reply_required=True),
+        CommandOverload(reply=True),
         CommandOverload().add(glob.USERNAME_ARG, Username),
         CommandOverload().add(glob.USER_ID_ARG, UserID)
-    ], creator_required=True)
+    ], creator=True)
 
     cpr = await CommandParser(message, og).parse()
 
     if not cpr.valid:
-        await _reply_by_crv(message, cpr)
-        return
+        return await _reply_by_crv(message, cpr)
 
     target_member = await service.get_target_member(cpr)
 
     if target_member is None:
-        await message.answer(glob.GET_MEMBER_FAILED)
-        return
+        return await message.answer(glob.GET_MEMBER_FAILED)
 
     if target_member.user_id == glob.CREATOR_USER_ID:
-        await message.answer(glob.UNREG_CREATOR_ERROR)
-        return
+        return await message.answer(glob.UNREG_CREATOR_ERROR)
 
     await service.unreg(target_member)
     await message.answer(f'{glob.UNREG_TEXT}\nmember: {get_formatted_name(target_member)}')
@@ -292,7 +267,7 @@ async def unreg(message: Message):
 
 async def _reply_by_crv(message: Message, cpr: CommandParserResult):
     out = _get_random_crv_message() \
-        if cpr.creator_required_violation else glob.COM_PARSER_FAILED
+        if cpr.creator_violation else glob.COM_PARSER_FAILED
 
     await message.reply(out)
 

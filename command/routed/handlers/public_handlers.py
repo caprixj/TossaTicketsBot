@@ -33,7 +33,7 @@ async def help_(message: Message):
         text=glob.HELP_TEXT,
         parse_mode=ParseMode.MARKDOWN,
         link_preview_options=LinkPreviewOptions(is_disabled=True),
-        reply_markup=hide_keyboard(glob.HELP_HIDE_CALLBACK)
+        reply_markup=hide_keyboard()
     )
 
 
@@ -45,19 +45,17 @@ async def infm(message: Message):
     cpr = await CommandParser(message, cog.pure()).parse()
 
     if not cpr.valid:
-        await message.answer(glob.COM_PARSER_FAILED)
-        return
+        return await message.answer(glob.COM_PARSER_FAILED)
 
     target_member = await service.get_target_member(cpr)
 
     if target_member is None:
-        await message.answer(glob.GET_MEMBER_FAILED)
-        return
+        return await message.answer(glob.GET_MEMBER_FAILED)
 
     await message.answer(
         text=await service.infm(target_member),
         parse_mode=ParseMode.HTML,
-        reply_markup=hide_keyboard(glob.HELP_HIDE_CALLBACK)
+        reply_markup=hide_keyboard()
     )
 
 
@@ -69,18 +67,16 @@ async def bal(message: Message):
     cpr = await CommandParser(message, cog.pure()).parse()
 
     if not cpr.valid:
-        await message.answer(glob.COM_PARSER_FAILED)
-        return
+        return await message.answer(glob.COM_PARSER_FAILED)
 
     target_member = await service.get_target_member(cpr)
 
     if target_member is None:
-        await message.answer(glob.GET_MEMBER_FAILED)
-        return
+        return await message.answer(glob.GET_MEMBER_FAILED)
 
     await message.answer(
         text=await service.bal(target_member),
-        reply_markup=hide_keyboard(glob.HELP_HIDE_CALLBACK)
+        reply_markup=hide_keyboard()
     )
 
 
@@ -92,14 +88,12 @@ async def balm(message: Message):
     cpr = await CommandParser(message, cog.pure()).parse()
 
     if not cpr.valid:
-        await message.answer(glob.COM_PARSER_FAILED)
-        return
+        return await message.answer(glob.COM_PARSER_FAILED)
 
     target_member = await service.get_target_member(cpr)
 
     if target_member is None:
-        await message.answer(glob.GET_MEMBER_FAILED)
-        return
+        return await message.answer(glob.GET_MEMBER_FAILED)
 
     viewer = PagedViewer(
         title=f'{glob.BALM_TITLE}\n{glob.BALM_MEMBER}: {funcs.get_formatted_name(target_member)}',
@@ -124,8 +118,7 @@ async def tbox(message: Message):
 
     member = await service.get_member(message.from_user.id)
     if member.tbox_available == 0:
-        await message.answer(glob.TBOX_UNAVAILABLE_ERROR)
-        return
+        return await message.answer(glob.TBOX_UNAVAILABLE_ERROR)
 
     await message.reply(
         text=glob.TBOX_TEXT,
@@ -145,20 +138,20 @@ async def tpay(message: Message, callback_message: Message = None, fee_incorpora
     cpr = await CommandParser(message, cog.tickets(PNReal, creator_required=False)).parse()
 
     if not cpr.valid:
-        await message.answer(glob.COM_PARSER_FAILED)
-        return
+        return await message.answer(glob.COM_PARSER_FAILED)
 
     receiver = await service.get_target_member(cpr)
 
     if receiver is None:
-        await message.answer(glob.GET_MEMBER_FAILED)
-        return
+        return await message.answer(glob.GET_MEMBER_FAILED)
 
     sender = await service.get_member(message.from_user.id)
 
     if sender.tpay_available == 0:
-        await message.answer(glob.TPAY_UNAVAILABLE_ERROR)
-        return
+        return await message.answer(glob.TPAY_UNAVAILABLE_ERROR)
+
+    if sender.user_id == receiver.user_id:
+        return await message.answer(glob.SELF_TRANS_ERROR)
 
     description = cpr.args.get(glob.DESCRIPTION_ARG, None)
 
@@ -213,14 +206,14 @@ async def msell(message: Message):
         return
 
     og = CommandOverloadGroup([
-        CommandOverload(private_required=True)
+        CommandOverload(private=True)
     ])
 
     cpr = await CommandParser(message, og).parse()
 
     if not cpr.valid:
-        if cpr.private_required_violation:
-            await message.answer(glob.PRIVATE_REQUIRED_VIOLATION)
+        if cpr.private_violation:
+            await message.answer(glob.PRIVATE_VIOLATION)
         else:
             await message.answer(glob.COM_PARSER_FAILED)
         return
@@ -282,14 +275,12 @@ async def ltrans(message: Message):
         cpr = await CommandParser(message, cog.pure(creator_required=True)).parse()
 
         if not cpr.valid:
-            await message.answer(glob.COM_PARSER_FAILED)
-            return
+            return await message.answer(glob.COM_PARSER_FAILED)
 
         target_member = await service.get_target_member(cpr)
 
         if target_member is None:
-            await message.answer(glob.GET_MEMBER_FAILED)
-            return
+            return await message.answer(glob.GET_MEMBER_FAILED)
     else:  # if co.command == cl.ltrans.name
         target_member = await service.get_member(message.from_user.id)
 
@@ -317,14 +308,12 @@ async def laward(message: Message):
     cpr = await CommandParser(message, cog.pure()).parse()
 
     if not cpr.valid:
-        await message.answer(glob.COM_PARSER_FAILED)
-        return
+        return await message.answer(glob.COM_PARSER_FAILED)
 
     target_member = await service.get_target_member(cpr)
 
     if target_member is None:
-        await message.answer(glob.GET_MEMBER_FAILED)
-        return
+        return await message.answer(glob.GET_MEMBER_FAILED)
 
     viewer = PagedViewer(
         title=glob.LAWARD_TITLE,
@@ -341,64 +330,71 @@ async def laward(message: Message):
     await viewer.view(operation_id)
 
 
-@router.message(Command(cl.topt.name))
-async def topt(message: Message):
+@router.message(Command(commands=[cl.topt.name, cl.topm.name]))
+async def rating(message: Message):
     if not await validate_message(message):
         return
 
     og = CommandOverloadGroup([
-        # /topt
+        # /c
         CommandOverload(oid='pure'),
-        # /topt <size:nint>
+        # /c <size:nint>
         CommandOverload(oid='size').add(glob.SIZE_ARG, NInt),
-        # /topt <%>
+        # /c <%>
         CommandOverload(oid='percent').add_percent(),
-        # /topt <%> <size:nint>
+        # /c <%> <size:nint>
         CommandOverload(oid='percent-size').add_percent().add(glob.SIZE_ARG, NInt),
-        # /topt <id>
+        # /c <id>
         CommandOverload(oid='id').add_id(),
-        # /topt <id> <size:nint>
+        # /c <id> <size:nint>
         CommandOverload(oid='id-size').add_id().add(glob.SIZE_ARG, NInt),
     ])
 
     cpr = await CommandParser(message, og).parse()
 
     if not cpr.valid:
-        await message.answer(glob.COM_PARSER_FAILED)
-        return
+        return await message.answer(glob.COM_PARSER_FAILED)
+
+    command_name = funcs.get_command(message)
+    if command_name == cl.topt.name:
+        logic = service.topt
+    elif command_name == cl.topm.name:
+        logic = service.topm
+    else:
+        raise RuntimeError('No command match in rating handler')
 
     if cpr.overload.oid == 'pure':
         await message.answer(
-            text=await service.topt(),
-            reply_markup=hide_keyboard(glob.TOPT_HIDE_CALLBACK)
+            text=await logic(),
+            reply_markup=hide_keyboard()
         )
     elif cpr.overload.oid == 'size':
         size = cpr.args[glob.SIZE_ARG]
         await message.answer(
-            text=await service.topt(size=size),
-            reply_markup=hide_keyboard(glob.TOPT_HIDE_CALLBACK)
+            text=await logic(size=size),
+            reply_markup=hide_keyboard()
         )
     elif cpr.overload.oid == 'percent':
         await message.answer(
-            text=await service.topt(percent_mode=True),
-            reply_markup=hide_keyboard(glob.TOPT_HIDE_CALLBACK)
+            text=await logic(percent_mode=True),
+            reply_markup=hide_keyboard()
         )
     elif cpr.overload.oid == 'percent-size':
         size = cpr.args[glob.SIZE_ARG]
         await message.answer(
-            text=await service.topt(size, percent_mode=True),
-            reply_markup=hide_keyboard(glob.TOPT_HIDE_CALLBACK)
+            text=await logic(size, percent_mode=True),
+            reply_markup=hide_keyboard()
         )
     elif cpr.overload.oid == 'id':
         await message.answer(
-            text=await service.topt(id_mode=True),
-            reply_markup=hide_keyboard(glob.TOPT_HIDE_CALLBACK)
+            text=await logic(id_mode=True),
+            reply_markup=hide_keyboard()
         )
     elif cpr.overload.oid == 'id-size':
         size = cpr.args[glob.SIZE_ARG]
         await message.answer(
-            text=await service.topt(size, id_mode=True),
-            reply_markup=hide_keyboard(glob.TOPT_HIDE_CALLBACK)
+            text=await logic(size, id_mode=True),
+            reply_markup=hide_keyboard()
         )
 
 
@@ -409,7 +405,7 @@ async def tpool(message: Message):
 
     await message.answer(
         text=await service.tpool(),
-        reply_markup=hide_keyboard(glob.HELP_HIDE_CALLBACK)
+        reply_markup=hide_keyboard()
     )
 
 
@@ -420,7 +416,7 @@ async def rates(message: Message):
 
     await message.answer(
         text=await service.rates(),
-        reply_markup=hide_keyboard(glob.HELP_HIDE_CALLBACK)
+        reply_markup=hide_keyboard()
     )
 
 
@@ -429,10 +425,22 @@ async def alert(message: Message):
     if not await validate_message(message):
         return
 
-    if service.alert_pin is None:
+    og = CommandOverloadGroup([
+        CommandOverload(public=True)
+    ])
+
+    cpr = await CommandParser(message, og).parse()
+
+    if not cpr.valid:
+        if cpr.public_violation:
+            await message.answer(glob.PUBLIC_VIOLATION)
+        else:
+            await message.answer(glob.COM_PARSER_FAILED)
+        return
+
+    if await service.get_sfs_alert_message(message.chat.id) is None:
         sent_message = await message.answer(glob.SFS_ALERT_TEXT)
-        await sent_message.pin(disable_notification=True)
-        service.alert_pin = sent_message
+        await service.pin_sfs_alert(message.chat.id, sent_message)
     else:
         await message.reply(glob.SFS_ALERT_FAILED)
 
@@ -442,11 +450,24 @@ async def unalert(message: Message):
     if not await validate_message(message):
         return
 
-    if service.alert_pin is None:
+    og = CommandOverloadGroup([
+        CommandOverload(public=True)
+    ])
+
+    cpr = await CommandParser(message, og).parse()
+
+    if not cpr.valid:
+        if cpr.public_violation:
+            await message.answer(glob.PUBLIC_VIOLATION)
+        else:
+            await message.answer(glob.COM_PARSER_FAILED)
+        return
+
+    pin_message = await service.get_sfs_alert_message(message.chat.id)
+    if pin_message is None:
         await message.reply(glob.SFS_UNALERT_FAILED)
     else:
-        await service.alert_pin.unpin()
-        service.alert_pin = None
+        await service.unpin_sfs_alert(pin_message)
         await message.reply(glob.SFS_UNALERT_TEXT)
 
 
@@ -466,14 +487,22 @@ async def p(message: Message):
     cpr = await CommandParser(message, og).parse()
 
     if not cpr.valid:
-        await message.answer(glob.COM_PARSER_FAILED)
-        return
+        return await message.answer(glob.COM_PARSER_FAILED)
 
     response = await service.p(cpr.args[glob.PRICE_ARG])
     await message.answer(
         text=response,
-        reply_markup=hide_keyboard(glob.HELP_HIDE_CALLBACK)
+        reply_markup=hide_keyboard()
     )
+
+
+@router.message(Command(cl.anchor.name))
+async def anchor(message: Message):
+    if not await validate_message(message):
+        return
+
+    response = await service.anchor(message.from_user.id, message.chat.id)
+    await message.answer(response)
 
 
 @router.message(Command(cl.reg.name))
@@ -482,22 +511,21 @@ async def reg(message: Message):
         # /reg
         CommandOverload(),
         # <reply> /reg
-        CommandOverload(reply_required=True)
+        CommandOverload(reply=True)
     ])
 
     cpr = await CommandParser(message, og).parse()
 
     if not cpr.valid:
-        await message.answer(glob.COM_PARSER_FAILED)
-        return
+        return await message.answer(glob.COM_PARSER_FAILED)
 
     target_member = await service.get_target_member(cpr)
 
     if target_member is None:
         if cpr.overload.target_type == ctt.none:
-            await service.create_member(message.from_user)
+            await service.create_member(message.from_user, message.chat.id)
         elif cpr.overload.target_type == ctt.reply:
-            await service.create_member(message.reply_to_message.from_user)
+            await service.create_member(message.reply_to_message.from_user, message.chat.id)
         await message.answer(glob.REG_SUCCESS)
     else:
         if cpr.overload.target_type == ctt.none:
@@ -528,12 +556,12 @@ async def nie_ru(message: Message):
 
 @router.message(F.text.regexp(r'сфс|СФС|sfs|SFS'))
 async def sfs_alert_trigger(message: Message):
-    if service.alert_pin is not None:
+    if service.get_sfs_alert_message(message.chat.id) is not None:
         await message.reply(glob.SFS_ALERT_TRIGGER_RESPONSE)
         await message.answer_sticker(glob.CRYING_STICKER_FILE_ID)
 
 
-@router.message(Command('tag'))
+@router.message(Command(cl.tag.name))
 async def tag(message: Message):
     og = CommandOverloadGroup([
         CommandOverload().add(glob.USER_ID_ARG, UserID)
@@ -542,8 +570,10 @@ async def tag(message: Message):
     cpr = await CommandParser(message, og).parse()
 
     if not cpr.valid:
-        await message.answer(glob.COM_PARSER_FAILED)
-        return
+        return await message.answer(glob.COM_PARSER_FAILED)
 
-    nametag = cpr.args[glob.USER_ID_ARG]
-    await message.answer(f"[tag](tg://user?id={nametag})", parse_mode=ParseMode.MARKDOWN)
+    user_id = cpr.args[glob.USER_ID_ARG]
+    await message.answer(
+        text=f"[{glob.TAG_TEXT}](tg://user?id={user_id})",
+        parse_mode=ParseMode.MARKDOWN
+    )

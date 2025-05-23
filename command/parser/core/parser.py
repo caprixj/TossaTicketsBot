@@ -57,30 +57,36 @@ class CommandParser:
         for i, overload in enumerate(sorted_overloads):
             cpr = await self._parse_overload(overload)
 
-            if cpr.valid or cpr.private_required_violation or cpr.creator_required_violation:
+            if any([cpr.valid, cpr.creator_violation, cpr.private_violation, cpr.public_violation]):
                 return cpr
 
             if i == len(self.overload_group.overloads) - 1:
                 return cpr
 
     async def _parse_overload(self, overload: CommandOverload) -> CommandParserResult:
-        if overload.private_required:
+        if overload.private:
             if self.message.chat.type != 'private':
-                if self.overload_group.private_required:
-                    return CommandParserResult(private_required_violation=True)
+                if self.overload_group.private:
+                    return CommandParserResult(private_violation=True)
                 return CommandParserResult(valid=False)
 
-        if overload.creator_required:
+        if overload.public:
+            if self.message.chat.type not in ['group', 'supergroup']:
+                if self.overload_group.public:
+                    return CommandParserResult(public_violation=True)
+                return CommandParserResult(valid=False)
+
+        if overload.creator:
             if self.message.from_user.id != glob.CREATOR_USER_ID:
-                if self.overload_group.creator_required:
-                    return CommandParserResult(creator_required_violation=True)
+                if self.overload_group.creator:
+                    return CommandParserResult(creator_violation=True)
                 return CommandParserResult(valid=False)
 
-        if overload.no_self_reply_required:
+        if overload.no_self_reply:
             if self._replied() and self.message.reply_to_message.from_user.id == self.message.from_user.id:
                 return CommandParserResult(valid=False)
 
-        if overload.reply_required:
+        if overload.reply:
             if self.message.reply_to_message is None:
                 return CommandParserResult(valid=False)
 

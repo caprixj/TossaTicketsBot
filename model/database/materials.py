@@ -38,6 +38,16 @@ class Artifact:
         return round(ARTIFACT_OWNER_PROFIT_RATE * self.investment, 2)
 
 
+class MemberMaterial:
+    def __init__(self,
+                 user_id: int = 0,
+                 material_name: str = None,
+                 quantity: int = 0):
+        self.user_id = user_id
+        self.material_name = material_name
+        self.quantity = quantity
+
+
 @dataclass
 class Material:
     name: str

@@ -48,8 +48,8 @@ def msell_confirmation_keyboard() -> InlineKeyboardMarkup:
     return builder.as_markup()
 
 
-def hide_keyboard(callback_name: str) -> InlineKeyboardMarkup:
-    return one_btn_keyboard(glob.HIDE_BTN, callback_name)
+def hide_keyboard() -> InlineKeyboardMarkup:
+    return one_btn_keyboard(glob.HIDE_BTN, glob.HIDE_CALLBACK)
 
 
 def one_btn_keyboard(text: str, callback_name: str, sender_id: int = 0) -> InlineKeyboardMarkup:

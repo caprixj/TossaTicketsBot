@@ -38,18 +38,8 @@ async def pv_hide(callback: CallbackQuery):
 """ Hide Callbacks """
 
 
-@router.callback_query(F.data.startswith(glob.HELP_HIDE_CALLBACK))
-async def help_hide(callback: CallbackQuery):
-    await callback.message.delete()
-
-
-@router.callback_query(F.data.startswith(glob.AWARD_HIDE_CALLBACK))
-async def award_hide(callback: CallbackQuery):
-    await callback.message.delete()
-
-
-@router.callback_query(F.data.startswith(glob.TOPT_HIDE_CALLBACK))
-async def topt_hide(callback: CallbackQuery):
+@router.callback_query(F.data.startswith(glob.HIDE_CALLBACK))
+async def hide(callback: CallbackQuery):
     await callback.message.delete()
 
 

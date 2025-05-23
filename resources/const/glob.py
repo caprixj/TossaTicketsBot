@@ -15,7 +15,7 @@ DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S'
 NBT_SQL_VAR = 'nbt'
 NBT_ID = -1
 
-UNI_TAX = 0.17  # F
+UNI_TAX = 0.07  # F
 MIN_FEE = 1     # M
 
 INFL_ALPHA = 0.9
@@ -33,7 +33,7 @@ MSELL_ITEMS_LIMIT = 30
 GEM_BASE_PRICE = 0.2972122
 MIN_DELTA_GEM_RATE = 0.5
 MAX_DELTA_GEM_RATE = 2.0
-MAT_RANK_DEVAL = 0.8
+MAT_RANK_UPVAL = 1.05
 
 GEM_FREQ_SIGMA = 0.4
 MIN_GEM_COUNT_TBOX = 1
@@ -69,9 +69,7 @@ TBOX_CALLBACK = 'tbox'
 
 DECORATIVE_KEYBOARD_BUTTON = 'decorative'
 
-HELP_HIDE_CALLBACK = 'help_hide'
-AWARD_HIDE_CALLBACK = 'award_hide'
-TOPT_HIDE_CALLBACK = 'topt_hide'
+HIDE_CALLBACK = 'hide'
 CLAIM_BHF_CALLBACK = 'claim_bhf'
 MSELL_CHOOSE_MATERIAL_CALLBACK = 'msell_cm'
 MSELL_YES_CALLBACK = 'msell_yes'
@@ -84,7 +82,7 @@ PV_HIDE_CALLBACK = 'pv_hide'
 INVALID_ARGS = 'THE PROGRAM WAS STARTED WITH INVALID COMMAND ARGUMENTS!'
 NO_OVERLOADS_ERROR = 'PARSING WITHOUT OVERLOADS IN COMMAND PARSER!'
 DOUBLE_TARGETING_ERROR = 'TRYING TO PUT TWO TARGET-TYPED ARGUMENTS INTO COMMAND OVERLOAD!'
-CREATOR_REQUIRED_VIOLATION = 'CREATOR_REQUIRED_VIOLATION'
+CREATOR_VIOLATION = 'CREATOR_VIOLATION'
 
 CONTINUE_BTN = '✅ continue'
 CANCEL_BTN = '❌ cancel'
@@ -104,11 +102,16 @@ AWARD_SUCCESS = '🎖 the member has been awarded!'
 REG_SUCCESS = '🎉 successfully signed up!\nwelcome to ticketonomics'
 UNREG_TEXT = '☠️ mercilessly kicked out of ticketonomics'
 RUSNI_TEXT = 'пизда!'
-TOPT_DESC = '*💸 ticket leaderboard*'
-TOPT_ASC = '*💩 ticket anti-leaderboard*'
+TOPT_DESC = '*💸 tickets leaderboard*'
+TOPT_ASC = '*💩 tickets anti-leaderboard*'
+TOPM_DESC = '*📦🔝 materials leaderboard*'
+TOPM_ASC = '*📦💩 materials anti-leaderboard*'
 INFM_TEXT = '<b>ℹ️ member information</b>'
 TBOX_TEXT = '🎁 daily tbox'
+TAG_TEXT = 'click to see the account'
 TBOX_OPENED_TEXT = 'your tbox reward'
+ANCHOR_SUCCESS = '✅⚓️ successfully changed the native chat'
+ANCHOR_REJECTED = "❌⚓️ you're already anchored here!"
 SQL_SUCCESS = '✅ command executed!'
 MEMBER_HIRED = '✅💼 member hired for the position!'
 RESET_PRICE_COMMAND_DONE = '✅ manual price reset executed based on the ticket inflation rate'
@@ -116,14 +119,15 @@ MEMBER_ALREADY_HIRED = '❌ member already holds this position!'
 MEMBER_FIRED = '❌💼 member has been fired!'
 MEMBER_ALREADY_FIRED = '❌ cannot fire member as he does not hold this position!'
 UNREG_CREATOR_ERROR = "i won't kill you, my lord! ♥️"
+DELETED_MEMBER = '[not found]'
 NOT_IMPLEMENTED = 'not implemented yet :('
-
 ALERT_CALLBACK_YES = 'you cannot confirm this action!'
 ALERT_CALLBACK_NO = 'you cannot cancel this action!'
 ALERT_CALLBACK_ACTION = 'you cannot perform this action!'
 CALLBACK_FLOOD_CONTROL = 'not so fast! at this rate, telegram will send ticketo-chan to hell.. (wait at least 20 seconds)'
 
-PRIVATE_REQUIRED_VIOLATION = '⚠️ this command can be used only in the private messages of the bot'
+PUBLIC_VIOLATION = '⚠️ this command can be used only in groups'
+PRIVATE_VIOLATION = '⚠️ this command can be used only in the private messages of the bot'
 AWARD_DUPLICATE = '❌ participant already has this award!'
 REG_DENIED_CTT_NONE = '❌ you are already a participant in ticketonomics!'
 REG_DENIED_CTT_REPLY = '❌ this participant is already part of ticketonomics!'
@@ -138,6 +142,7 @@ TBOX_UNAVAILABLE_ERROR = '❌ you already opened a tbox today!'
 TPAY_UNAVAILABLE_ERROR = '❌ rejected! daily transaction limit reached'
 MSELL_QUANTITY_INVALID = '❌ invalid input! try again (reply required!)'
 MSELL_ITEMS_LIMIT_REACHED = "❌ too much! consider the limit. *sell cancelled*"
+SELF_TRANS_ERROR = '❌ you cannot tpay yourself'
 
 BAL_NAME = "🪪 name"
 BAL_PERSONAL = '💳 personal account'
@@ -174,9 +179,15 @@ LTRANS_TEXT = 'text'
 
 LAWARD_TITLE = '<b>📯 awards board</b>'
 
-TOPT_FULL = '(full)'
-TOPT_TICKETS_TOTAL = 'tickets tpool'
-TOPT_BANKRUPT = 'bankrupt'
+TOP_FULL = '(full)'
+TOP_BANKRUPT = 'bankrupt'
+
+TOPT_TICKETS_TOTAL = 'tickets total'
+TOPT_TPOOL = 'tpool'
+
+TOPM_PURE_DISCLAIMER = 'values after taxation (!)'
+TOPM_PURE_MPOOL = 'pure mpool'
+TOPM_TAXED_MPOOL = 'taxed mpool'
 
 RATES_REAL_INFL = 'real inflation'
 RATES_PURE_INFL = 'pure inflation'

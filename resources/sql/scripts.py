@@ -1,6 +1,6 @@
-""" Create Tables """
-from model.types import ProductType
 from resources.const import glob
+
+""" Create Tables """
 
 CREATE_VARS = """
     CREATE TABLE IF NOT EXISTS vars (
@@ -17,7 +17,8 @@ CREATE_MEMBERS = """
         tickets REAL NOT NULL DEFAULT 0,
         tpay_available INTEGER NOT NULL DEFAULT 3 CHECK(tpay_available >= 0),
         business_account REAL NOT NULL DEFAULT 0,
-        tbox_available INTEGER NOT NULL DEFAULT 1 CHECK(tbox_available >= 0)
+        tbox_available INTEGER NOT NULL DEFAULT 1 CHECK(tbox_available >= 0),
+        anchor INTEGER NOT NULL DEFAULT 0
     );
 """
 CREATE_ARTIFACTS = """
@@ -252,7 +253,8 @@ CREATE_ACTIVITY_DATA = """
 
 """ Insert """
 
-INSERT_MEMBER = "INSERT INTO members (user_id, username, first_name, last_name, tickets) VALUES (?, ?, ?, ?, ?)"
+INSERT_MEMBER = ("INSERT INTO members (user_id, username, first_name, last_name, tickets, anchor) "
+                 "VALUES (?, ?, ?, ?, ?, ?)")
 INSERT_ARTIFACT = ("INSERT INTO artifacts (creator_id, owner_id, name, type, investment, file_id, description, "
                    "created_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
 INSERT_AWARD = "INSERT INTO awards (award_id, name, description, payment) VALUES (?, ?, ?, ?)"
@@ -296,29 +298,29 @@ SELECT_LAST_RATE_HISTORY = "SELECT * FROM rate_history ORDER BY plan_date DESC L
 SELECT_LAST_SALARY_PAYOUT = "SELECT * FROM salary_payouts ORDER BY plan_date DESC LIMIT 1"
 SELECT_JOBS = "SELECT * FROM jobs"
 SELECT_PRICES = "SELECT * FROM prices"
-SELECT_GEM_PRICES = f"SELECT * FROM prices WHERE product_type = 'gemstone'"
+SELECT_GEM_RATES = f"SELECT * FROM prices WHERE product_type = 'gemstone'"
 SELECT_MEMBER_MATERIAL = "SELECT material_name, quantity FROM member_materials WHERE user_id = ? AND material_name = ?"
-SELECT_ALL_MEMBER_MATERIALS = "SELECT material_name, quantity FROM member_materials WHERE user_id = ?"
+SELECT_MEMBER_MATERIALS_BY_USER_ID = "SELECT material_name, quantity FROM member_materials WHERE user_id = ?"
+SELECT_ALL_MEMBER_MATERIALS = "SELECT * FROM member_materials"
 SELECT_SQL_VAR = "SELECT value FROM vars WHERE name = ?"
 SELECT_GEMSTONE_PRICE = f"SELECT price FROM prices WHERE product_name = ? AND product_type = 'gemstone'"
 SELECT_SOLD_ITEMS_COUNT_TODAY = (f"SELECT SUM(quantity) FROM material_transactions "
                                  f"WHERE sender_id = ? and receiver_id = {glob.NBT_ID} and date >= ?")
-SELECT_TOPTALL = """
-    SELECT m.*
-    FROM members m
-    LEFT JOIN addt a ON m.user_id = a.user_id
-    LEFT JOIN delt d ON m.user_id = d.user_id
-    GROUP BY m.user_id, m.username, m.first_name, m.last_name, m.tickets
-    ORDER BY m.tickets DESC, MAX(COALESCE(a.time, d.time)) DESC;
-"""
 SELECT_TOPT = """
-    SELECT m.*
-    FROM members m
-    LEFT JOIN addt a ON m.user_id = a.user_id
-    LEFT JOIN delt d ON m.user_id = d.user_id
-    GROUP BY m.user_id, m.username, m.first_name, m.last_name, m.tickets
-    ORDER BY m.tickets $, MAX(COALESCE(a.time, d.time)) $
-    LIMIT ?
+WITH last_activity AS (
+  SELECT user_id, MAX(time) AS last_activity
+  FROM (
+    SELECT user_id, time FROM addt
+    UNION ALL
+    SELECT user_id, time FROM delt
+  )
+  GROUP BY user_id
+)
+SELECT m.*
+FROM members AS m
+LEFT JOIN last_activity AS la ON la.user_id = m.user_id
+ORDER BY m.tickets {order}, la.last_activity {order}
+{limit_clause};
 """
 SELECT_AWARD_RECORDS_BY_OWNER_ID = """
     SELECT a.*, am.issue_date
@@ -382,6 +384,7 @@ SELECT_EACH_MATERIAL_COUNT = """
 UPDATE_MEMBER_NAMES = "UPDATE members SET username = ?, first_name = ?, last_name = ? WHERE user_id = ?"
 UPDATE_MEMBER_TICKETS = "UPDATE members SET tickets = ? WHERE user_id = ?"
 UPDATE_MEMBER_BUSINESS_ACCOUNT = "UPDATE members SET business_account = ? WHERE user_id = ?"
+UPDATE_MEMBER_ANCHOR = "UPDATE members SET anchor = ? WHERE user_id = ?"
 SPEND_MEMBER_TPAY_AVAILABLE = "UPDATE members SET tpay_available = tpay_available - 1 WHERE user_id = ?"
 SPEND_MEMBER_TBOX_AVAILABLE = "UPDATE members SET tbox_available = tbox_available - 1 WHERE user_id = ?"
 RESET_MEMBER_TPAY_AVAILABLE = "UPDATE members SET tpay_available = 3"

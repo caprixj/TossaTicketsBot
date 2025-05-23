@@ -1,3 +1,4 @@
+import asyncio
 import math
 import random
 import re
@@ -5,11 +6,31 @@ from datetime import datetime
 
 import aiofiles
 import yaml
+from aiogram import Bot
+from aiogram.exceptions import TelegramRetryAfter, TelegramAPIError
 from aiogram.types import Message
 
 from model.database import Material
 from model.database.member import Member
+from resources.const import glob
 from resources.const.glob import UNI_TAX as F, MIN_FEE as M, DATETIME_FORMAT, MATERIALS_YAML_PATH
+
+
+async def broadcast_message(
+    bot: Bot,
+    text: str,
+    rate_limit: float = 0.05,   # 20 messages/sec
+):
+    for cid in glob.rms.get_allowed_chats():
+        try:
+            await bot.send_message(chat_id=cid, text=text)
+        except TelegramRetryAfter as e:
+            await asyncio.sleep(e.retry_after)
+            await bot.send_message(chat_id=cid, text=text)
+        except TelegramAPIError as err:
+            print(f'Failed to send to {cid}: {err}')
+
+        await asyncio.sleep(rate_limit)
 
 
 def get_current_datetime() -> str:
@@ -40,7 +61,7 @@ def get_formatted_name(member: Member, ping: bool = False) -> str:
 
 
 def get_command(message: Message) -> str:
-    return message.text.split()[0].split('@')[0].lstrip('/')
+    return (message.text or '').split()[0].split('@')[0].lstrip('/')
 
 
 async def get_materials_yaml() -> list[Material]:

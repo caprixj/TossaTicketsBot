@@ -119,26 +119,42 @@ def _parse_pathlib(xml_path: str) -> str:
 
 
 def _get_run_mode_settings(run_mode: RunMode) -> RunModeSettings:
-    config_path_dev = _parse_pathlib(glob.CONFIG_PATH_DEV)
-    config_path_prod = _parse_pathlib(glob.CONFIG_PATH_PROD)
+    config_paths = [
+        _parse_pathlib(glob.CONFIG_PATH_DEV),
+        _parse_pathlib(glob.CONFIG_PATH_PROD),
+    ]
 
-    paths = [config_path_dev, config_path_prod]
-
-    for fp in paths:
+    for fp in config_paths:
         if not os.path.exists(fp):
             continue
 
         root = ET.parse(fp).getroot()
-
         for settings in root.findall('.//settings'):
-            if settings.attrib.get('mode') == run_mode.value:
-                return RunModeSettings(
-                    bot_token=settings.find('bot-token').text,
-                    main_chat_id=int(settings.find('main-chat-id').text),
-                    db_backup_chat_id=int(settings.find('db-backup-chat-id').text),
-                    db_file_path=_parse_pathlib(settings.find('db-file-path').text)
-                )
+            if settings.get('mode') != run_mode.value:
+                continue
 
-        raise ValueError(f"No settings found with name '{run_mode.value}'")
+            bot_token = settings.find('bot-token').text
+            main_chat_id = int(settings.find('main-chat-id').text)
+            backup_id = int(settings.find('db-backup-chat-id').text)
+            db_path = _parse_pathlib(settings.find('db-file-path').text)
 
-    raise IOError('All provided paths do not exist!')
+            chat_ids_block = settings.find('side-chat-ids')
+            if chat_ids_block is not None:
+                side_chat_ids = [
+                    int(e.text) for e in chat_ids_block.findall('chat-id')
+                    if e.text and e.text.strip()
+                ]
+            else:
+                side_chat_ids = []
+
+            return RunModeSettings(
+                bot_token=bot_token,
+                main_chat_id=main_chat_id,
+                side_chat_ids=side_chat_ids,
+                db_backup_chat_id=backup_id,
+                db_file_path=db_path
+            )
+
+        raise ValueError(f"No settings found for mode '{run_mode.value}'")
+
+    raise IOError('All provided config paths do not exist!')

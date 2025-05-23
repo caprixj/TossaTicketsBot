@@ -10,8 +10,8 @@ from aiogram.types import User, Message
 import resources.const.glob as glob
 from command.parser.results.parser_result import CommandParserResult
 from command.parser.types.target_type import CommandTargetType as ctt
-from model.database import Award, AwardMemberJunction, Member, AddtTransaction, DeltTransaction, TpayTransaction, \
-    Recipe, Ingredient, Artifact, Material
+from model.database import Award, AwardMember, Member, AddtTransaction, DeltTransaction, TpayTransaction, \
+    Recipe, Ingredient, Artifact, Material, MemberMaterial
 from model.database.transactions import BusinessProfitTransaction, MaterialTransaction
 from model.dto import AwardDTO, LTransDTO, TransactionResultDTO
 from model.types import TransactionResultErrors as TRE, TicketTransactionType, ArtifactType
@@ -24,12 +24,13 @@ from resources.sql import scripts
 from service.operation_manager import ServiceOperationManager
 from resources.funcs.funcs import get_formatted_name, get_fee, get_current_datetime, strdate, get_materials_yaml
 
-operation_manager: ServiceOperationManager = ServiceOperationManager()
-_recipes: list[Recipe] = list()
-_materials: list[Material] = list()
-_gem_freq: dict[str, float] = dict()
-_artifact_profit: dict[str, float] = dict()
-alert_pin: Optional[Message] = None
+operation_manager = ServiceOperationManager()
+sfs_alert_pins: dict[int, Message] = {}
+
+_recipes: list[Recipe] = []
+_materials: list[Material] = []
+_gem_freq: dict[str, float] = {}
+_artifact_profit: dict[str, float] = {}
 
 """ Global Getters """
 
@@ -196,7 +197,7 @@ async def bal(m: Member) -> str:
 
 
 async def balm(user_id: int) -> list[Ingredient]:
-    return await repo.get_all_member_materials(user_id)
+    return await repo.get_member_materials_by_user_id(user_id)
 
 
 async def tbox(user_id: int) -> str:
@@ -286,59 +287,130 @@ async def laward(user_id: int) -> Optional[List[AwardDTO]]:
 
 
 async def topt(size: int = 0, percent_mode: bool = False, id_mode: bool = False) -> str:
-    sized = size != 0
-
-    if sized:
+    if size:
         order = OrderingType.DESC if size > 0 else OrderingType.ASC
-        members = await repo.get_members_by_tickets_limited(order, abs(size))
-        result = f'{glob.TOPT_DESC if size > 0 else glob.TOPT_ASC}'
+        limit = abs(size)
+        header = glob.TOPT_DESC if order == OrderingType.DESC else glob.TOPT_ASC
     else:
-        order = str()
-        members = await repo.get_members_by_tickets()
-        result = f'{glob.TOPT_DESC} {glob.TOPT_FULL}'
+        order = OrderingType.DESC
+        limit = None
+        header = f'{glob.TOPT_DESC} {glob.TOP_FULL}'
 
     total_tickets = await repo.get_sum_tickets()
-    result += f"\n{glob.TOPT_TICKETS_TOTAL}: {total_tickets:.2f} tc\n\n"
+    tpool_ = await get_tpool()
+    members = await repo.get_topt_members(order, limit)
 
-    for i, m in enumerate(members):
-        name = get_formatted_name(Member(
-            username=m.username,
-            first_name=m.first_name,
-            last_name=m.last_name
-        ))
+    lines = [
+        header,
+        f'{glob.TOPT_TICKETS_TOTAL}: {total_tickets:.2f} tc',
+        f'{glob.TOPT_TPOOL}: {tpool_:.2f} tc',
+        ''
+    ]
 
-        iterator = str()
-        if i < 3 and (not sized or order == OrderingType.DESC):
-            if i == 0:
-                iterator = '🥇'
-            elif i == 1:
-                iterator = '🥈'
-            elif i == 2:
-                iterator = '🥉'
+    medals = {1: '🥇', 2: '🥈', 3: '🥉'}
+    for idx, m in enumerate(members, start=1):
+        if idx <= 3 and (limit is None or order == OrderingType.DESC):
+            iterator = medals[idx]
         else:
-            iterator = f'{i + 1}.'
+            iterator = f'{idx}.'
 
         if percent_mode:
-            value = f'{m.tickets / total_tickets * 100:.2f}%' \
-                if m.tickets > 0 else glob.TOPT_BANKRUPT
+            if total_tickets > 0:
+                pct = m.tickets / total_tickets * 100
+                value = f'{pct:.2f}%'
+            else:
+                value = glob.TOP_BANKRUPT
         else:
-            sign = '+' if m.tickets > 0 else str()
+            sign = '+' if m.tickets > 0 else ''
             value = f'{sign}{m.tickets:.2f}'
 
-        uid = f'[{m.user_id}] ' if id_mode else str()
+        uid_str = f'[{m.user_id}] ' if id_mode else ''
+        name = get_formatted_name(m)[:32]
+        lines.append(f'{iterator} {uid_str}({value}) {name}')
 
-        result += f'{iterator} {uid}( {value} )  {name[:32]}\n'
+        if idx == 3:
+            lines.append('')
 
-        if i == 2:
-            result += '\n'
+    return '\n'.join(lines)
 
-    return result
+
+async def topm(size: int = 0, percent_mode: bool = False, id_mode: bool = False) -> str:
+    member_materials: list[MemberMaterial] = await repo.get_all_member_materials()
+    gem_rates: dict[str, float] = await repo.get_gem_rates_dict()
+    member_accounts: dict[int, float] = {}  # (!) taxed values
+
+    for mm in member_materials:
+        member_accounts.setdefault(mm.user_id, 0)
+        base = mm.quantity * (1 - glob.UNI_TAX)
+        mat_rank = await get_material_rank(mm.material_name)
+
+        if mat_rank == 1:
+            member_accounts[mm.user_id] += base * gem_rates[mm.material_name]
+        else:
+            mat_price = await get_gc_value(
+                await get_gc_by_recipe(
+                    await _find_recipe(mm.material_name)
+                )
+            )
+            member_accounts[mm.user_id] += base * mat_price * (glob.MAT_RANK_UPVAL ** (mat_rank - 1))
+
+    if size:
+        order = OrderingType.DESC if size > 0 else OrderingType.ASC
+        limit = abs(size)
+        header = glob.TOPM_DESC if order == OrderingType.DESC else glob.TOPM_ASC
+    else:
+        order = OrderingType.DESC
+        limit: Optional[int] = None
+        header = f'{glob.TOPM_DESC} {glob.TOP_FULL}'
+
+    total = sum(member_accounts.values())
+    taxed_mpool = await get_material_tpool()
+    pure_mpool = taxed_mpool / (1 - glob.UNI_TAX)
+
+    items = sorted(
+        member_accounts.items(),
+        key=lambda kv: kv[1],
+        reverse=(order == OrderingType.DESC)
+    )
+
+    if limit is not None:
+        items = items[:limit]
+
+    lines = [
+        header,
+        f'{glob.TOPM_PURE_MPOOL}: {pure_mpool:.2f} tc',
+        f'{glob.TOPM_TAXED_MPOOL}: {taxed_mpool:.2f} tc',
+        f'\n_{glob.TOPM_PURE_DISCLAIMER}_',
+        ''
+    ]
+
+    medals = {1: '🥇', 2: '🥈', 3: '🥉'}
+    for idx, (uid, val) in enumerate(items, start=1):
+        if idx <= 3 and (limit is None or order == OrderingType.DESC):
+            iterator = medals[idx]
+        else:
+            iterator = f'{idx}.'
+
+        if percent_mode:
+            value = f'{val / total * 100:.2f}%' if total > 0 else glob.TOP_BANKRUPT
+        else:
+            value = f'{val:.2f}'
+
+        uid_str = f'[{uid}] ' if id_mode else ''
+        member = await get_member(uid)
+        name = get_formatted_name(member)[:32]
+        lines.append(f'{iterator} {uid_str}({value}) {name}')
+
+        if idx == 3:
+            lines.append('')
+
+    return '\n'.join(lines)
 
 
 async def tpool() -> str:
     personal_tpool = await get_total_tickets()
     business_tpool = await get_business_tpool()
-    artifact_tpool = await get_artifact_tpool()
+    # artifact_tpool = await get_artifact_tpool()
     material_tpool = await get_material_tpool()
 
     nbt_tpool = await get_nbt_tpool()
@@ -346,7 +418,7 @@ async def tpool() -> str:
 
     return (f'{glob.TPOOL_PERSONAL}: {personal_tpool:.2f} tc'
             f'\n{glob.TPOOL_BUSINESS}: {business_tpool:.2f} tc'
-            f'\n{glob.TPOOL_ARTIFACT}: {artifact_tpool:.2f} tc'
+            # f'\n{glob.TPOOL_ARTIFACT}: {artifact_tpool:.2f} tc'
             f'\n{glob.TPOOL_MATERIAL}: {material_tpool:.2f} tc'
             f'\n\n{glob.TPOOL_NBT}: {nbt_tpool:.2f} tc'
             f'\n*{glob.TPOOL_TOTAL}: {total_tpool:.2f} tc*')
@@ -356,7 +428,7 @@ async def rates() -> str:
     rh = await repo.get_last_rate_history()
 
     gem_rates_view = str()
-    for name, rate in (await repo.get_gem_prices_dict()).items():
+    for name, rate in (await repo.get_gem_rates_dict()).items():
         gem_rates_view += f'\n{await get_emoji(name)}*{name}*: {rate:.7f} tc'
 
     return (f'*\n{glob.RATES_REAL_INFL}: {(rh.inflation * rh.fluctuation - 1) * 100:.2f}%*'
@@ -371,6 +443,17 @@ async def p(price: float) -> str:
             f'\n{glob.P_ADJUSTED_PRICE}: {adjusted_price:.2f} tc'
             f'\n{glob.P_INFLATION}: {(inflation - 1) * 100:.3f}%'
             f'\n{glob.P_FLUCTUATION}: {(fluctuation - 1) * 100:.3f}%')
+
+
+async def anchor(user_id: int, chat_id: int) -> str:
+    member = await get_member(user_id)
+
+    if member.anchor == chat_id:
+        return glob.ANCHOR_REJECTED
+
+    member.anchor = chat_id
+    await repo.update_member_anchor(member)
+    return glob.ANCHOR_SUCCESS
 
 
 """ Creator Interfaces """
@@ -407,12 +490,18 @@ async def award(m: Member, a: Award, issue_date: str):
             f"\n\n<b>{glob.AWARD_STORY}</b>: <i>{a.description}</i>")
 
 
-async def hire(user_id: int, position: str):
+async def hire(member: Member, position: str) -> str:
     await repo.insert_employee(
-        user_id=user_id,
+        user_id=member.user_id,
         position=position,
         hired_date=get_current_datetime()
     )
+
+    positions = f'{glob.HIRE_JOBS} {get_formatted_name(member)}:'
+    for pn in await get_job_names(member.user_id):
+        positions += f'\n~ {pn}'
+
+    return f'{glob.MEMBER_HIRED}\n\n{positions}'
 
 
 async def fire(user_id: int, position: str) -> bool:
@@ -468,7 +557,7 @@ async def get_tpool() -> float:
     return sum([
         await get_total_tickets(),
         await get_business_tpool(),
-        await get_artifact_tpool(),
+        # await get_artifact_tpool(),
         await get_material_tpool()
     ])
 
@@ -478,28 +567,30 @@ async def get_nbt_tpool() -> float:
 
 
 async def get_total_tickets() -> float:
-    return await repo.get_sum_tickets()
+    return round(await repo.get_sum_tickets(), 2)
 
 
 async def get_business_tpool() -> float:
-    return await repo.get_sum_business_accounts()
+    return round(await repo.get_sum_business_accounts(), 2)
 
 
-async def get_artifact_tpool() -> float:
-    return sum(a.age_multiplier() * a.investment for a in await repo.get_all_artifacts())
+# async def get_artifact_tpool() -> float:
+#     return sum(a.age_multiplier() * a.investment for a in await repo.get_all_artifacts())
 
 
 async def get_material_tpool() -> float:
-    raw_mtpool = await get_gc_value(
-        await get_mpool_gem_counts()
+    pure_mpool = await get_gc_value(
+        await get_mpool_gc()
     )
 
-    artifact_mtpool = sum([
-        await get_artifact_creation_price(a)
-        for a in await repo.get_all_artifacts()
-    ])
+    return round(pure_mpool * (1 - glob.UNI_TAX), 2)
 
-    return round(artifact_mtpool + (1 - glob.UNI_TAX) * raw_mtpool, 2)
+    # artifact_mtpool = sum([
+    #     await get_artifact_creation_price(a)
+    #     for a in await repo.get_all_artifacts()
+    # ])
+
+    # return round(artifact_mtpool + (1 - glob.UNI_TAX) * raw_mtpool, 2)
 
 
 async def get_artifact_price(a: Artifact) -> float:
@@ -508,7 +599,7 @@ async def get_artifact_price(a: Artifact) -> float:
 
 async def get_artifact_creation_price(a: Artifact) -> float:
     return await get_gc_value(
-        await get_gem_counts(
+        await get_gc_by_recipe(
             await _find_recipe(
                 f'{a.type_}_artifact'
             )))
@@ -541,14 +632,14 @@ async def get_artifact_templates_list() -> list[Material]:
 
 
 async def get_gc_value(gem_counts: dict[str, float]) -> float:
-    gem_prices = await repo.get_gem_prices_dict()
+    gem_rates = await repo.get_gem_rates_dict()
     return sum(
-        count * gem_prices[name]
+        count * gem_rates[name]
         for name, count in gem_counts.items()
     )
 
 
-async def get_gem_counts(r: Recipe) -> dict[str, float]:
+async def get_gc_by_recipe(r: Recipe) -> dict[str, float]:
     gem_counts = {g.name: 0. for g in await get_gems_list()}
     all_inner_gc = []
 
@@ -557,7 +648,7 @@ async def get_gem_counts(r: Recipe) -> dict[str, float]:
         if ingr.name in gem_counts:
             gem_counts[ingr.name] = norm
         else:
-            inner_gc = await get_gem_counts(
+            inner_gc = await get_gc_by_recipe(
                 await _find_recipe(ingr.name)
             )
             for key, value in inner_gc.items():
@@ -575,19 +666,25 @@ async def get_gem_counts(r: Recipe) -> dict[str, float]:
         return gem_counts
 
 
-async def get_mpool_gem_counts() -> dict[str, float]:
+async def get_gc_by_list(ingredients: list[Ingredient]) -> dict[str, float]:
     mpool_gem_counts = {g.name: 0. for g in await get_gems_list()}
 
-    for mat_name, mat_count in (await repo.get_each_material_count()).items():
-        mat_rank = await get_material_rank(mat_name)
+    for mat in ingredients:
+        mat_rank = await get_material_rank(mat.name)
         if mat_rank == 1:
-            mpool_gem_counts[mat_name] += mat_count
+            mpool_gem_counts[mat.name] += mat.quantity
         else:
-            r = await _find_recipe(mat_name)
-            for g_name, g_count in (await get_gem_counts(r)).items():
-                mpool_gem_counts[g_name] += mat_count * g_count * (glob.MAT_RANK_DEVAL ** (mat_rank - 1))
+            r = await _find_recipe(mat.name)
+            for g_name, g_count in (await get_gc_by_recipe(r)).items():
+                mpool_gem_counts[g_name] += mat.quantity * g_count * (glob.MAT_RANK_UPVAL ** (mat_rank - 1))
 
     return mpool_gem_counts
+
+
+async def get_mpool_gc() -> dict[str, float]:
+    return await get_gc_by_list(
+        await repo.get_each_material_count()
+    )
 
 
 async def get_emoji(material_name: str) -> str:
@@ -613,12 +710,13 @@ async def get_material_price(material_name: str) -> float:
 """ Member """
 
 
-async def create_member(user: User) -> None:
+async def create_member(user: User, anchor: int) -> None:
     await repo.insert_member(Member(
         user_id=user.id,
         username=user.username,
         first_name=user.first_name,
-        last_name=user.last_name
+        last_name=user.last_name,
+        anchor=anchor
     ))
 
 
@@ -648,7 +746,7 @@ async def update_member(user: User, member: Member = None):
 """ Award """
 
 
-async def issue_award(am: AwardMemberJunction) -> bool:
+async def issue_award(am: AwardMember) -> bool:
     return await repo.insert_award_member(am)
 
 
@@ -660,7 +758,7 @@ async def pay_award(member: Member, payment: float, description: str):
 
 
 async def msell_markup(user_id: int) -> list[list[str]]:
-    materials = await repo.get_all_member_materials(user_id)
+    materials = await repo.get_member_materials_by_user_id(user_id)
 
     # dict[str, int]
     gemstone_buttons = {}
@@ -743,6 +841,23 @@ async def msell_transaction(data: dict[str, Any]):
         description=TicketTransactionType.nbt_tax,
         type_=TicketTransactionType.nbt_tax
     ))
+
+
+""" SFS Alert """
+
+
+async def get_sfs_alert_message(chat_id: int) -> Optional[Message]:
+    return sfs_alert_pins.get(chat_id)
+
+
+async def pin_sfs_alert(chat_id: int, message: Message):
+    await message.pin(disable_notification=True)
+    sfs_alert_pins[chat_id] = message
+
+
+async def unpin_sfs_alert(message: Message):
+    await message.unpin()
+    del sfs_alert_pins[message.chat.id]
 
 
 """ Other """

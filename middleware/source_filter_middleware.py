@@ -7,7 +7,7 @@ from resources.funcs.funcs import get_current_datetime
 
 class SourceFilterMiddleware(BaseMiddleware):
     async def __call__(self, handler, event: Message, data: dict):
-        if event.chat.type == "private" or event.chat.id == glob.rms.main_chat_id:
-            print(f"{'private ' + str(event.chat.id) if event.chat.type == 'private' else 'group'} - "
+        if event.chat.type == 'private' or glob.rms.allowed_chat(event.chat.id):
+            print(f"{'private ' + str(event.chat.id) if event.chat.type == 'private' else '(super)group'} - "
                   f"{get_current_datetime()}: {event.text if event.text and event.text.startswith('/') else ''}")
             return await handler(event, data)

@@ -1,5 +1,6 @@
 from datetime import datetime
 from math import ceil
+from typing import Optional
 
 from service import service_core as service
 from model.database import Ingredient
@@ -72,14 +73,16 @@ async def ltrans(dto: LTransDTO, title: str) -> list[str]:
 
     for tpay in dto.tpays:
         if tpay.receiver_id == dto.user_id:
-            sender_name = get_formatted_name(_find_member(dto.unique_tpay_members, tpay.sender_id))
+            member = _find_member(dto.unique_tpay_members, tpay.sender_id)
+            sender_name = get_formatted_name(member) if member is not None else glob.DELETED_MEMBER
             row = (f"🔀🔹 | id: {tpay.tpay_id}"
                    f" | {glob.LTRANS_FROM}: <b>{sender_name}</b>"
                    f" | <b>+{tpay.transfer:.2f}</b>"
                    f" | {tpay.time}"
                    f" | {glob.LTRANS_TEXT}: <i>{tpay.description}</i>")
         else:
-            receiver_name = get_formatted_name(_find_member(dto.unique_tpay_members, tpay.receiver_id))
+            member = _find_member(dto.unique_tpay_members, tpay.receiver_id)
+            receiver_name = get_formatted_name(member) if member is not None else glob.DELETED_MEMBER
             row = (f"🔀🔻 | id: {tpay.tpay_id}"
                    f" | {glob.LTRANS_TO}: <b>{receiver_name}</b>"
                    f" | <b>-{tpay.transfer:.2f}</b>"
@@ -141,9 +144,7 @@ def _sorted_by_datetime(rows: list[tuple[str, datetime]]) -> list[str]:
     return [row for row, time in rows]
 
 
-def _find_member(members: list[Member], user_id: int) -> Member:
+def _find_member(members: list[Member], user_id: int) -> Optional[Member]:
     for m in members:
         if m.user_id == user_id:
             return m
-
-    raise RuntimeError('member not found in unique_tpay_members')

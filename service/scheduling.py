@@ -18,6 +18,8 @@ async def schedule(bot: Bot):
     aiosch.add_job(_db_backup, args=[bot], trigger='cron', hour=0, minute=1)
     aiosch.add_job(_db_backup, args=[bot], trigger='cron', hour=12, minute=1)
 
+    aiosch.add_job(daily_sched, args=[bot], trigger='cron', hour=0, minute=1)
+
     for h in range(1, 24):
         aiosch.add_job(daily_sched, args=[bot], trigger='cron', hour=h, minute=0)
 
@@ -52,10 +54,8 @@ async def daily_sched(bot: Bot = None):
     await repo.insert_daily_schedule(date=funcs.get_current_datetime())
 
     if bot:
-        await bot.send_message(
-            chat_id=glob.rms.main_chat_id,
-            text=f'*{glob.DAILY_SCHEDULE_DONE}*'
-        )
+        text = f'*{glob.DAILY_SCHEDULE_DONE}*'
+        await funcs.broadcast_message(bot, text)
 
 
 async def _salary_control():

@@ -13,10 +13,6 @@ class CommandList(str, Enum):
     delt = 'delt'
     # cog: tickets-real
     sett = 'sett'
-    # /sfs <page_message:text>
-    sfs = 'sfs'
-    # /db
-    db = 'db'
     # cog: a1_any
     award = 'award'
     # cog: a1_any
@@ -61,6 +57,11 @@ class CommandList(str, Enum):
     # /topt %
     # /topt % <count:nint>
     topt = 'topt'
+    # /topm
+    # /topm <count:nint>
+    # /topm %
+    # /topm % <count:nint>
+    topm = 'topm'
     # /tpool
     tpool = 'tpool'
     # /rates
@@ -73,5 +74,9 @@ class CommandList(str, Enum):
     rusni = 'rusni'
     # /p <price:pnreal>
     p = 'p'
+    # /tag
+    tag = 'tag'
+    # /anchor
+    anchor = 'anchor'
     # /reg
     reg = 'reg'

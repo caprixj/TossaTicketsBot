@@ -6,9 +6,9 @@ import aiosqlite
 from aiosqlite import Cursor
 
 from model.database import (
-    Artifact, Award, AwardMemberJunction, Member, AddtTransaction,
+    Artifact, Award, AwardMember, Member, AddtTransaction,
     DeltTransaction, Employee, Job, RateReset,
-    SalaryPayout, TpayTransaction, Price, Ingredient
+    SalaryPayout, TpayTransaction, Price, Ingredient, MemberMaterial
 )
 from model.database.transactions import BusinessProfitTransaction, MaterialTransaction
 from model.dto import AwardDTO, LTransDTO
@@ -77,7 +77,8 @@ async def insert_member(member: Member):
             member.username,
             member.first_name,
             member.last_name,
-            member.tickets
+            member.tickets,
+            member.anchor
         ))
         await db.commit()
 
@@ -142,7 +143,7 @@ async def insert_award(award: Award):
         await db.commit()
 
 
-async def insert_award_member(am: AwardMemberJunction) -> bool:
+async def insert_award_member(am: AwardMember) -> bool:
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
         try:
             await db.execute(scripts.INSERT_AWARD_MEMBER, (
@@ -252,20 +253,19 @@ async def get_member_by_username(username: str) -> Optional[Member]:
         return Member(*row) if row else None
 
 
-async def get_members_by_tickets() -> list[Member]:
-    async with aiosqlite.connect(glob.rms.db_file_path) as db:
-        cursor = await db.execute(scripts.SELECT_TOPTALL)
-        rows = await cursor.fetchall()
-        return [Member(*row) for row in rows]
-
-
-async def get_members_by_tickets_limited(order: OrderingType, size: int) -> list[Member]:
-    query = scripts.SELECT_TOPT.replace('$', order.value)
+async def get_topt_members(order: OrderingType = OrderingType.DESC, limit: Optional[int] = None) -> list[Member]:
+    limit_clause = 'LIMIT ?' if limit is not None else ''
+    query = scripts.SELECT_TOPT.format(
+        order=order.value,
+        limit_clause=limit_clause
+    )
+    params = (limit,) if limit is not None else ()
 
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
-        cursor = await db.execute(query, (abs(size),))
+        cursor = await db.execute(query, params)
         rows = await cursor.fetchall()
-        return [Member(*row) for row in rows]
+
+    return [Member(*row) for row in rows]
 
 
 async def get_artifacts(user_id: int) -> List[Artifact]:
@@ -418,18 +418,23 @@ async def get_prices() -> List[Price]:
         return [Price(*row) for row in rows]
 
 
-async def get_gem_prices_dict() -> dict[str, float]:
+async def get_gem_rates_dict() -> dict[str, float]:
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
-        cursor = await db.execute(scripts.SELECT_GEM_PRICES)
+        cursor = await db.execute(scripts.SELECT_GEM_RATES)
         rows = await cursor.fetchall()
         return {r[0]: float(r[2]) for r in rows}
 
 
-async def get_each_material_count() -> dict[str, int]:
+async def get_each_material_count() -> list[Ingredient]:
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
         cursor = await db.execute(scripts.SELECT_EACH_MATERIAL_COUNT)
         rows = await cursor.fetchall()
-        return {row[0]: row[1] for row in rows}
+        return [
+            Ingredient(
+                name=row[0],
+                quantity=int(row[1])
+            ) for row in rows
+        ]
 
 
 async def get_member_material(user_id: int, material_name: str) -> Optional[Ingredient]:
@@ -439,9 +444,9 @@ async def get_member_material(user_id: int, material_name: str) -> Optional[Ingr
         return Ingredient(*row) if row else None
 
 
-async def get_all_member_materials(user_id: int) -> list[Ingredient]:
+async def get_member_materials_by_user_id(user_id: int) -> list[Ingredient]:
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
-        cursor = await db.execute(scripts.SELECT_ALL_MEMBER_MATERIALS, (user_id,))
+        cursor = await db.execute(scripts.SELECT_MEMBER_MATERIALS_BY_USER_ID, (user_id,))
         rows = await cursor.fetchall()
         return [
             Ingredient(
@@ -449,6 +454,13 @@ async def get_all_member_materials(user_id: int) -> list[Ingredient]:
                 quantity=int(row[1])
             ) for row in rows
         ]
+
+
+async def get_all_member_materials() -> list[MemberMaterial]:
+    async with aiosqlite.connect(glob.rms.db_file_path) as db:
+        cursor = await db.execute(scripts.SELECT_ALL_MEMBER_MATERIALS)
+        rows = await cursor.fetchall()
+        return [MemberMaterial(*row) for row in rows]
 
 
 async def get_sold_items_count_today(user_id: int) -> int:
@@ -488,6 +500,13 @@ async def update_member_tickets(member: Member):
 async def update_member_business_account(member: Member):
     await _execute(scripts.UPDATE_MEMBER_BUSINESS_ACCOUNT, (
         member.business_account,
+        member.user_id
+    ))
+
+
+async def update_member_anchor(member: Member):
+    await _execute(scripts.UPDATE_MEMBER_ANCHOR, (
+        member.anchor,
         member.user_id
     ))
 
