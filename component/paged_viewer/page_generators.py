@@ -74,7 +74,14 @@ async def ltrans(dto: LTransDTO, title: str) -> list[str]:
     for tpay in dto.tpays:
         if tpay.receiver_id == dto.user_id:
             member = _find_member(dto.unique_tpay_members, tpay.sender_id)
-            sender_name = get_formatted_name(member) if member is not None else glob.DELETED_MEMBER
+
+            if member is None:
+                dm = await service.get_del_member(tpay.sender_id)
+                sender_name = f'{get_formatted_name(dm)} {glob.DELETED_MEMBER}' \
+                    if dm is not None else glob.DELETED_MEMBER
+            else:
+                sender_name = get_formatted_name(member)
+
             row = (f"🔀🔹 | id: {tpay.tpay_id}"
                    f" | {glob.LTRANS_FROM}: <b>{sender_name}</b>"
                    f" | <b>+{tpay.transfer:.2f}</b>"
@@ -82,7 +89,14 @@ async def ltrans(dto: LTransDTO, title: str) -> list[str]:
                    f" | {glob.LTRANS_TEXT}: <i>{tpay.description}</i>")
         else:
             member = _find_member(dto.unique_tpay_members, tpay.receiver_id)
-            receiver_name = get_formatted_name(member) if member is not None else glob.DELETED_MEMBER
+
+            if member is None:
+                dm = await service.get_del_member(tpay.receiver_id)
+                receiver_name = f'{get_formatted_name(dm)} {glob.DELETED_MEMBER}' \
+                    if dm is not None else glob.DELETED_MEMBER
+            else:
+                receiver_name = get_formatted_name(member)
+
             row = (f"🔀🔻 | id: {tpay.tpay_id}"
                    f" | {glob.LTRANS_TO}: <b>{receiver_name}</b>"
                    f" | <b>-{tpay.transfer:.2f}</b>"

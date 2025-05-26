@@ -4,6 +4,7 @@ from enum import Enum
 class TicketTransactionType(str, Enum):
     unknown = 'unknown'
     creator = 'creator'
+    unreg = 'unreg'
     tpay = 'tpay'
     tpay_tax = 'tpay_tax'
     nbt = 'nbt'

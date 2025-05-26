@@ -43,6 +43,8 @@ ARTIFACT_AGE_MULTIPLIER = 0.002
 ARTIFACT_OWNER_PROFIT_RATE = 0.01
 MIN_ARTIFACT_INIT_INVEST = 10
 
+TG_MSG_LEN_LIMIT = 4096
+
 ARTIFACT_PROFIT_YAML_PATH = 'model/yaml/artifact_profit.yaml'
 GEM_FREQ_YAML_PATH = 'model/yaml/gem_freq.yaml'
 MATERIALS_YAML_PATH = 'model/yaml/materials.yaml'
@@ -98,7 +100,7 @@ TPAY_TEXT = '🔀 tickets transferred!'
 MSELL_TEXT = (f'📦 choose the material to sell to the national bank of ticketonomics'
               f'\n\nℹ️ the limit is {MSELL_ITEMS_LIMIT} items per day'
               f'\n_material emoji (amount you own)_')
-AWARD_SUCCESS = '🎖 the member has been awarded!'
+AWARD_SUCCESS = '🎖 the m has been awarded!'
 REG_SUCCESS = '🎉 successfully signed up!\nwelcome to ticketonomics'
 UNREG_TEXT = '☠️ mercilessly kicked out of ticketonomics'
 RUSNI_TEXT = 'пизда!'
@@ -106,20 +108,20 @@ TOPT_DESC = '*💸 tickets leaderboard*'
 TOPT_ASC = '*💩 tickets anti-leaderboard*'
 TOPM_DESC = '*📦🔝 materials leaderboard*'
 TOPM_ASC = '*📦💩 materials anti-leaderboard*'
-INFM_TEXT = '<b>ℹ️ member information</b>'
+INFM_TEXT = '<b>ℹ️ m information</b>'
 TBOX_TEXT = '🎁 daily tbox'
 TAG_TEXT = 'click to see the account'
 TBOX_OPENED_TEXT = 'your tbox reward'
 ANCHOR_SUCCESS = '✅⚓️ successfully changed the native chat'
 ANCHOR_REJECTED = "❌⚓️ you're already anchored here!"
 SQL_SUCCESS = '✅ command executed!'
-MEMBER_HIRED = '✅💼 member hired for the position!'
+MEMBER_HIRED = '✅💼 m hired for the position!'
 RESET_PRICE_COMMAND_DONE = '✅ manual price reset executed based on the ticket inflation rate'
-MEMBER_ALREADY_HIRED = '❌ member already holds this position!'
-MEMBER_FIRED = '❌💼 member has been fired!'
-MEMBER_ALREADY_FIRED = '❌ cannot fire member as he does not hold this position!'
+MEMBER_ALREADY_HIRED = '❌ m already holds this position!'
+MEMBER_FIRED = '❌💼 m has been fired!'
+MEMBER_ALREADY_FIRED = '❌ cannot fire m as he does not hold this position!'
 UNREG_CREATOR_ERROR = "i won't kill you, my lord! ♥️"
-DELETED_MEMBER = '[not found]'
+DELETED_MEMBER = '[kicked out]'
 NOT_IMPLEMENTED = 'not implemented yet :('
 ALERT_CALLBACK_YES = 'you cannot confirm this action!'
 ALERT_CALLBACK_NO = 'you cannot cancel this action!'
@@ -133,11 +135,12 @@ REG_DENIED_CTT_NONE = '❌ you are already a participant in ticketonomics!'
 REG_DENIED_CTT_REPLY = '❌ this participant is already part of ticketonomics!'
 SQL_FAILED = '❌ command rejected!'
 COM_PARSER_FAILED = '❌ invalid command!'
-TARGET_NOT_MEMBER_ERROR = '❌ the specified user is not a ticketonomics member!'
-GET_MEMBER_FAILED = '❌ member not found! check the id you entered'
+TG_MSG_LEN_LIMIT_ERROR = '⚠️ the result is too long for a telegram message'
+TARGET_NOT_MEMBER_ERROR = '❌ the specified user is not a ticketonomics m!'
+GET_MEMBER_FAILED = '❌ m not found! check the id you entered'
 GET_AWARD_FAILED = '❌ specified award does not exist! check the id you entered'
 SERVICE_OPERATION_NONE_RESULT = '😔 couldn’t complete the operation..'
-NOT_MEMBER_ERROR = '❌ to use the bot, you must be a member of the sfs chat and send the /reg command. more instructions can be found at /help'
+NOT_MEMBER_ERROR = '❌ to use the bot, you must be a m of the sfs chat and send the /reg command. more instructions can be found at /help'
 TBOX_UNAVAILABLE_ERROR = '❌ you already opened a tbox today!'
 TPAY_UNAVAILABLE_ERROR = '❌ rejected! daily transaction limit reached'
 MSELL_QUANTITY_INVALID = '❌ invalid input! try again (reply required!)'
@@ -155,14 +158,14 @@ BALM_NO_GEMSTONES = 'you have no gemstones yet.. 😶‍🌫️'
 BALM_NO_INTERMEDIATES = 'you have no intermediates yet.. 😶‍🌫️'
 BALM_NO_ARTIFACT_TEMPLATES = 'you have no artifact templates yet.. 😶‍🌫️'
 BALM_TITLE = '<b>📦 materials account</b>'
-BALM_MEMBER = 'member'
+BALM_MEMBER = 'm'
 BALM_START_TEXT = """
 page 1 - gemstones
 page 2 - intermediates
 page 3 - artifact templates
 """
 
-TBOX_MEMBER = '🪪 member'
+TBOX_MEMBER = '🪪 m'
 
 LTRANS_TITLE = '<b>📊 income and expenses history (tickets)</b>'
 LTRANS_START_TEXT = """
@@ -172,7 +175,7 @@ LTRANS_START_TEXT = """
 ✨ - transfer by creator
 """
 LTRANS_TRANS_HISTORY_EMPTY = 'your transactions history is empty.. 😶‍🌫️'
-LTRANS_MEMBER = 'member'
+LTRANS_MEMBER = 'm'
 LTRANS_FROM = 'from'
 LTRANS_TO = 'to'
 LTRANS_TEXT = 'text'
@@ -216,7 +219,7 @@ AWARD_PAYMENT = 'payment'
 AWARD_ISSUED = 'issue date'
 AWARD_STORY = 'story'
 
-HIRE_JOBS = 'jobs of the member'
+HIRE_JOBS = 'jobs of the m'
 
 TPAY_SENDER = 'sender'
 TPAY_RECEIVER = 'receiver'
@@ -295,8 +298,8 @@ _Note that the bot is hosted on the developer's phone, so it may not always be a
 *📊 Learn about participants and leaderboards*
 
 *• Member info*: Reply to one's message with `/infm`, or provide one's username or ID: `/infm [username/id]`  
-*• Check member's assets*: Reply with `/bal`, or provide one's username or ID: `/bal [username/id]`  
-*• View member's awards*: Use the `/laward` command. Works the same as `/bal`  
+*• Check m's assets*: Reply with `/bal`, or provide one's username or ID: `/bal [username/id]`  
+*• View m's awards*: Use the `/laward` command. Works the same as `/bal`  
 *• View your transfer history*: Use the `/ltrans` command  
 *• Ticket leaderboard*: Get the full list with `/topt`. For a trimmed list, provide a positive number, or for the anti-leaderboard, a negative number: `/topt [number]`  
 *• Leaderboard by ticket share*: Similar to `/topt` but shown in percentages: `/topt % [number]`

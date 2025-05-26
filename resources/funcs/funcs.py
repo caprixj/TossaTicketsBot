@@ -3,6 +3,7 @@ import math
 import random
 import re
 from datetime import datetime
+from typing import Union
 
 import aiofiles
 import yaml
@@ -11,7 +12,7 @@ from aiogram.exceptions import TelegramRetryAfter, TelegramAPIError
 from aiogram.types import Message
 
 from model.database import Material
-from model.database.member import Member
+from model.database.member import Member, DelMember
 from resources.const import glob
 from resources.const.glob import UNI_TAX as F, MIN_FEE as M, DATETIME_FORMAT, MATERIALS_YAML_PATH
 
@@ -49,9 +50,9 @@ async def get_transfer_by_total(t: float) -> float:
     return t - M if F * (t - M) <= M else round(t / (F + 1), 2)
 
 
-def get_formatted_name(member: Member, ping: bool = False) -> str:
+def get_formatted_name(member: Union[Member, DelMember], ping: bool = False) -> str:
     if member is None:
-        return '/member is none/'
+        return '/m is none/'
 
     parts = [member.first_name or '', member.last_name or '']
     name = str(' '.join(filter(None, parts)) or member.username or '-')

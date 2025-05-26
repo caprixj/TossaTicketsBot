@@ -1,6 +1,6 @@
 import functools
 
-from aiogram import Router, F
+from aiogram import Router, F, Bot
 from aiogram.enums import ParseMode
 from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
@@ -501,23 +501,40 @@ async def anchor(message: Message):
     if not await validate_message(message):
         return
 
-    response = await service.anchor(message.from_user.id, message.chat.id)
-    await message.answer(response)
-
-
-@router.message(Command(cl.reg.name))
-async def reg(message: Message):
     og = CommandOverloadGroup([
-        # /reg
-        CommandOverload(),
-        # <reply> /reg
-        CommandOverload(reply=True)
+        CommandOverload(public=True)
     ])
 
     cpr = await CommandParser(message, og).parse()
 
     if not cpr.valid:
-        return await message.answer(glob.COM_PARSER_FAILED)
+        if cpr.public_violation:
+            await message.answer(glob.PUBLIC_VIOLATION)
+        else:
+            await message.answer(glob.COM_PARSER_FAILED)
+        return
+
+    response = await service.anchor(message.from_user.id, message.chat.id)
+    await message.answer(response)
+
+
+@router.message(Command(cl.reg.name))
+async def reg(message: Message, bot: Bot):
+    og = CommandOverloadGroup([
+        # /reg
+        CommandOverload(),
+        # <reply> /reg
+        CommandOverload(reply=True)
+    ], public=True)
+
+    cpr = await CommandParser(message, og).parse()
+
+    if not cpr.valid:
+        if cpr.public_violation:
+            await message.answer(glob.PUBLIC_VIOLATION)
+        else:
+            await message.answer(glob.COM_PARSER_FAILED)
+        return
 
     target_member = await service.get_target_member(cpr)
 
@@ -526,7 +543,19 @@ async def reg(message: Message):
             await service.create_member(message.from_user, message.chat.id)
         elif cpr.overload.target_type == ctt.reply:
             await service.create_member(message.reply_to_message.from_user, message.chat.id)
+
+        await bot.send_message(
+            chat_id=glob.CREATOR_USER_ID,
+            text=f'chat id: {message.chat.id}\n'
+                 f'user id: {message.from_user.id}\n'
+                 f'first name: {message.from_user.first_name}\n'
+                 f'last name: {message.from_user.last_name}\n'
+                 f'user name: {message.from_user.username}\n'
+                 f'datetime: {funcs.get_current_datetime()}'
+        )
+
         await message.answer(glob.REG_SUCCESS)
+
     else:
         if cpr.overload.target_type == ctt.none:
             await service.update_member(message.from_user, target_member)

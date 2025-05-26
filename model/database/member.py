@@ -18,3 +18,17 @@ class Member:
         self.business_account = business_account
         self.tbox_available = tbox_available
         self.anchor = anchor  # native chat id
+
+
+class DelMember:
+    def __init__(self,
+                 user_id: int = 0,
+                 username: str = None,
+                 first_name: str = None,
+                 last_name: str = None,
+                 anchor: int = 0):
+        self.user_id = user_id
+        self.username = username
+        self.first_name = first_name
+        self.last_name = last_name
+        self.anchor = anchor  # native chat id

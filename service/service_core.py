@@ -11,7 +11,7 @@ import resources.const.glob as glob
 from command.parser.results.parser_result import CommandParserResult
 from command.parser.types.target_type import CommandTargetType as ctt
 from model.database import Award, AwardMember, Member, AddtTransaction, DeltTransaction, TpayTransaction, \
-    Recipe, Ingredient, Artifact, Material, MemberMaterial
+    Recipe, Ingredient, Artifact, Material, MemberMaterial, DelMember
 from model.database.transactions import BusinessProfitTransaction, MaterialTransaction
 from model.dto import AwardDTO, LTransDTO, TransactionResultDTO
 from model.types import TransactionResultErrors as TRE, TicketTransactionType, ArtifactType
@@ -20,7 +20,6 @@ from model.types.transaction_types import MaterialTransactionType
 from repository.ordering_type import OrderingType
 from repository import repository_core as repo
 from resources.funcs import funcs
-from resources.sql import scripts
 from service.operation_manager import ServiceOperationManager
 from resources.funcs.funcs import get_formatted_name, get_fee, get_current_datetime, strdate, get_materials_yaml
 
@@ -84,8 +83,8 @@ async def _get_artifact_profits_dict() -> dict[str, float]:
 """ General """
 
 
-async def execute_sql(query: str) -> (bool, str):
-    return await repo.execute_external(query)
+async def sql_execute(query: str, many: bool = False) -> (bool, str):
+    return await repo.sql_execute(query, many)
 
 
 async def _add_tickets(member: Member, tickets: float, transaction_type: TicketTransactionType,
@@ -324,7 +323,7 @@ async def topt(size: int = 0, percent_mode: bool = False, id_mode: bool = False)
             sign = '+' if m.tickets > 0 else ''
             value = f'{sign}{m.tickets:.2f}'
 
-        uid_str = f'[{m.user_id}] ' if id_mode else ''
+        uid_str = f'`{m.user_id}` ' if id_mode else ''
         name = get_formatted_name(m)[:32]
         lines.append(f'{iterator} {uid_str}({value}) {name}')
 
@@ -519,9 +518,18 @@ async def unreg(m: Member):
     await _set_tickets(
         member=m,
         tickets=0,
-        transaction_type=TicketTransactionType.creator,
+        transaction_type=TicketTransactionType.unreg,
         description='unreg'
     )
+
+    await repo.insert_del_member(DelMember(
+        user_id=m.user_id,
+        username=m.username,
+        first_name=m.first_name,
+        last_name=m.last_name,
+        anchor=m.anchor
+    ))
+
     await repo.delete_member(m.user_id)
 
 
@@ -530,6 +538,10 @@ async def unreg(m: Member):
 
 async def get_member(user_id: int) -> Optional[Member]:
     return await repo.get_member_by_user_id(user_id)
+
+
+async def get_del_member(user_id: int) -> Optional[DelMember]:
+    return await repo.get_del_member_by_user_id(user_id)
 
 
 async def get_target_member(cpr: CommandParserResult) -> Optional[Member]:
@@ -707,16 +719,24 @@ async def get_material_price(material_name: str) -> float:
     return await repo.get_material_price(material_name)
 
 
+async def get_formatted_material_name(material_name: str) -> str:
+    if material_name:
+        return material_name.replace('_', ' ')
+
+
 """ Member """
 
 
-async def create_member(user: User, anchor: int) -> None:
+async def create_member(user: User, anchor_: int) -> None:
+    if await get_del_member(user.id) is not None:
+        await repo.delete_del_member(user.id)
+
     await repo.insert_member(Member(
         user_id=user.id,
         username=user.username,
         first_name=user.first_name,
         last_name=user.last_name,
-        anchor=anchor
+        anchor=anchor_
     ))
 
 
@@ -863,12 +883,12 @@ async def unpin_sfs_alert(message: Message):
 """ Other """
 
 
-async def reset_tpay_available() -> (bool, str):
-    return await repo.execute_external(scripts.RESET_MEMBER_TPAY_AVAILABLE)
+async def reset_tpay_available():
+    return await repo.reset_tpay_available()
 
 
-async def reset_tbox_available() -> (bool, str):
-    return await repo.execute_external(scripts.RESET_MEMBER_TBOX_AVAILABLE)
+async def reset_tbox_available():
+    return await repo.reset_tbox_available()
 
 
 async def payout_profits():
@@ -979,11 +999,6 @@ async def _get_rand_gemstones() -> Ingredient:
         name=gem.name,
         quantity=quantity
     )
-
-
-async def get_formatted_material_name(material_name: str) -> str:
-    if material_name:
-        return material_name.replace('_', ' ')
 
 
 async def _get_artifact_profit_rate(artifact_type: ArtifactType) -> float:

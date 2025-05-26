@@ -7,6 +7,8 @@ class CommandList(str, Enum):
 
     # /sql <query:text>
     sql = 'sql'
+    # /sqls <query:text>
+    sqls = 'sqls'
     # cog: tickets-pnreal
     addt = 'addt'
     # cog: tickets-pnreal

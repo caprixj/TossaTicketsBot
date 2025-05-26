@@ -1,0 +1,5 @@
+DELETE_MEMBER = "DELETE FROM members WHERE user_id = ?"
+DELETE_DEL_MEMBER = "DELETE FROM del_members WHERE user_id = ?"
+DELETE_MEMBER_MATERIAL = "DELETE FROM member_materials WHERE user_id = ? AND material_name = ?"
+DELETE_PAID_MEMBER = "DELETE FROM employees WHERE user_id = ? AND position = ?"
+DELETE_POSITION_CATALOGUE = "DELETE FROM jobs WHERE position = ?"

@@ -8,6 +8,7 @@ from aiogram.types import Message
 import resources.const.glob as glob
 from command.parser.keyboards.keyboards import hide_keyboard
 from model.database import AwardMember
+from resources.funcs import funcs
 from resources.funcs.funcs import get_formatted_name
 from service import service_core as service, scheduling
 from service.price_manager import reset_prices
@@ -24,10 +25,10 @@ from resources.const.rands import crv_messages
 router = Router()
 
 
-@router.message(Command(cl.sql.name))
+@router.message(Command(commands=[cl.sql.name, cl.sqls.name]))
 async def sql(message: Message):
     og = CommandOverloadGroup(
-        # /sql <query:text>
+        # /c <query:text>
         overloads=[CommandOverload().add(glob.QUERY_ARG, BaseText)],
         creator=True
     )
@@ -37,8 +38,9 @@ async def sql(message: Message):
     if not cpr.valid:
         return await _reply_by_crv(message, cpr)
 
-    (executed, response) = await service.execute_sql(
-        query=cpr.args[glob.QUERY_ARG]
+    (executed, response) = await service.sql_execute(
+        query=cpr.args[glob.QUERY_ARG],
+        many=funcs.get_command(message) == cl.sqls.name
     )
 
     status = glob.SQL_SUCCESS if executed else glob.SQL_FAILED

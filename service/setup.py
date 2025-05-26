@@ -9,7 +9,7 @@ from pathlib import Path
 import resources.const.glob as glob
 from model.types.run_mode import RunMode, RunModeSettings
 from resources.funcs.funcs import get_materials_yaml
-from resources.sql import scripts
+from resources import sql
 
 
 def define_run_mode() -> RunMode:
@@ -49,7 +49,7 @@ async def _create_tables():
 async def _insert_materials():
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
         await db.executemany(
-            scripts.INSERT_OR_IGNORE_MATERIALS,
+            sql.INSERT_OR_IGNORE_MATERIALS,
             [(m.name, m.emoji) for m in await get_materials_yaml()]
         )
         await db.commit()
@@ -58,7 +58,7 @@ async def _insert_materials():
 async def _insert_sql_vars():
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
         await db.executemany(
-            scripts.INSERT_OR_IGNORE_SQL_VARS,
+            sql.INSERT_OR_IGNORE_SQL_VARS,
             [
                 (glob.NBT_SQL_VAR, '0.00')
             ]
@@ -68,30 +68,31 @@ async def _insert_sql_vars():
 
 async def _get_create_table_scripts() -> list[str]:
     return [
-        scripts.CREATE_VARS,
-        scripts.CREATE_MEMBERS,
-        scripts.CREATE_ARTIFACTS,
-        scripts.CREATE_ARTIFACT_VALUE_HISTORY,
-        scripts.CREATE_ADDT,
-        scripts.CREATE_DELT,
-        scripts.CREATE_TPAY,
-        scripts.CREATE_BUSINESS_PROFITS,
-        scripts.CREATE_BUSINESS_WITHDRAWS,
-        scripts.CREATE_AWARDS,
-        scripts.CREATE_AWARD_MEMBER,
-        scripts.CREATE_RATE_HISTORY,
-        scripts.CREATE_SALARY_PAYOUTS,
-        scripts.CREATE_EMPLOYEES,
-        scripts.CREATE_EMPLOYMENT_HISTORY,
-        scripts.CREATE_JOBS,
-        scripts.CREATE_PRICES,
-        scripts.CREATE_PRICE_HISTORY,
-        scripts.CREATE_MATERIALS,
-        scripts.CREATE_MEMBER_MATERIALS,
-        scripts.CREATE_MATERIAL_TRANSACTIONS,
-        scripts.CREATE_MATERIAL_TRANSACTION_REQUESTS,
-        scripts.CREATE_DAILY_SCHEDULES,
-        scripts.CREATE_ACTIVITY_DATA
+        sql.CREATE_VARS,
+        sql.CREATE_MEMBERS,
+        sql.CREATE_DEL_MEMBERS,
+        sql.CREATE_ARTIFACTS,
+        sql.CREATE_ARTIFACT_VALUE_HISTORY,
+        sql.CREATE_ADDT,
+        sql.CREATE_DELT,
+        sql.CREATE_TPAY,
+        sql.CREATE_BUSINESS_PROFITS,
+        sql.CREATE_BUSINESS_WITHDRAWS,
+        sql.CREATE_AWARDS,
+        sql.CREATE_AWARD_MEMBER,
+        sql.CREATE_RATE_HISTORY,
+        sql.CREATE_SALARY_PAYOUTS,
+        sql.CREATE_EMPLOYEES,
+        sql.CREATE_EMPLOYMENT_HISTORY,
+        sql.CREATE_JOBS,
+        sql.CREATE_PRICES,
+        sql.CREATE_PRICE_HISTORY,
+        sql.CREATE_MATERIALS,
+        sql.CREATE_MEMBER_MATERIALS,
+        sql.CREATE_MATERIAL_TRANSACTIONS,
+        sql.CREATE_MATERIAL_TRANSACTION_REQUESTS,
+        sql.CREATE_DAILY_SCHEDULES,
+        sql.CREATE_ACTIVITY_DATA
     ]
 
 
