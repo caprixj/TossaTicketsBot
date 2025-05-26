@@ -727,8 +727,13 @@ async def get_formatted_material_name(material_name: str) -> str:
 """ Member """
 
 
-async def create_member(user: User, anchor_: int) -> None:
-    if await get_del_member(user.id) is not None:
+async def create_member(user: User, anchor_: int) -> bool:
+    dm = await get_del_member(user.id)
+    is_creator = user.id == glob.CREATOR_USER_ID
+
+    if dm is not None:
+        if not is_creator:
+            return False
         await repo.delete_del_member(user.id)
 
     await repo.insert_member(Member(
@@ -738,6 +743,8 @@ async def create_member(user: User, anchor_: int) -> None:
         last_name=user.last_name,
         anchor=anchor_
     ))
+
+    return True
 
 
 async def update_member(user: User, member: Member = None):

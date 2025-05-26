@@ -1,4 +1,5 @@
 import functools
+import random
 
 from aiogram import Router, F, Bot
 from aiogram.enums import ParseMode
@@ -9,6 +10,7 @@ from aiogram.types import Message, LinkPreviewOptions
 import resources.const.glob as glob
 from command.routed.states.states import MsellStates
 from model.database import Member, Material
+from resources.const.rands import crv_messages
 from service import service_core as service
 from command.routed.handlers.validations import validate_message, validate_user
 from command.parser.keyboards.keyboards import tpay_keyboard, hide_keyboard, one_btn_keyboard, \
@@ -539,19 +541,19 @@ async def reg(message: Message, bot: Bot):
     target_member = await service.get_target_member(cpr)
 
     if target_member is None:
+        response = False
         if cpr.overload.target_type == ctt.none:
-            await service.create_member(message.from_user, message.chat.id)
+            response = await service.create_member(message.from_user, message.chat.id)
         elif cpr.overload.target_type == ctt.reply:
-            await service.create_member(message.reply_to_message.from_user, message.chat.id)
+            response = await service.create_member(message.reply_to_message.from_user, message.chat.id)
+
+        if not response and not message.from_user.id == glob.CREATOR_USER_ID:
+            return message.answer(_get_random_crv_message())
 
         await bot.send_message(
             chat_id=glob.CREATOR_USER_ID,
-            text=f'chat id: {message.chat.id}\n'
-                 f'user id: {message.from_user.id}\n'
-                 f'first name: {message.from_user.first_name}\n'
-                 f'last name: {message.from_user.last_name}\n'
-                 f'user name: {message.from_user.username}\n'
-                 f'datetime: {funcs.get_current_datetime()}'
+            text=(f'chat id: {message.chat.id}\n'
+                  f'user id: {message.from_user.id}')
         )
 
         await message.answer(glob.REG_SUCCESS)
@@ -585,7 +587,7 @@ async def nie_ru(message: Message):
 
 @router.message(F.text.regexp(r'сфс|СФС|sfs|SFS'))
 async def sfs_alert_trigger(message: Message):
-    if service.get_sfs_alert_message(message.chat.id) is not None:
+    if await service.get_sfs_alert_message(message.chat.id) is not None:
         await message.reply(glob.SFS_ALERT_TRIGGER_RESPONSE)
         await message.answer_sticker(glob.CRYING_STICKER_FILE_ID)
 
@@ -606,3 +608,7 @@ async def tag(message: Message):
         text=f"[{glob.TAG_TEXT}](tg://user?id={user_id})",
         parse_mode=ParseMode.MARKDOWN
     )
+
+
+def _get_random_crv_message() -> str:
+    return crv_messages[random.randint(0, len(crv_messages) - 1)]
