@@ -15,6 +15,7 @@ from model.database import Award, AwardMember, Member, AddtTransaction, DeltTran
 from model.database.transactions import BusinessProfitTransaction, MaterialTransaction
 from model.dto import AwardDTO, LTransDTO, TransactionResultDTO
 from model.types import TransactionResultErrors as TRE, TicketTransactionType, ArtifactType
+from model.types.gem_counting_mode import GemCountingMode
 from model.types.profit_type import ProfitType
 from model.types.transaction_types import MaterialTransactionType
 from repository.ordering_type import OrderingType
@@ -592,7 +593,7 @@ async def get_business_tpool() -> float:
 
 async def get_material_tpool() -> float:
     pure_mpool = await get_gc_value(
-        await get_mpool_gc()
+        await get_mpool_gc(GemCountingMode.PRICING)
     )
 
     return round(pure_mpool * (1 - glob.UNI_TAX), 2)
@@ -678,8 +679,9 @@ async def get_gc_by_recipe(r: Recipe) -> dict[str, float]:
         return gem_counts
 
 
-async def get_gc_by_list(ingredients: list[Ingredient]) -> dict[str, float]:
+async def get_gc_by_list(ingredients: list[Ingredient], mode: GemCountingMode) -> dict[str, float]:
     mpool_gem_counts = {g.name: 0. for g in await get_gems_list()}
+    rank_gradation = glob.MAT_RANK_UPVAL if mode == GemCountingMode.PRICING else glob.MAT_RANK_DEVAL
 
     for mat in ingredients:
         mat_rank = await get_material_rank(mat.name)
@@ -688,14 +690,15 @@ async def get_gc_by_list(ingredients: list[Ingredient]) -> dict[str, float]:
         else:
             r = await _find_recipe(mat.name)
             for g_name, g_count in (await get_gc_by_recipe(r)).items():
-                mpool_gem_counts[g_name] += mat.quantity * g_count * (glob.MAT_RANK_UPVAL ** (mat_rank - 1))
+                mpool_gem_counts[g_name] += mat.quantity * g_count * (rank_gradation ** (mat_rank - 1))
 
     return mpool_gem_counts
 
 
-async def get_mpool_gc() -> dict[str, float]:
+async def get_mpool_gc(mode: GemCountingMode) -> dict[str, float]:
     return await get_gc_by_list(
-        await repo.get_each_material_count()
+        await repo.get_each_material_count(),
+        mode
     )
 
 

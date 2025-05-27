@@ -7,6 +7,7 @@ import yaml
 from aiogram import Bot
 
 from model.database.dynprices import RateReset
+from model.types.gem_counting_mode import GemCountingMode
 from resources.const import glob
 from resources.const.glob import MAX_FLUCT, MIN_FLUCT, FLUCT_GAUSS_SIGMA, INFL_ALPHA, \
     INIT_TPOOL, GEM_FREQ_YAML_PATH, MIN_DELTA_GEM_RATE, MAX_DELTA_GEM_RATE, GEM_BASE_PRICE
@@ -74,7 +75,7 @@ async def _reset_gem_rates(updated_rate: float):
     async with aiofiles.open(GEM_FREQ_YAML_PATH, 'r', encoding='utf-8') as f:
         gem_freqs = yaml.safe_load(await f.read())
 
-    mpool_gem_counts = await service.get_mpool_gc()
+    mpool_gem_counts = await service.get_mpool_gc(GemCountingMode.RATES)
     mpool = sum(count for name, count in mpool_gem_counts.items())
     delta_freq = {
         name: count / mpool / gem_freqs[name]

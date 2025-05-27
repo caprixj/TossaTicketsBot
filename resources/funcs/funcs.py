@@ -52,7 +52,7 @@ async def get_transfer_by_total(t: float) -> float:
 
 def get_formatted_name(member: Union[Member, DelMember], ping: bool = False) -> str:
     if member is None:
-        return '/m is none/'
+        return '[not found]'
 
     parts = [member.first_name or '', member.last_name or '']
     name = str(' '.join(filter(None, parts)) or member.username or '-')
