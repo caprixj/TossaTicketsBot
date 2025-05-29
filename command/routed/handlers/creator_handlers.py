@@ -3,7 +3,7 @@ import random
 from aiogram import Router
 from aiogram.enums import ParseMode
 from aiogram.filters import Command
-from aiogram.types import Message
+from aiogram.types import Message, FSInputFile
 
 import resources.const.glob as glob
 from command.parser.keyboards.keyboards import hide_keyboard
@@ -241,6 +241,9 @@ async def sched(message: Message):
 
 @router.message(Command(cl.unreg.name))
 async def unreg(message: Message):
+    if not await validate_message(message):
+        return
+
     og = CommandOverloadGroup([
         CommandOverload(reply=True),
         CommandOverload().add(glob.USERNAME_ARG, Username),
@@ -262,6 +265,16 @@ async def unreg(message: Message):
 
     await service.unreg(target_member)
     await message.answer(f'{glob.UNREG_TEXT}\nmember: {get_formatted_name(target_member)}')
+
+
+@router.message(Command(cl.db.name))
+async def db(message: Message):
+    if not await validate_message(message):
+        return
+
+    await message.answer_document(
+        FSInputFile(glob.rms.db_file_path)
+    )
 
 
 """ Private """

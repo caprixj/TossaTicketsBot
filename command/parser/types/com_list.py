@@ -27,6 +27,8 @@ class CommandList(str, Enum):
     resetprice = 'resetprice'
     # /unreg
     unreg = 'unreg'
+    # /db
+    db = 'db'
 
     # cog: pure
     xltrans = 'xltrans'
