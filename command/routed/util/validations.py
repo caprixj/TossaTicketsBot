@@ -22,6 +22,9 @@ async def validate_message(message: Message) -> bool:
 
 
 async def validate_user(user: User) -> bool:
+    if user.is_bot:
+        return False
+
     member = await service.get_member(user.id)
     member_exists = member is not None
 

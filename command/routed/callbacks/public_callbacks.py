@@ -5,7 +5,7 @@ from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, ForceReply
 
-from command.routed.states.states import MsellStates
+from command.routed.util.states import MsellStates
 from model.database import Material
 from service import service_core as service
 import resources.const.glob as glob

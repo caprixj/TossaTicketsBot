@@ -137,7 +137,7 @@ REG_DENIED_CTT_REPLY = '❌ this participant is already part of ticketonomics!'
 SQL_FAILED = '❌ command rejected!'
 COM_PARSER_FAILED = '❌ invalid command!'
 TG_MSG_LEN_LIMIT_ERROR = '⚠️ the result is too long for a telegram message'
-TARGET_NOT_MEMBER_ERROR = '❌ the specified user is not a ticketonomics m!'
+TARGET_NOT_MEMBER_ERROR = '❌ the specified user is not a ticketonomics member!'
 GET_MEMBER_FAILED = '❌ member not found! check the id you entered'
 GET_AWARD_FAILED = '❌ specified award does not exist! check the id you entered'
 SERVICE_OPERATION_NONE_RESULT = '😔 couldn’t complete the operation..'
@@ -159,14 +159,14 @@ BALM_NO_GEMSTONES = 'you have no gemstones yet.. 😶‍🌫️'
 BALM_NO_INTERMEDIATES = 'you have no intermediates yet.. 😶‍🌫️'
 BALM_NO_ARTIFACT_TEMPLATES = 'you have no artifact templates yet.. 😶‍🌫️'
 BALM_TITLE = '<b>📦 materials account</b>'
-BALM_MEMBER = 'm'
+BALM_MEMBER = 'member'
 BALM_START_TEXT = """
 page 1 - gemstones
 page 2 - intermediates
 page 3 - artifact templates
 """
 
-TBOX_MEMBER = '🪪 m'
+TBOX_MEMBER = '🪪 member'
 
 LTRANS_TITLE = '<b>📊 income and expenses history (tickets)</b>'
 LTRANS_START_TEXT = """
@@ -176,7 +176,7 @@ LTRANS_START_TEXT = """
 ✨ - transfer by creator
 """
 LTRANS_TRANS_HISTORY_EMPTY = 'your transactions history is empty.. 😶‍🌫️'
-LTRANS_MEMBER = 'm'
+LTRANS_MEMBER = 'member'
 LTRANS_FROM = 'from'
 LTRANS_TO = 'to'
 LTRANS_TEXT = 'text'
@@ -220,7 +220,7 @@ AWARD_PAYMENT = 'payment'
 AWARD_ISSUED = 'issue date'
 AWARD_STORY = 'story'
 
-HIRE_JOBS = 'jobs of the m'
+HIRE_JOBS = 'jobs of the member'
 
 TPAY_SENDER = 'sender'
 TPAY_RECEIVER = 'receiver'
@@ -299,8 +299,8 @@ _Note that the bot is hosted on the developer's phone, so it may not always be a
 *📊 Learn about participants and leaderboards*
 
 *• Member info*: Reply to one's message with `/infm`, or provide one's username or ID: `/infm [username/id]`  
-*• Check m's assets*: Reply with `/bal`, or provide one's username or ID: `/bal [username/id]`  
-*• View m's awards*: Use the `/laward` command. Works the same as `/bal`  
+*• Check member's assets*: Reply with `/bal`, or provide one's username or ID: `/bal [username/id]`  
+*• View member's awards*: Use the `/laward` command. Works the same as `/bal`  
 *• View your transfer history*: Use the `/ltrans` command  
 *• Ticket leaderboard*: Get the full list with `/topt`. For a trimmed list, provide a positive number, or for the anti-leaderboard, a negative number: `/topt [number]`  
 *• Leaderboard by ticket share*: Similar to `/topt` but shown in percentages: `/topt % [number]`

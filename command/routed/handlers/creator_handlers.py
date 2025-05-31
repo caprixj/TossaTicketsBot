@@ -16,7 +16,7 @@ from command.parser.core import cog
 from command.parser.core.overload import CommandOverload, CommandOverloadGroup
 from command.parser.core.parser import CommandParser
 from command.parser.results.parser_result import CommandParserResult
-from command.routed.handlers.validations import validate_message
+from command.routed.util.validations import validate_message
 from model.types.ticketonomics_types import BaseText, Real, PNReal, SID, EmployeePosition, Username, UserID
 from command.parser.types.com_list import CommandList as cl
 

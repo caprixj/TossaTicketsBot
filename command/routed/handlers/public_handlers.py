@@ -8,11 +8,11 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, LinkPreviewOptions
 
 import resources.const.glob as glob
-from command.routed.states.states import MsellStates
+from command.routed.util.states import MsellStates
 from model.database import Member, Material
 from resources.const.rands import crv_messages
 from service import service_core as service
-from command.routed.handlers.validations import validate_message, validate_user
+from command.routed.util.validations import validate_message, validate_user
 from command.parser.keyboards.keyboards import tpay_keyboard, hide_keyboard, one_btn_keyboard, \
     msell_choose_material_keyboard, msell_confirmation_keyboard
 from command.parser.core import cog
