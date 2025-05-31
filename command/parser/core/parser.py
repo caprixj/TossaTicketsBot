@@ -57,13 +57,19 @@ class CommandParser:
         for i, overload in enumerate(sorted_overloads):
             cpr = await self._parse_overload(overload)
 
-            if any([cpr.valid, cpr.creator_violation, cpr.private_violation, cpr.public_violation]):
+            if cpr.fulfilled():
                 return cpr
 
             if i == len(self.overload_group.overloads) - 1:
                 return cpr
 
     async def _parse_overload(self, overload: CommandOverload) -> CommandParserResult:
+        from_user = self.message.from_user
+        reply_to_message = self.message.reply_to_message
+
+        if from_user.is_bot or (reply_to_message and reply_to_message.from_user.is_bot):
+            return CommandParserResult(bot_violation=True)
+
         if overload.private:
             if self.message.chat.type != 'private':
                 if self.overload_group.private:

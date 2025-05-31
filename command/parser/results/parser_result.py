@@ -13,7 +13,8 @@ class CommandParserResult:
                  args: Optional[Dict[str, Any]] = None,
                  creator_violation: bool = False,
                  private_violation: bool = False,
-                 public_violation: bool = False):
+                 public_violation: bool = False,
+                 bot_violation: bool = False):
         self.valid = valid
         self.message = message
         self.overload = overload
@@ -21,3 +22,13 @@ class CommandParserResult:
         self.creator_violation = creator_violation
         self.private_violation = private_violation
         self.public_violation = public_violation
+        self.bot_violation = bot_violation
+
+    def fulfilled(self) -> bool:
+        return any([
+            self.valid,
+            self.creator_violation,
+            self.private_violation,
+            self.public_violation,
+            self.bot_violation
+        ])
