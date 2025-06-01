@@ -553,8 +553,8 @@ async def reg(message: Message, bot: Bot):
         await bot.send_message(
             chat_id=glob.CREATOR_USER_ID,
             text=(f'chat id: {message.chat.id}\n'
-                  f'from-user id: {message.from_user.id}'
-                  f'target-member id: {message.reply_to_message.id}')
+                  f'from-user id: {message.from_user.id}\n'
+                  f'reply-user id: {message.reply_to_message.id if message.reply_to_message is not None else None}')
         )
 
         await message.answer(glob.REG_SUCCESS)
