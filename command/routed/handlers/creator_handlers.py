@@ -272,6 +272,14 @@ async def db(message: Message):
     if not await validate_message(message):
         return
 
+    og = CommandOverloadGroup([
+        CommandOverload(creator=True)
+    ])
+    cpr = await CommandParser(message, og).parse()
+
+    if not cpr.valid:
+        return await _reply_by_crv(message, cpr)
+
     await message.answer_document(
         FSInputFile(glob.rms.db_file_path)
     )
