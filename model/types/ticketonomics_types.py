@@ -51,6 +51,18 @@ class Text256(TicketonomicsType):
             raise ValueError()
 
 
+# any string <= 4096 chars
+class Text4096(TicketonomicsType):
+    def __init__(self, data: str):
+        super().__init__(data)
+
+    async def cast(self) -> str:
+        if len(self.data) <= 4096:
+            return self.data
+        else:
+            raise ValueError()
+
+
 # any string <= 512 chars
 class Text512(TicketonomicsType):
     def __init__(self, data: str):
@@ -164,6 +176,14 @@ class PNInt(TicketonomicsType):
 
 
 class UserID(PNInt):
+    def __init__(self, data: str):
+        super().__init__(data)
+
+    async def cast(self) -> int:
+        return await super().cast()
+
+
+class ChatID(NInt):
     def __init__(self, data: str):
         super().__init__(data)
 

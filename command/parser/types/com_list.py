@@ -29,6 +29,8 @@ class CommandList(str, Enum):
     unreg = 'unreg'
     # /db
     db = 'db'
+    # /msg
+    msg = 'msg'
 
     # cog: pure
     xltrans = 'xltrans'

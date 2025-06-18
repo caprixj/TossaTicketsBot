@@ -1,6 +1,6 @@
 import random
 
-from aiogram import Router
+from aiogram import Router, Bot
 from aiogram.enums import ParseMode
 from aiogram.filters import Command
 from aiogram.types import Message, FSInputFile
@@ -17,7 +17,8 @@ from command.parser.core.overload import CommandOverload, CommandOverloadGroup
 from command.parser.core.parser import CommandParser
 from command.parser.results.parser_result import CommandParserResult
 from command.routed.util.validations import validate_message
-from model.types.ticketonomics_types import BaseText, Real, PNReal, SID, EmployeePosition, Username, UserID
+from model.types.ticketonomics_types import BaseText, Real, PNReal, SID, EmployeePosition, Username, UserID, ChatID, \
+    Text4096
 from command.parser.types.com_list import CommandList as cl
 
 from resources.const.rands import crv_messages
@@ -275,6 +276,7 @@ async def db(message: Message):
     og = CommandOverloadGroup([
         CommandOverload(creator=True)
     ])
+
     cpr = await CommandParser(message, og).parse()
 
     if not cpr.valid:
@@ -282,6 +284,27 @@ async def db(message: Message):
 
     await message.answer_document(
         FSInputFile(glob.rms.db_file_path)
+    )
+
+
+@router.message(Command(cl.msg.name))
+async def msg(message: Message, bot: Bot):
+    if not await validate_message(message):
+        return
+
+    og = CommandOverloadGroup([
+        CommandOverload(reply=True).add(glob.CHAT_ID_ARG, ChatID)
+    ], creator=True)
+
+    cpr = await CommandParser(message, og).parse()
+
+    if not cpr.valid:
+        return await _reply_by_crv(message, cpr)
+
+    await bot.send_message(
+        chat_id=cpr.args[glob.CHAT_ID_ARG],
+        text=message.reply_to_message.text,
+        parse_mode=ParseMode.MARKDOWN
     )
 
 
