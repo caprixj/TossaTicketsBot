@@ -39,6 +39,7 @@ class MaterialTransactionType(str, Enum):
     TBOX = 'tbox'
     MSELL = 'msell'
     MSEND = 'msend'
+    MSEND_MANUAL = 'msend_manual'
 
 
 class TaxTransactionType(str, Enum):
