@@ -39,13 +39,13 @@ SELECT_TOPT = """
         FROM (
             SELECT sender_id AS user_id, time
             FROM ticket_txns
-            WHERE sender_id = {user_id}
+            WHERE sender_id = user_id
             
             UNION ALL
             
             SELECT receiver_id AS user_id, time
             FROM ticket_txns
-            WHERE receiver_id = {user_id}
+            WHERE receiver_id = user_id
         )
         GROUP BY user_id
     )

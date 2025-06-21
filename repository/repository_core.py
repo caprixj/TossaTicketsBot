@@ -274,7 +274,7 @@ async def get_topt_members(order: OrderingType = OrderingType.DESC, limit: Optio
         order=order.value,
         limit_clause=limit_clause
     )
-    params = (limit,) if limit is not None else ()
+    params = (limit, ) if limit is not None else ()
 
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
         cursor = await db.execute(query, params)
