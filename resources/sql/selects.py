@@ -1,8 +1,7 @@
-from resources.const import glob
-
-SELECT_TPAY_BY_SENDER_OR_RECEIVER = "SELECT * FROM tpay WHERE sender_id = ? OR receiver_id = ?"
-SELECT_ADDT_TYPE_NOT_TPAY = "SELECT * FROM addt WHERE user_id = ? AND type_ NOT IN (?, ?)"
-SELECT_DELT_TYPE_NOT_TPAY = "SELECT * FROM delt WHERE user_id = ? AND type_ NOT IN (?, ?)"
+SELECT_ADDTS_BY_USER_ID = "SELECT * FROM ticket_txns WHERE receiver_id = ? AND type = ?"
+SELECT_DELTS_BY_USER_ID = "SELECT * FROM ticket_txns WHERE sender_id = ? AND type = ?"
+SELECT_MSELLS_BY_USER_ID = "SELECT * FROM ticket_txns WHERE receiver_id = ? AND type = ?"
+SELECT_NON_TPAY_TAXES_BY_USER_ID = "SELECT * FROM tax_txns WHERE type != 'single_tpay' AND user_id = ?"
 SELECT_MEMBER_BY_USER_ID = "SELECT * FROM members WHERE user_id = ?"
 SELECT_MEMBER_BY_USERNAME = "SELECT * FROM members WHERE username = ?"
 SELECT_DEL_MEMBER_BY_USER_ID = "SELECT * FROM del_members WHERE user_id = ?"
@@ -19,29 +18,42 @@ SELECT_LAST_RATE_HISTORY = "SELECT * FROM rate_history ORDER BY plan_date DESC L
 SELECT_LAST_SALARY_PAYOUT = "SELECT * FROM salary_payouts ORDER BY plan_date DESC LIMIT 1"
 SELECT_JOBS = "SELECT * FROM jobs"
 SELECT_PRICES = "SELECT * FROM prices"
-SELECT_GEM_RATES = f"SELECT * FROM prices WHERE product_type = 'gemstone'"
+SELECT_GEM_RATES = "SELECT * FROM prices WHERE product_type = 'gemstone'"
 SELECT_MEMBER_MATERIAL = "SELECT material_name, quantity FROM member_materials WHERE user_id = ? AND material_name = ?"
 SELECT_MEMBER_MATERIALS_BY_USER_ID = "SELECT material_name, quantity FROM member_materials WHERE user_id = ?"
 SELECT_ALL_MEMBER_MATERIALS = "SELECT * FROM member_materials"
 SELECT_SQL_VAR = "SELECT value FROM vars WHERE name = ?"
-SELECT_GEMSTONE_PRICE = f"SELECT price FROM prices WHERE product_name = ? AND product_type = 'gemstone'"
+SELECT_GEMSTONE_PRICE = "SELECT price FROM prices WHERE product_name = ? AND product_type = 'gemstone'"
 SELECT_SOLD_ITEMS_COUNT_TODAY = (f"SELECT SUM(quantity) FROM material_transactions "
-                                 f"WHERE sender_id = ? and receiver_id = {glob.NBT_ID} and date >= ?")
+                                 f"WHERE sender_id = ? and receiver_id = -1 and date >= ?")
+SELECT_TPAYS_AND_TAXATION_BY_USER_ID = """
+    SELECT tic.*, COALESCE(SUM(txs.amount), 0.0) AS total_tax
+    FROM ticket_txns tic
+    LEFT JOIN tax_txns txs ON txs.ticket_txn_id = tic.ticket_txn_id
+    WHERE (tic.sender_id = ? AND tic.receiver_id != -1) OR (tic.sender_id != -1 AND tic.receiver_id = ?)
+    GROUP BY tic.ticket_txn_id;
+"""
 SELECT_TOPT = """
-WITH last_activity AS (
-  SELECT user_id, MAX(time) AS last_activity
-  FROM (
-    SELECT user_id, time FROM addt
-    UNION ALL
-    SELECT user_id, time FROM delt
-  )
-  GROUP BY user_id
-)
-SELECT m.*
-FROM members AS m
-LEFT JOIN last_activity AS la ON la.user_id = m.user_id
-ORDER BY m.tickets {order}, la.last_activity {order}
-{limit_clause};
+    WITH last_activity AS (
+        SELECT user_id, MAX(time) AS last_activity
+        FROM (
+            SELECT sender_id AS user_id, time
+            FROM ticket_txns
+            WHERE sender_id = {user_id}
+            
+            UNION ALL
+            
+            SELECT receiver_id AS user_id, time
+            FROM ticket_txns
+            WHERE receiver_id = {user_id}
+        )
+        GROUP BY user_id
+    )
+    SELECT m.*
+    FROM members AS m
+    LEFT JOIN last_activity AS la ON la.user_id = m.user_id
+    ORDER BY m.tickets {order}, la.last_activity {order}
+    {limit_clause};
 """
 SELECT_AWARD_RECORDS_BY_OWNER_ID = """
     SELECT a.*, am.issue_date
@@ -67,32 +79,32 @@ SELECT_EMPLOYEES = """
     FROM employees e
     INNER JOIN jobs j ON e.position = j.position
 """
-SELECT_DELTA_TICKETS_COUNT_AFTER_DATETIME = """
-    SELECT SUM(dt) FROM (
-        SELECT SUM(add_sum - delt_sum) AS dt
-        FROM (
-            SELECT
-                DATE(time) AS date,
-                SUM(tickets) AS add_sum,
-                0 AS delt_sum
-            FROM addt
-            WHERE time >= ?
-            GROUP BY DATE(time)
-
-            UNION ALL
-
-            SELECT
-                DATE(time) AS date,
-                0 AS add_sum,
-                SUM(tickets) AS delt_sum
-            FROM delt
-            WHERE time >= ?
-            GROUP BY DATE(time)
-        )
-        GROUP BY date
-        ORDER BY date
-    )
-"""
+# SELECT_DELTA_TICKETS_COUNT_AFTER_DATETIME = """
+#     SELECT SUM(dt) FROM (
+#         SELECT SUM(add_sum - delt_sum) AS dt
+#         FROM (
+#             SELECT
+#                 DATE(time) AS date,
+#                 SUM(tickets) AS add_sum,
+#                 0 AS delt_sum
+#             FROM addt
+#             WHERE time >= ?
+#             GROUP BY DATE(time)
+#
+#             UNION ALL
+#
+#             SELECT
+#                 DATE(time) AS date,
+#                 0 AS add_sum,
+#                 SUM(tickets) AS delt_sum
+#             FROM delt
+#             WHERE time >= ?
+#             GROUP BY DATE(time)
+#         )
+#         GROUP BY date
+#         ORDER BY date
+#     )
+# """
 SELECT_EACH_MATERIAL_COUNT = """
     SELECT material_name, SUM(quantity) as total_quantity
     FROM member_materials

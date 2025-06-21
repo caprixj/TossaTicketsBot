@@ -1,15 +1,17 @@
 from dataclasses import dataclass
 
-from model.database import AddtTransaction, DeltTransaction, TpayTransaction, Member
+from model.database import TicketTransaction, TaxTransaction, Member
 
 
 @dataclass
 class LTransDTO:
     user_id: int
-    tpays: list[TpayTransaction]
-    addts: list[AddtTransaction]
-    delts: list[DeltTransaction]
+    tpays: dict[TicketTransaction, float]
+    addts: list[TicketTransaction]
+    delts: list[TicketTransaction]
+    msells: list[TicketTransaction]
+    taxes: list[TaxTransaction]
     unique_tpay_members: list[Member]
 
     def empty(self) -> bool:
-        return not self.tpays and not self.addts and not self.delts
+        return not any((self.tpays, self.addts, self.delts, self.msells, self.taxes))

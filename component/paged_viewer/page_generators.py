@@ -58,20 +58,20 @@ async def ltrans(dto: LTransDTO, title: str) -> list[str]:
         return [f'{title}\n\n<i>{glob.LTRANS_TRANS_HISTORY_EMPTY}</i>']
 
     for addt in dto.addts:
-        row = (f"✨🔹 | id: {addt.addt_id}"
-               f" | <b>+{addt.tickets:.2f}</b>"
+        row = (f"✨🔹 | id: {addt.ticket_txn_id}"
+               f" | <b>+{addt.transfer:.2f}</b>"
                f" | {addt.time}"
                f" | {glob.LTRANS_TEXT}: <i>{addt.description}</i>")
         rows.append((row, addt.time))
 
     for delt in dto.delts:
-        row = (f"✨🔻 | id: {delt.delt_id}"
-               f" | <b>-{delt.tickets:.2f}</b>"
+        row = (f"✨🔻 | id: {delt.ticket_txn_id}"
+               f" | <b>-{delt.transfer:.2f}</b>"
                f" | {delt.time}"
                f" | {glob.LTRANS_TEXT}: <i>{delt.description}</i>")
         rows.append((row, delt.time))
 
-    for tpay in dto.tpays:
+    for tpay, tax in dto.tpays.items():
         if tpay.receiver_id == dto.user_id:
             member = _find_member(dto.unique_tpay_members, tpay.sender_id)
 
@@ -82,7 +82,7 @@ async def ltrans(dto: LTransDTO, title: str) -> list[str]:
             else:
                 sender_name = get_formatted_name(member)
 
-            row = (f"🔀🔹 | id: {tpay.tpay_id}"
+            row = (f"🔀🔹 | id: {tpay.ticket_txn_id}"
                    f" | {glob.LTRANS_FROM}: <b>{sender_name}</b>"
                    f" | <b>+{tpay.transfer:.2f}</b>"
                    f" | {tpay.time}"
@@ -97,14 +97,28 @@ async def ltrans(dto: LTransDTO, title: str) -> list[str]:
             else:
                 receiver_name = get_formatted_name(member)
 
-            row = (f"🔀🔻 | id: {tpay.tpay_id}"
+            row = (f"🔀🔻 | id: {tpay.ticket_txn_id}"
                    f" | {glob.LTRANS_TO}: <b>{receiver_name}</b>"
                    f" | <b>-{tpay.transfer:.2f}</b>"
-                   f" | -{tpay.fee:.2f}"
+                   f" | -{tax:.2f}"
                    f" | {tpay.time}"
                    f" | {glob.LTRANS_TEXT}: <i>{tpay.description}</i>")
 
         rows.append((row, tpay.time))
+
+    for msell in dto.msells:
+        row = (f"📦🔹 | id: {msell.ticket_txn_id}"
+               f" | <b>+{msell.transfer:.2f}</b>"
+               f" | {msell.time}"
+               f" | {glob.LTRANS_TEXT}: <i>{msell.description}</i>")
+        rows.append((row, msell.time))
+
+    for tax in dto.taxes:
+        row = (f"🧾🔻 | id: {tax.tax_txn_id}"
+               f" | txn-id: {tax.ticket_txn_id}"
+               f" | <b>-{tax.amount:.2f}</b>"
+               f" | {tax.time}")
+        rows.append((row, tax.time))
 
     pages = []
     cur_page = []

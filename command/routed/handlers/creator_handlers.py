@@ -17,8 +17,7 @@ from command.parser.core.overload import CommandOverload, CommandOverloadGroup
 from command.parser.core.parser import CommandParser
 from command.parser.results.parser_result import CommandParserResult
 from command.routed.util.validations import validate_message
-from model.types.ticketonomics_types import BaseText, Real, PNReal, SID, EmployeePosition, Username, UserID, ChatID, \
-    Text4096
+from model.types.ticketonomics_types import BaseText, Real, PNReal, SID, EmployeePosition, Username, UserID, ChatID
 from command.parser.types.com_list import CommandList as cl
 
 from resources.const.rands import crv_messages

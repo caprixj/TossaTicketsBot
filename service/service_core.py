@@ -10,19 +10,19 @@ from aiogram.types import User, Message
 import resources.const.glob as glob
 from command.parser.results.parser_result import CommandParserResult
 from command.parser.types.target_type import CommandTargetType as ctt
-from model.database import Award, AwardMember, Member, AddtTransaction, DeltTransaction, TpayTransaction, \
-    Recipe, Ingredient, Artifact, Material, MemberMaterial, DelMember
+from model.database import Award, AwardMember, Member, TicketTransaction, TaxTransaction, Recipe, Ingredient, \
+    Artifact, Material, MemberMaterial, DelMember
 from model.database.transactions import BusinessProfitTransaction, MaterialTransaction
 from model.dto import AwardDTO, LTransDTO, TransactionResultDTO
 from model.types import TransactionResultErrors as TRE, TicketTransactionType, ArtifactType
 from model.types.gem_counting_mode import GemCountingMode
 from model.types.profit_type import ProfitType
-from model.types.transaction_types import MaterialTransactionType
+from model.types.transaction_types import MaterialTransactionType, TaxTransactionType
 from repository.ordering_type import OrderingType
 from repository import repository_core as repo
 from resources.funcs import funcs
 from service.operation_manager import ServiceOperationManager
-from resources.funcs.funcs import get_formatted_name, get_fee, get_current_datetime, strdate, get_materials_yaml
+from resources.funcs.funcs import get_formatted_name, get_single_tax, get_current_datetime, strdate, get_materials_yaml
 
 operation_manager = ServiceOperationManager()
 sfs_alert_pins: dict[int, Message] = {}
@@ -88,58 +88,55 @@ async def sql_execute(query: str, many: bool = False) -> (bool, str):
     return await repo.sql_execute(query, many)
 
 
-async def _add_tickets(member: Member, tickets: float, transaction_type: TicketTransactionType,
-                       description: str = None):
+async def _add_tickets(member: Member, tickets: float, txn_type: TicketTransactionType, description: str = None):
     member.tickets = round(member.tickets + tickets, 2)
     time = get_current_datetime()
 
     await repo.update_member_tickets(member)
-    await repo.insert_addt(AddtTransaction(
-        user_id=member.user_id,
-        tickets=tickets,
+    await repo.insert_ticket_txn(TicketTransaction(
+        receiver_id=member.user_id,
+        transfer=tickets,
         time=time,
         description=description,
-        type_=transaction_type
+        type_=txn_type
     ))
 
 
-async def _delete_tickets(member: Member, tickets: float, transaction_type: TicketTransactionType,
-                          description: str = None):
+async def _delete_tickets(member: Member, tickets: float, txn_type: TicketTransactionType, description: str = None):
     member.tickets = round(member.tickets - tickets, 2)
     time = get_current_datetime()
 
     await repo.update_member_tickets(member)
-    await repo.insert_delt(DeltTransaction(
-        user_id=member.user_id,
-        tickets=tickets,
+    await repo.insert_ticket_txn(TicketTransaction(
+        sender_id=member.user_id,
+        transfer=tickets,
         time=time,
         description=description,
-        type_=transaction_type
+        type_=txn_type
     ))
 
 
-async def _set_tickets(member: Member, tickets: float, transaction_type: TicketTransactionType,
-                       description: str = None):
+async def _set_tickets(member: Member, tickets: float, txn_type: TicketTransactionType, description: str = None):
     if member.tickets == tickets:
         return
 
     time = get_current_datetime()
 
     if tickets > member.tickets:
-        await repo.insert_addt(AddtTransaction(
-            user_id=member.user_id,
-            tickets=tickets - member.tickets,
+        await repo.insert_ticket_txn(TicketTransaction(
+            receiver_id=member.user_id,
+            transfer=tickets - member.tickets,
             time=time,
             description=description,
-            type_=transaction_type
+            type_=txn_type
         ))
     else:
-        await repo.insert_delt(DeltTransaction(
-            user_id=member.user_id,
-            tickets=member.tickets - tickets,
+        await repo.insert_ticket_txn(TicketTransaction(
+            sender_id=member.user_id,
+            transfer=member.tickets - tickets,
             time=time,
             description=description,
-            type_=transaction_type
+            type_=txn_type
         ))
 
     member.tickets = tickets
@@ -211,7 +208,7 @@ async def tbox(user_id: int) -> str:
     await repo.add_member_material(user_id, gems)
     await repo.insert_material_transaction(MaterialTransaction(
         receiver_id=user_id,
-        type_=MaterialTransactionType.tbox,
+        type_=MaterialTransactionType.TBOX,
         material_name=gems.name,
         quantity=gems.quantity,
         date=get_current_datetime()
@@ -223,63 +220,43 @@ async def tbox(user_id: int) -> str:
 
 
 async def tpay(sender: Member, receiver: Member, transfer: float, description: str = None) -> TransactionResultDTO:
-    fee = await get_fee(transfer)
-    total = transfer + fee
+    single_tax = await get_single_tax(transfer)
+    total = transfer + single_tax
 
     if total > sender.tickets:
         return TransactionResultDTO(TRE.insufficient_funds)
 
     current_datetime = get_current_datetime()
 
-    # sender: -transfer -tpay_available
+    # transfer & -tpay_available
     sender.tickets -= transfer
     await repo.spend_tpay_available(sender.user_id)
     await repo.update_member_tickets(sender)
-    await repo.insert_delt(DeltTransaction(
-        user_id=sender.user_id,
-        tickets=transfer,
-        time=current_datetime,
-        description=description,
-        type_=TicketTransactionType.tpay
-    ))
-
-    # sender: -fee
-    sender.tickets -= fee
-    await repo.update_member_tickets(sender)
-    await repo.insert_delt(DeltTransaction(
-        user_id=sender.user_id,
-        tickets=fee,
-        time=current_datetime,
-        description=description,
-        type_=TicketTransactionType.tpay_tax
-    ))
-
-    # receiver: +transfer
-    receiver.tickets += transfer
-    await repo.update_member_tickets(receiver)
-    await repo.insert_addt(AddtTransaction(
-        user_id=receiver.user_id,
-        tickets=transfer,
-        time=current_datetime,
-        description=description,
-        type_=TicketTransactionType.tpay
-    ))
-
-    # save tpay transaction
-    await repo.insert_tpay(TpayTransaction(
+    ticket_txn_id = await repo.insert_ticket_txn(TicketTransaction(
         sender_id=sender.user_id,
         receiver_id=receiver.user_id,
         transfer=transfer,
-        fee=fee,
+        type_=TicketTransactionType.TPAY,
         time=current_datetime,
         description=description
+    ))
+
+    # taxation
+    sender.tickets -= single_tax
+    await repo.update_member_tickets(sender)
+    await repo.insert_tax_txn(TaxTransaction(
+        ticket_txn_id=ticket_txn_id,
+        user_id=sender.user_id,
+        amount=single_tax,
+        type_=TaxTransactionType.SINGLE_TPAY,
+        time=current_datetime
     ))
 
     return TransactionResultDTO(valid=True)
 
 
 async def ltrans(user_id: int) -> LTransDTO:
-    return await repo.get_transaction_stats(user_id)
+    return await repo.get_txn_stats(user_id)
 
 
 async def laward(user_id: int) -> Optional[List[AwardDTO]]:
@@ -341,7 +318,7 @@ async def topm(size: int = 0, percent_mode: bool = False, id_mode: bool = False)
 
     for mm in member_materials:
         member_accounts.setdefault(mm.user_id, 0)
-        base = mm.quantity * (1 - glob.UNI_TAX)
+        base = mm.quantity * (1 - glob.SINGLE_TAX)
         mat_rank = await get_material_rank(mm.material_name)
 
         if mat_rank == 1:
@@ -365,7 +342,7 @@ async def topm(size: int = 0, percent_mode: bool = False, id_mode: bool = False)
 
     total = sum(member_accounts.values())
     taxed_mpool = await get_material_tpool()
-    pure_mpool = taxed_mpool / (1 - glob.UNI_TAX)
+    pure_mpool = taxed_mpool / (1 - glob.SINGLE_TAX)
 
     items = sorted(
         member_accounts.items(),
@@ -460,15 +437,15 @@ async def anchor(user_id: int, chat_id: int) -> str:
 
 
 async def addt(member: Member, tickets: float, description: str = None) -> None:
-    await _add_tickets(member, tickets, TicketTransactionType.creator, description)
+    await _add_tickets(member, tickets, TicketTransactionType.CREATOR, description)
 
 
 async def delt(member: Member, tickets: float, description: str = None) -> None:
-    await _delete_tickets(member, tickets, TicketTransactionType.creator, description)
+    await _delete_tickets(member, tickets, TicketTransactionType.CREATOR, description)
 
 
 async def sett(member: Member, tickets: float, description: str = None) -> None:
-    await _set_tickets(member, tickets, TicketTransactionType.creator, description)
+    await _set_tickets(member, tickets, TicketTransactionType.CREATOR, description)
 
 
 async def award(m: Member, a: Award, issue_date: str):
@@ -519,7 +496,7 @@ async def unreg(m: Member):
     await _set_tickets(
         member=m,
         tickets=0,
-        transaction_type=TicketTransactionType.unreg,
+        txn_type=TicketTransactionType.UNREG,
         description='unreg'
     )
 
@@ -596,14 +573,14 @@ async def get_material_tpool() -> float:
         await get_mpool_gc(GemCountingMode.PRICING)
     )
 
-    return round(pure_mpool * (1 - glob.UNI_TAX), 2)
+    return round(pure_mpool * (1 - glob.SINGLE_TAX), 2)
 
     # artifact_mtpool = sum([
     #     await get_artifact_creation_price(a)
     #     for a in await repo.get_all_artifacts()
     # ])
 
-    # return round(artifact_mtpool + (1 - glob.UNI_TAX) * raw_mtpool, 2)
+    # return round(artifact_mtpool + (1 - glob.SINGLE_TAX) * raw_mtpool, 2)
 
 
 async def get_artifact_price(a: Artifact) -> float:
@@ -781,7 +758,7 @@ async def issue_award(am: AwardMember) -> bool:
 
 
 async def pay_award(member: Member, payment: float, description: str):
-    await _add_tickets(member, payment, TicketTransactionType.award, description)
+    await _add_tickets(member, payment, TicketTransactionType.AWARD, description)
 
 
 """ Msell """
@@ -842,7 +819,7 @@ async def msell_transaction(data: dict[str, Any]):
     await repo.spend_member_material(user_id, diff)
     await repo.insert_material_transaction(MaterialTransaction(
         sender_id=user_id,
-        type_=MaterialTransactionType.nbt,
+        type_=MaterialTransactionType.MSELL,
         material_name=material.name,
         quantity=quantity,
         transfer=revenue - tax,
@@ -853,23 +830,23 @@ async def msell_transaction(data: dict[str, Any]):
     # +transfer
     member.tickets = round(member.tickets + revenue, 2)
     await repo.update_member_tickets(member)
-    await repo.insert_addt(AddtTransaction(
-        user_id=user_id,
-        tickets=revenue,
+    ticket_txn_id = await repo.insert_ticket_txn(TicketTransaction(
+        receiver_id=user_id,
+        transfer=revenue,
+        type_=TicketTransactionType.MSELL,
         time=current_datetime,
-        description=TicketTransactionType.nbt,
-        type_=TicketTransactionType.nbt
+        description=f'{TicketTransactionType.MSELL} - {quantity} ({material.name})'
     ))
 
     # -tax
     member.tickets = round(member.tickets - tax, 2)
     await repo.update_member_tickets(member)
-    await repo.insert_delt(DeltTransaction(
+    await repo.insert_tax_txn(TaxTransaction(
+        ticket_txn_id=ticket_txn_id,
         user_id=user_id,
-        tickets=tax,
+        amount=tax,
         time=current_datetime,
-        description=TicketTransactionType.nbt_tax,
-        type_=TicketTransactionType.nbt_tax
+        type_=TaxTransactionType.SINGLE_MSELL
     ))
 
 
@@ -946,8 +923,8 @@ async def payout_salaries(lsp_plan_date: datetime):
         await _add_tickets(
             member=member,
             tickets=e.salary,
-            transaction_type=TicketTransactionType.salary,
-            description=TicketTransactionType.salary
+            txn_type=TicketTransactionType.SALARY,
+            description=TicketTransactionType.SALARY
         )
 
     await repo.set_salary_paid_out(

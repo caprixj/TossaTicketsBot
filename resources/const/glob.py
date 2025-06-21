@@ -15,8 +15,8 @@ DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S'
 NBT_SQL_VAR = 'nbt'
 NBT_ID = -1
 
-UNI_TAX = 0.07  # F
-MIN_FEE = 1     # M
+SINGLE_TAX = 0.07   # F
+MIN_SINGLE_TAX = 1  # M
 
 INFL_ALPHA = 0.9
 FLUCT_GAUSS_SIGMA = 0.009
@@ -171,10 +171,9 @@ TBOX_MEMBER = '🪪 member'
 
 LTRANS_TITLE = '<b>📊 income and expenses history (tickets)</b>'
 LTRANS_START_TEXT = """
-🔹 - incoming transfers  
-🔻 - outgoing transfers  
-🔀 - transfer via /tpay  
-✨ - transfer by creator
+🔹 income | 🔻 expanse
+✨ state | 🔀 tpay
+📦 msell | 🧾 taxes
 """
 LTRANS_TRANS_HISTORY_EMPTY = 'your transactions history is empty.. 😶‍🌫️'
 LTRANS_MEMBER = 'member'

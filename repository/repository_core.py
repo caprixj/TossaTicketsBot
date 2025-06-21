@@ -6,7 +6,8 @@ import aiosqlite
 from aiosqlite import Cursor
 
 from model.database import *
-from model.database.transactions import BusinessProfitTransaction, MaterialTransaction
+from model.database.transactions import BusinessProfitTransaction, MaterialTransaction, TicketTransaction, \
+    TaxTransaction
 from model.dto import AwardDTO, LTransDTO
 from model.types import TicketTransactionType
 from repository.ordering_type import OrderingType
@@ -100,39 +101,29 @@ async def insert_del_member(dm: DelMember):
         await db.commit()
 
 
-async def insert_addt(addt: AddtTransaction):
+async def insert_ticket_txn(ticket_txn: TicketTransaction) -> int:
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
-        await db.execute(sql.INSERT_ADDT, (
-            addt.user_id,
-            addt.tickets,
-            addt.time,
-            addt.description,
-            addt.type_
+        cursor = await db.execute(sql.INSERT_TICKET_TXN, (
+            ticket_txn.sender_id,
+            ticket_txn.receiver_id,
+            ticket_txn.transfer,
+            ticket_txn.type,
+            ticket_txn.time,
+            ticket_txn.description
         ))
+        row = await cursor.fetchone()
         await db.commit()
+        return int(row[0]) if row else 0
 
 
-async def insert_delt(delt: DeltTransaction):
+async def insert_tax_txn(tax_txn: TaxTransaction):
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
-        await db.execute(sql.INSERT_DELT, (
-            delt.user_id,
-            delt.tickets,
-            delt.time,
-            delt.description,
-            delt.type_
-        ))
-        await db.commit()
-
-
-async def insert_tpay(tpay: TpayTransaction):
-    async with aiosqlite.connect(glob.rms.db_file_path) as db:
-        await db.execute(sql.INSERT_TPAY, (
-            tpay.sender_id,
-            tpay.receiver_id,
-            tpay.transfer,
-            tpay.fee,
-            tpay.time,
-            tpay.description
+        await db.execute(sql.INSERT_TAX_TXN, (
+            tax_txn.ticket_txn_id,
+            tax_txn.user_id,
+            tax_txn.amount,
+            tax_txn.type,
+            tax_txn.time
         ))
         await db.commit()
 
@@ -355,35 +346,50 @@ async def get_sum_business_accounts() -> float:
         return float(row[0]) if row else 0
 
 
-async def get_transaction_stats(user_id: int) -> LTransDTO:
+async def get_txn_stats(user_id: int) -> LTransDTO:
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
         cursor = await db.cursor()
 
         # tpays
-        await cursor.execute(sql.SELECT_TPAY_BY_SENDER_OR_RECEIVER, (user_id, user_id))
-        tpays = await cursor.fetchall()
-        tpays = [TpayTransaction(*row) for row in tpays]
+        await cursor.execute(
+            sql.SELECT_TPAYS_AND_TAXATION_BY_USER_ID,
+            (user_id, user_id)
+        )
+        # transaction details: affiliated taxes sum
+        tpays = {TicketTransaction(*row[:-1]): row[-1] for row in await cursor.fetchall()}
 
         # addts
         await cursor.execute(
-            sql.SELECT_ADDT_TYPE_NOT_TPAY,
-            (user_id, TicketTransactionType.tpay, TicketTransactionType.tpay_tax)
+            sql.SELECT_ADDTS_BY_USER_ID,
+            (user_id, TicketTransactionType.CREATOR)
         )
-        addts = await cursor.fetchall()
-        addts = [AddtTransaction(*row) for row in addts]
+        addts = [TicketTransaction(*row) for row in await cursor.fetchall()]
 
         # delts
         await cursor.execute(
-            sql.SELECT_DELT_TYPE_NOT_TPAY,
-            (user_id, TicketTransactionType.tpay, TicketTransactionType.tpay_tax)
+            sql.SELECT_DELTS_BY_USER_ID,
+            (user_id, TicketTransactionType.CREATOR)
         )
-        delts = await cursor.fetchall()
-        delts = [DeltTransaction(*row) for row in delts]
+        delts = [TicketTransaction(*row) for row in await cursor.fetchall()]
+
+        # msells
+        await cursor.execute(
+            sql.SELECT_MSELLS_BY_USER_ID,
+            (user_id, TicketTransactionType.MSELL)
+        )
+        msells = [TicketTransaction(*row) for row in await cursor.fetchall()]
+
+        # taxes
+        await cursor.execute(
+            sql.SELECT_NON_TPAY_TAXES_BY_USER_ID,
+            (user_id, )
+        )
+        taxes = [TaxTransaction(*row) for row in await cursor.fetchall()]
 
         # unique_tpay_members
         unique_tpay_members = await _get_unique_members(cursor, user_id, tpays)
 
-        return LTransDTO(user_id, tpays, addts, delts, unique_tpay_members)
+        return LTransDTO(user_id, tpays, addts, delts, msells, taxes, unique_tpay_members)
 
 
 async def get_last_daily_schedule_date() -> Optional[datetime]:
@@ -502,7 +508,7 @@ async def get_material_price(material_name: str) -> float:
         return float(row[0]) if row else 0
 
 
-async def _get_unique_members(cursor: Cursor, user_id: int, tpays: List[TpayTransaction]) -> List[Member]:
+async def _get_unique_members(cursor: Cursor, user_id: int, tpays: dict[TicketTransaction, float]) -> list[Member]:
     unique_ids = set()
     unique_members = list()
 

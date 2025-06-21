@@ -165,7 +165,7 @@ async def tpay(message: Message, callback_message: Message = None, fee_incorpora
             x_fi = await funcs.get_transfer_by_total(t_fi)
             return t_fi, x_fi, t_fi - x_fi
         else:
-            f = await funcs.get_fee(x)
+            f = await funcs.get_single_tax(x)
             return x + f, x, f
 
     total, transfer, fee = await calculate_transfer(cpr.args[glob.TICKETS_ARG])
@@ -174,7 +174,7 @@ async def tpay(message: Message, callback_message: Message = None, fee_incorpora
                               f'{glob.TPAY_RECEIVER}: {funcs.get_formatted_name(receiver, ping=True)}\n\n'
                               f'*{glob.TPAY_TOTAL}: {total:.2f}*\n'
                               f'{glob.TPAY_AMOUNT}: {transfer:.2f}\n'
-                              f'{glob.TPAY_TAX}: {fee:.2f} ({int(100 * glob.UNI_TAX)}%, min {glob.MIN_FEE:.2f})\n\n'
+                              f'{glob.TPAY_TAX}: {fee:.2f} ({int(100 * glob.SINGLE_TAX)}%, min {glob.MIN_SINGLE_TAX:.2f})\n\n'
                               f'{glob.TPAY_DESCRIPTION}: _{description}_')
 
     operation_id = await service.operation_manager.register(
@@ -197,7 +197,7 @@ async def tpay(message: Message, callback_message: Message = None, fee_incorpora
             reply_markup=tpay_keyboard(
                 operation_id=operation_id,
                 sender_id=sender.user_id,
-                fee_incorporated=transfer > glob.MIN_FEE
+                fee_incorporated=transfer > glob.MIN_SINGLE_TAX
             )
         )
 
@@ -248,7 +248,7 @@ async def msell_quantity(message: Message, state: FSMContext):
     price = await service.get_material_price(material.name)
 
     revenue = round(price * quantity, 2)
-    tax = round(glob.UNI_TAX * revenue, 2)
+    tax = round(glob.SINGLE_TAX * revenue, 2)
     income = revenue - tax
 
     await state.update_data(quantity=quantity, revenue=revenue, tax=tax)
@@ -259,7 +259,7 @@ async def msell_quantity(message: Message, state: FSMContext):
               f'\n{glob.MSELL_CHOSEN_MATERIAL}: {material.name}{material.emoji}'
               f'\n{glob.MSELL_PRICE}: {price:.7f} tc'
               f'\n\n{glob.MSELL_REVENUE}: {revenue:.2f} tc'
-              f'\n{glob.MSELL_TAX}: {tax:.2f} tc _({int(glob.UNI_TAX * 100)}%)_'
+              f'\n{glob.MSELL_TAX}: {tax:.2f} tc _({int(glob.SINGLE_TAX * 100)}%)_'
               f'\n*{glob.MSELL_INCOME}: {income:.2f} tc*'),
         reply_markup=msell_confirmation_keyboard()
     )

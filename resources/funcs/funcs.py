@@ -14,7 +14,7 @@ from aiogram.types import Message
 from model.database import Material
 from model.database.member import Member, DelMember
 from resources.const import glob
-from resources.const.glob import UNI_TAX as F, MIN_FEE as M, DATETIME_FORMAT, MATERIALS_YAML_PATH
+from resources.const.glob import SINGLE_TAX as F, MIN_SINGLE_TAX as M, DATETIME_FORMAT, MATERIALS_YAML_PATH
 
 
 async def broadcast_message(
@@ -42,7 +42,7 @@ def strdate(date: datetime) -> str:
     return date.strftime(DATETIME_FORMAT)
 
 
-async def get_fee(transfer: float) -> float:
+async def get_single_tax(transfer: float) -> float:
     return max(round(F * transfer, 2), M)
 
 

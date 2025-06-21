@@ -5,9 +5,9 @@ INSERT_ARTIFACT = ("INSERT INTO artifacts (creator_id, owner_id, name, type, inv
                    "created_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
 INSERT_AWARD = "INSERT INTO awards (award_id, name, description, payment) VALUES (?, ?, ?, ?)"
 INSERT_AWARD_MEMBER = "INSERT INTO award_member (award_id, owner_id, issue_date) VALUES (?, ?, ?)"
-INSERT_ADDT = "INSERT INTO addt (user_id, tickets, time, description, type_) VALUES (?, ?, ?, ?, ?)"
-INSERT_DELT = "INSERT INTO delt (user_id, tickets, time, description, type_) VALUES (?, ?, ?, ?, ?)"
-INSERT_TPAY = "INSERT INTO tpay (sender_id, receiver_id, transfer, fee, time, description) VALUES (?, ?, ?, ?, ?, ?)"
+INSERT_TICKET_TXN = ("INSERT INTO ticket_txns (sender_id, receiver_id, transfer, type, time, description) "
+                     "VALUES (?, ?, ?, ?, ?, ?) RETURNING ticket_txn_id")
+INSERT_TAX_TXN = "INSERT INTO tax_txns (ticket_txn_id, user_id, amount, type, time) VALUES (?, ?, ?, ?, ?)"
 INSERT_BUSINESS_PROFIT = ("INSERT INTO business_profits (user_id, profit_type, transfer, date, artifact_id) "
                           "VALUES (?, ?, ?, ?, ?)")
 INSERT_RATE_HISTORY = "INSERT INTO rate_history (inflation, fluctuation, plan_date, fact_date) VALUES (?, ?, ?, ?)"

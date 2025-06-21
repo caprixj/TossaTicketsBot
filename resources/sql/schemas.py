@@ -69,39 +69,29 @@ CREATE_AWARD_MEMBER = """
         FOREIGN KEY (owner_id) REFERENCES members (user_id) ON DELETE CASCADE
     );
 """
-CREATE_ADDT = """
-    CREATE TABLE IF NOT EXISTS addt (
-        addt_id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER NOT NULL,
-        tickets REAL NOT NULL DEFAULT 0,
-        time TEXT NOT NULL,
-        description TEXT,
-        type_ TEXT NOT NULL DEFAULT "unknown",
-        FOREIGN KEY (user_id) REFERENCES members (user_id) ON DELETE RESTRICT
-    );
-"""
-CREATE_DELT = """
-    CREATE TABLE IF NOT EXISTS delt (
-        delt_id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER NOT NULL,
-        tickets REAL NOT NULL DEFAULT 0,
-        time TEXT NOT NULL,
-        description TEXT,
-        type_ TEXT NOT NULL DEFAULT "unknown",
-        FOREIGN KEY (user_id) REFERENCES members (user_id) ON DELETE RESTRICT
-    );
-"""
-CREATE_TPAY = """
-    CREATE TABLE IF NOT EXISTS tpay (
-        tpay_id INTEGER PRIMARY KEY AUTOINCREMENT,
+CREATE_TICKET_TXNS = """
+    CREATE TABLE IF NOT EXISTS ticket_txns (
+        ticket_txn_id INTEGER PRIMARY KEY AUTOINCREMENT,
         sender_id INTEGER NOT NULL,
         receiver_id INTEGER NOT NULL,
         transfer REAL NOT NULL,
-        fee REAL NOT NULL,
+        type TEXT NOT NULL DEFAULT 'unknown',
         time TEXT NOT NULL,
         description TEXT,
         FOREIGN KEY (sender_id) REFERENCES members (user_id) ON DELETE RESTRICT,
         FOREIGN KEY (receiver_id) REFERENCES members (user_id) ON DELETE RESTRICT
+    );
+"""
+CREATE_TAX_TXNS = """
+    CREATE TABLE IF NOT EXISTS tax_txns (
+        tax_txn_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        ticket_txn_id INTEGER NOT NULL,
+        user_id INTEGER NOT NULL,
+        amount REAL NOT NULL,
+        type TEXT NOT NULL DEFAULT 'unknown',
+        time TEXT NOT NULL,
+        FOREIGN KEY (user_id) REFERENCES members (user_id) ON DELETE RESTRICT,
+        FOREIGN KEY (ticket_txn_id) REFERENCES ticket_txns (ticket_txn_id) ON DELETE RESTRICT
     );
 """
 CREATE_BUSINESS_PROFITS = """

@@ -2,58 +2,42 @@ from datetime import datetime
 
 from model.types import TicketTransactionType
 from model.types.profit_type import ProfitType
-from model.types.transaction_types import MaterialTransactionType
+from model.types.transaction_types import MaterialTransactionType, TaxTransactionType
 from resources.const.glob import DATETIME_FORMAT
 
 
-class AddtTransaction:
+class TicketTransaction:
     def __init__(self,
-                 addt_id: int = 0,
-                 user_id: int = 0,
-                 tickets: float = 0,
-                 time: str = None,
-                 description: str = None,
-                 type_: TicketTransactionType = TicketTransactionType.unknown):
-        self.addt_id = addt_id
-        self.user_id = user_id
-        self.tickets = tickets
-        self.time = datetime.strptime(time, DATETIME_FORMAT)
-        self.description = description
-        self.type_ = type_
-
-
-class DeltTransaction:
-    def __init__(self,
-                 delt_id: int = 0,
-                 user_id: int = 0,
-                 tickets: float = 0.0,
-                 time: str = None,
-                 description: str = None,
-                 type_: TicketTransactionType = TicketTransactionType.unknown):
-        self.delt_id = delt_id
-        self.user_id = user_id
-        self.tickets = tickets
-        self.time = datetime.strptime(time, DATETIME_FORMAT)
-        self.description = description
-        self.type_ = type_
-
-
-class TpayTransaction:
-    def __init__(self,
-                 tpay_id: int = 0,
-                 sender_id: int = 0,
-                 receiver_id: int = 0,
+                 ticket_txn_id: int = 0,
+                 sender_id: int = -1,
+                 receiver_id: int = -1,
                  transfer: float = 0.0,
-                 fee: float = 0.0,
+                 type_: TicketTransactionType = TicketTransactionType.UNKNOWN,
                  time: str = None,
                  description: str = None):
-        self.tpay_id = tpay_id
+        self.ticket_txn_id = ticket_txn_id
         self.sender_id = sender_id
         self.receiver_id = receiver_id
         self.transfer = transfer
-        self.fee = fee
+        self.type = type_
         self.time = datetime.strptime(time, DATETIME_FORMAT)
         self.description = description
+
+
+class TaxTransaction:
+    def __init__(self,
+                 tax_txn_id: int = 0,
+                 ticket_txn_id: int = 0,
+                 user_id: int = 0,
+                 amount: float = 0.0,
+                 type_: TaxTransactionType = TaxTransactionType.UNKNOWN,
+                 time: str = None):
+        self.tax_txn_id = tax_txn_id
+        self.ticket_txn_id = ticket_txn_id
+        self.user_id = user_id
+        self.amount = amount
+        self.type = type_
+        self.time = datetime.strptime(time, DATETIME_FORMAT)
 
 
 class MaterialTransaction:
@@ -61,7 +45,7 @@ class MaterialTransaction:
                  material_transaction_id: int = 0,
                  sender_id: int = -1,
                  receiver_id: int = -1,
-                 type_: MaterialTransactionType = MaterialTransactionType.unknown,
+                 type_: MaterialTransactionType = MaterialTransactionType.UNKNOWN,
                  material_name: str = 0,
                  quantity: int = 0,
                  transfer: float = 0.0,
