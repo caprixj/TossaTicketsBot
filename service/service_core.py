@@ -232,6 +232,8 @@ async def tpay(sender: Member, receiver: Member, transfer: float, description: s
     sender.tickets -= transfer
     await repo.spend_tpay_available(sender.user_id)
     await repo.update_member_tickets(sender)
+    receiver.tickets += transfer
+    await repo.update_member_tickets(receiver)
     ticket_txn_id = await repo.insert_ticket_txn(TicketTransaction(
         sender_id=sender.user_id,
         receiver_id=receiver.user_id,
