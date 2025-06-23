@@ -1,4 +1,5 @@
 import random
+from io import BytesIO
 
 from aiogram import Router, Bot
 from aiogram.enums import ParseMode
@@ -27,11 +28,10 @@ router = Router()
 
 @router.message(Command(commands=[cl.sql.name, cl.sqls.name]))
 async def sql(message: Message):
-    og = CommandOverloadGroup(
+    og = CommandOverloadGroup([
         # /c <query:text>
-        overloads=[CommandOverload().add(glob.QUERY_ARG, BaseText)],
-        creator=True
-    )
+        CommandOverload().add(glob.QUERY_ARG, BaseText)
+    ], creator=True)
 
     cpr = await CommandParser(message, og).parse()
 
@@ -41,6 +41,43 @@ async def sql(message: Message):
     (executed, response) = await service.sql_execute(
         query=cpr.args[glob.QUERY_ARG],
         many=funcs.get_command(message) == cl.sqls.name
+    )
+
+    status = glob.SQL_SUCCESS if executed else glob.SQL_FAILED
+    await message.reply(
+        text=f'{status}\n\n{response}',
+        parse_mode=None,
+        reply_markup=hide_keyboard()
+    )
+
+
+@router.message(Command(cl.sqlf.name))
+async def sqlf(message: Message):
+    og = CommandOverloadGroup([
+        CommandOverload(reply=True, creator=True)
+    ])
+
+    cpr = await CommandParser(message, og).parse()
+
+    if not cpr.valid:
+        return await _reply_by_crv(message, cpr)
+
+    reply = message.reply_to_message
+    if not reply or not reply.document:
+        return await message.answer(glob.NOT_TXT_FILE_ERROR)
+
+    doc = reply.document
+    if not (doc.mime_type == 'text/plain' or doc.file_name.lower().endswith('.txt')):
+        return await message.answer(glob.NOT_TXT_FILE_ERROR)
+
+    file = await message.bot.get_file(doc.file_id)
+    stream = await message.bot.download_file(file.file_path)
+    data: bytes = stream.read()
+    query = data.decode('utf-8')
+
+    executed, response = await service.sql_execute(
+        query=query,
+        many=True
     )
 
     status = glob.SQL_SUCCESS if executed else glob.SQL_FAILED

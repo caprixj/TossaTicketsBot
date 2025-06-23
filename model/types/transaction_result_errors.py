@@ -2,5 +2,5 @@ from enum import Enum
 
 
 class TransactionResultErrors(str, Enum):
-    insufficient_funds = '❌ rejected! insufficient funds'
-    tpay_unavailable = '❌ rejected! daily transaction limit reached'
+    INSUFFICIENT_FUNDS = '❌ rejected! insufficient funds'
+    TPAY_UNAVAILABLE = '❌ rejected! daily transaction limit reached'

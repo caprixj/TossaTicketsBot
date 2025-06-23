@@ -11,7 +11,7 @@ class Artifact:
                  creator_id: int = 0,
                  owner_id: int = 0,
                  name: str = None,
-                 type_: ArtifactType = ArtifactType.text,
+                 type_: ArtifactType = ArtifactType.TEXT,
                  investment: float = 0.0,
                  file_id: str = None,
                  description: str = None,

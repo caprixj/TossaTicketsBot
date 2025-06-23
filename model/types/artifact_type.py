@@ -2,8 +2,8 @@ from enum import Enum
 
 
 class ArtifactType(str, Enum):
-    text = 'text'
-    pic = 'pic'
-    gif = 'gif'
-    audio = 'audio'
-    video = 'video'
+    TEXT = 'text'
+    PIC = 'pic'
+    GIF = 'gif'
+    AUDIO = 'audio'
+    VIDEO = 'video'

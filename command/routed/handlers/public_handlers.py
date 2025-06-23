@@ -542,9 +542,9 @@ async def reg(message: Message, bot: Bot):
 
     if target_member is None:
         response = False
-        if cpr.overload.target_type == ctt.none:
+        if cpr.overload.target_type == ctt.NONE:
             response = await service.create_member(message.from_user, message.chat.id)
-        elif cpr.overload.target_type == ctt.reply:
+        elif cpr.overload.target_type == ctt.REPLY:
             response = await service.create_member(message.reply_to_message.from_user, message.chat.id)
 
         if not response and not message.from_user.id == glob.CREATOR_USER_ID:
@@ -560,10 +560,10 @@ async def reg(message: Message, bot: Bot):
         await message.answer(glob.REG_SUCCESS)
 
     else:
-        if cpr.overload.target_type == ctt.none:
+        if cpr.overload.target_type == ctt.NONE:
             await service.update_member(message.from_user, target_member)
             await message.answer(glob.REG_DENIED_CTT_NONE)
-        elif cpr.overload.target_type == ctt.reply:
+        elif cpr.overload.target_type == ctt.REPLY:
             await service.update_member(message.reply_to_message.from_user, target_member)
             await message.answer(glob.REG_DENIED_CTT_REPLY)
 

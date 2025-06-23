@@ -148,6 +148,7 @@ TPAY_UNAVAILABLE_ERROR = '❌ rejected! daily transaction limit reached'
 MSELL_QUANTITY_INVALID = '❌ invalid input! try again (reply required!)'
 MSELL_ITEMS_LIMIT_REACHED = "❌ too much! consider the limit. *sell cancelled*"
 SELF_TRANS_ERROR = '❌ you cannot tpay yourself'
+NOT_TXT_FILE_ERROR = "❌ it's not a text file"
 
 BAL_NAME = "🪪 name"
 BAL_PERSONAL = '💳 personal account'

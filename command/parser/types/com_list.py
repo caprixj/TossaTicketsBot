@@ -9,6 +9,8 @@ class CommandList(str, Enum):
     sql = 'sql'
     # /sqls <query:text>
     sqls = 'sqls'
+    # <reply> /sqlf
+    sqlf = 'sqlf'
     # cog: tickets-pnreal
     addt = 'addt'
     # cog: tickets-pnreal

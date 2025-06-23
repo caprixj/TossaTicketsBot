@@ -224,7 +224,7 @@ async def tpay(sender: Member, receiver: Member, transfer: float, description: s
     total = transfer + single_tax
 
     if total > sender.tickets:
-        return TransactionResultDTO(TRE.insufficient_funds)
+        return TransactionResultDTO(TRE.INSUFFICIENT_FUNDS)
 
     current_datetime = get_current_datetime()
 
@@ -525,15 +525,15 @@ async def get_del_member(user_id: int) -> Optional[DelMember]:
 
 
 async def get_target_member(cpr: CommandParserResult) -> Optional[Member]:
-    if cpr.overload.target_type == ctt.none:
+    if cpr.overload.target_type == ctt.NONE:
         user_id = cpr.message.from_user.id
         return await repo.get_member_by_user_id(user_id)
-    elif cpr.overload.target_type == ctt.reply:
+    elif cpr.overload.target_type == ctt.REPLY:
         user_id = cpr.message.reply_to_message.from_user.id
         return await repo.get_member_by_user_id(user_id)
-    elif cpr.overload.target_type == ctt.username:
+    elif cpr.overload.target_type == ctt.USERNAME:
         return await repo.get_member_by_username(cpr.args[glob.USERNAME_ARG])
-    elif cpr.overload.target_type == ctt.user_id:
+    elif cpr.overload.target_type == ctt.USER_ID:
         return await repo.get_member_by_user_id(cpr.args[glob.USER_ID_ARG])
 
 
@@ -889,7 +889,7 @@ async def payout_profits():
         await _profit_business_account(
             member=owner,
             transfer=round(profit_rate * a.investment, 2),
-            profit_type=ProfitType.artifact_owner,
+            profit_type=ProfitType.ARTIFACT_OWNER,
             artifact_id=a.artifact_id
         )
 
@@ -899,7 +899,7 @@ async def payout_profits():
             await _profit_business_account(
                 member=creator,
                 transfer=a.get_owner_profit(),
-                profit_type=ProfitType.artifact_creator,
+                profit_type=ProfitType.ARTIFACT_CREATOR,
                 artifact_id=a.artifact_id
             )
 

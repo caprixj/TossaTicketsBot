@@ -21,20 +21,20 @@ class CommandOverload:
         self.private = private
         self.public = public
         self.schema = {}
-        self.target_type = ctt.reply if reply else ctt.none
+        self.target_type = ctt.REPLY if reply else ctt.NONE
 
     def add(self, name: str, arg_type: Type[TicketonomicsType]):
         if arg_type == Username:
-            if self.target_type != ctt.none:
+            if self.target_type != ctt.NONE:
                 raise RuntimeError(glob.DOUBLE_TARGETING_ERROR)
             else:
-                self.target_type = ctt.username
+                self.target_type = ctt.USERNAME
 
         if arg_type == UserID:
-            if self.target_type != ctt.none:
+            if self.target_type != ctt.NONE:
                 raise RuntimeError(glob.DOUBLE_TARGETING_ERROR)
             else:
-                self.target_type = ctt.user_id
+                self.target_type = ctt.USER_ID
 
         self.schema[name] = arg_type
         return self

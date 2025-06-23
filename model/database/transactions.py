@@ -68,7 +68,7 @@ class BusinessProfitTransaction:
     def __init__(self,
                  business_profit_id: int = 0,
                  user_id: int = 0,
-                 profit_type: ProfitType = ProfitType.unknown,
+                 profit_type: ProfitType = ProfitType.UNKNOWN,
                  transfer: float = 0,
                  date: str = None,
                  artifact_id: int = 0):

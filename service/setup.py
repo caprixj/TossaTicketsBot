@@ -72,7 +72,7 @@ async def _get_create_table_scripts() -> list[str]:
         sql.CREATE_MEMBERS,
         sql.CREATE_DEL_MEMBERS,
         sql.CREATE_ARTIFACTS,
-        sql.CREATE_ARTIFACT_VALUE_HISTORY,
+        # sql.CREATE_ARTIFACT_VALUE_HISTORY,
         sql.CREATE_TICKET_TXNS,
         sql.CREATE_TAX_TXNS,
         sql.CREATE_BUSINESS_PROFITS,

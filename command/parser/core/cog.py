@@ -8,7 +8,7 @@ from resources.const.glob import TICKETS_ARG, DESCRIPTION_ARG, USERNAME_ARG, USE
 # [<creator>] <reply> /command
 # [<creator>] /command
 # [<creator>] /command <username:username>
-# [<creator>] /command <operation_id:pnint>
+# [<creator>] /command <user_id:pnint>
 def pure(creator_required: bool = False) -> CommandOverloadGroup:
     return CommandOverloadGroup([
         CommandOverload(reply=True),
@@ -22,8 +22,8 @@ def pure(creator_required: bool = False) -> CommandOverloadGroup:
 # <creator> <reply> /command <tickets:xreal> <description:text256>
 # <creator> /command <username:username> <tickets:xreal>
 # <creator> /command <username:username> <tickets:xreal> <description:text256>
-# <creator> /command <operation_id:userid> <tickets:xreal>
-# <creator> /command <operation_id:userid> <tickets:xreal> <description:text256>
+# <creator> /command <user_id:userid> <tickets:xreal>
+# <creator> /command <user_id:userid> <tickets:xreal> <description:text256>
 def tickets(arg_type: Type[TicketonomicsType], creator_required: bool) -> CommandOverloadGroup:
     if not xreal(arg_type):
         raise ValueError()
@@ -38,7 +38,7 @@ def tickets(arg_type: Type[TicketonomicsType], creator_required: bool) -> Comman
 
 # <creator> <reply> /command <a1:any>
 # <creator> /command <username:username> <a1:any>
-# <creator> /command <operation_id:userid> <a1:any>
+# <creator> /command <user_id:userid> <a1:any>
 def a1_any(a1_name: str, a1_type: Type[TicketonomicsType], creator_required: bool,
            no_self_reply_required: bool = False) -> CommandOverloadGroup:
     return CommandOverloadGroup([
@@ -61,8 +61,8 @@ def a1_any(a1_name: str, a1_type: Type[TicketonomicsType], creator_required: boo
 # <creator> <reply> /command <a1:any> <description:text256>
 # <creator> /command <username:username> <a1:any>
 # <creator> /command <username:username> <a1:any> <description:text256>
-# <creator> /command <operation_id:userid> <a1:any>
-# <creator> /command <operation_id:userid> <a1:any> <description:text256>
+# <creator> /command <user_id:userid> <a1:any>
+# <creator> /command <user_id:userid> <a1:any> <description:text256>
 def a1d_any(a1_name: str, a1_type: Type[TicketonomicsType], creator_required: bool,
             no_self_reply_required: bool = False) -> CommandOverloadGroup:
     return CommandOverloadGroup([

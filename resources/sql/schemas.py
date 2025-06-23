@@ -41,16 +41,16 @@ CREATE_ARTIFACTS = """
         FOREIGN KEY (owner_id) REFERENCES members(user_id)
     );
 """
-CREATE_ARTIFACT_VALUE_HISTORY = """
-    CREATE TABLE IF NOT EXISTS artifact_value_history (
-        artifact_value_history_id INTEGER PRIMARY KEY AUTOINCREMENT,
-        artifact_id INTEGER,
-        owner_id INTEGER NOT NULL,
-        value REAL NOT NULL,
-        date TEXT NOT NULL,
-        FOREIGN KEY (artifact_id) REFERENCES artifacts(artifact_id)
-    );
-"""
+# CREATE_ARTIFACT_VALUE_HISTORY = """
+#     CREATE TABLE IF NOT EXISTS artifact_value_history (
+#         artifact_value_history_id INTEGER PRIMARY KEY AUTOINCREMENT,
+#         artifact_id INTEGER,
+#         owner_id INTEGER NOT NULL,
+#         value REAL NOT NULL,
+#         date TEXT NOT NULL,
+#         FOREIGN KEY (artifact_id) REFERENCES artifacts(artifact_id)
+#     );
+# """
 CREATE_AWARDS = """
     CREATE TABLE IF NOT EXISTS awards (
         award_id TEXT PRIMARY KEY,
@@ -212,7 +212,7 @@ CREATE_MATERIAL_TRANSACTIONS = """
     );
 """
 CREATE_MATERIAL_TRANSACTION_REQUESTS = """
-CREATE TABLE IF NOT EXISTS material_transaction_requests (
+    CREATE TABLE IF NOT EXISTS material_transaction_requests (
         material_transaction_request_id INTEGER PRIMARY KEY AUTOINCREMENT,
         sender_id INTEGER NOT NULL DEFAULT -1,
         receiver_id INTEGER NOT NULL DEFAULT -1,
