@@ -30,9 +30,9 @@ async def reset_prices(bot: Bot = None):
     if lpr_date == datetime.now().date():
         return
 
-    pr_days_dist = abs((datetime.now().date() - lpr.plan_date.date()).days)
-    total_tpool = await service.get_tpool()
-    updated_inflation = _get_updated_inflation(total_tpool)
+    updated_inflation = _get_updated_inflation(
+        await service.get_tpool(infl=True)
+    )
     updated_fluctuation = _get_updated_fluctuation(lpr.fluctuation)
     updated_rate = updated_inflation * updated_fluctuation
     diff = updated_rate / (lpr.inflation * lpr.fluctuation)
@@ -41,6 +41,7 @@ async def reset_prices(bot: Bot = None):
     await repo.reset_artifact_investments(diff)
     await _reset_gem_rates(updated_rate)
 
+    pr_days_dist = abs((datetime.now().date() - lpr.plan_date.date()).days)
     await repo.expand_price_history()
     await repo.insert_rate_history(RateReset(
         inflation=updated_inflation,

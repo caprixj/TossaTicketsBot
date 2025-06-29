@@ -152,7 +152,7 @@ async def msell_yes(callback: CallbackQuery, state: FSMContext):
     revenue: float = data['revenue']
     tax: float = data['tax']
 
-    sold_items_count_today = await service.get_sold_items_count_today(user_id)
+    sold_items_count_today = await service.get_sold_mc_today(user_id)
 
     if sold_items_count_today + quantity > glob.MSELL_ITEMS_LIMIT:
         await callback.message.answer(glob.MSELL_ITEMS_LIMIT_REACHED)

@@ -17,6 +17,7 @@ SELECT_LAST_DAILY_SCHEDULE = "SELECT * FROM daily_schedules ORDER BY date DESC L
 SELECT_LAST_RATE_HISTORY = "SELECT * FROM rate_history ORDER BY plan_date DESC LIMIT 1"
 SELECT_LAST_SALARY_PAYOUT = "SELECT * FROM salary_payouts ORDER BY plan_date DESC LIMIT 1"
 SELECT_JOBS = "SELECT * FROM jobs"
+SELECT_JOB_NAME = "SELECT name FROM jobs WHERE position = ?"
 SELECT_PRICES = "SELECT * FROM prices"
 SELECT_GEM_RATES = "SELECT * FROM prices WHERE product_type = 'gemstone'"
 SELECT_MEMBER_MATERIAL = "SELECT material_name, quantity FROM member_materials WHERE user_id = ? AND material_name = ?"
@@ -24,9 +25,14 @@ SELECT_MEMBER_MATERIALS_BY_USER_ID = "SELECT material_name, quantity FROM member
 SELECT_ALL_MEMBER_MATERIALS = "SELECT * FROM member_materials"
 SELECT_SQL_VAR = "SELECT value FROM vars WHERE name = ?"
 SELECT_GEMSTONE_PRICE = "SELECT price FROM prices WHERE product_name = ? AND product_type = 'gemstone'"
-SELECT_SOLD_ITEMS_COUNT_TODAY = (f"SELECT SUM(quantity) FROM material_transactions "
-                                 f"WHERE sender_id = ? and receiver_id = -1 and date >= ?")
+SELECT_SOLD_MAT_REVENUE_BY_PERIOD = ("SELECT SUM(transfer) FROM material_transactions "
+                                     "WHERE type = 'msell' and DATE(date) >= ?")
+SELECT_MEMBER_SOLD_MAT_COUNT_BY_PERIOD = ("SELECT SUM(quantity) FROM material_transactions "
+                                          "WHERE sender_id = ? and type = 'msell' and DATE(date) >= ?")
+SELECT_FARMED_MAT_COUNT_BY_PERIOD = ("SELECT SUM(quantity) FROM material_transactions "
+                                     "WHERE type = 'tbox' and DATE(date) >= ?")
 SELECT_TPAYS_AND_TAXATION_BY_USER_ID = """
+
     SELECT tic.*, COALESCE(SUM(txs.amount), 0.0) AS total_tax
     FROM ticket_txns tic
     LEFT JOIN tax_txns txs ON txs.ticket_txn_id = tic.ticket_txn_id
@@ -68,7 +74,7 @@ SELECT_EMPLOYEE_BY_PRIMARY_KEY = """
     INNER JOIN jobs j ON e.position = j.position
     WHERE e.user_id = ? AND e.position = ?
 """
-SELECT_EMPLOYEE_POSITION_NAMES = """
+SELECT_EMPLOYEE_JOB_NAMES = """
     SELECT j.name
     FROM employees e
     INNER JOIN jobs j ON e.position = j.position
@@ -79,32 +85,6 @@ SELECT_EMPLOYEES = """
     FROM employees e
     INNER JOIN jobs j ON e.position = j.position
 """
-# SELECT_DELTA_TICKETS_COUNT_AFTER_DATETIME = """
-#     SELECT SUM(dt) FROM (
-#         SELECT SUM(add_sum - delt_sum) AS dt
-#         FROM (
-#             SELECT
-#                 DATE(time) AS date,
-#                 SUM(tickets) AS add_sum,
-#                 0 AS delt_sum
-#             FROM addt
-#             WHERE time >= ?
-#             GROUP BY DATE(time)
-#
-#             UNION ALL
-#
-#             SELECT
-#                 DATE(time) AS date,
-#                 0 AS add_sum,
-#                 SUM(tickets) AS delt_sum
-#             FROM delt
-#             WHERE time >= ?
-#             GROUP BY DATE(time)
-#         )
-#         GROUP BY date
-#         ORDER BY date
-#     )
-# """
 SELECT_EACH_MATERIAL_COUNT = """
     SELECT material_name, SUM(quantity) as total_quantity
     FROM member_materials

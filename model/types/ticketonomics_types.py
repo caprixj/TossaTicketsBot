@@ -75,26 +75,34 @@ class Text512(TicketonomicsType):
             raise ValueError()
 
 
-class PercentSpecialArgument(TicketonomicsType):
+class ConstArg(TicketonomicsType):
     def __init__(self, data: str):
         super().__init__(data)
 
     async def cast(self) -> str:
-        if self.data == '%':
+        return self.data
+
+    async def const_cast(self, const: str):
+        if self.data == const:
             return self.data
         else:
             raise ValueError()
 
 
-class IdSpecialArgument(TicketonomicsType):
+class PercentConstArg(ConstArg):
     def __init__(self, data: str):
         super().__init__(data)
 
     async def cast(self) -> str:
-        if self.data == 'id':
-            return self.data
-        else:
-            raise ValueError()
+        return await super().const_cast('%')
+
+
+class IdConstArg(ConstArg):
+    def __init__(self, data: str):
+        super().__init__(data)
+
+    async def cast(self) -> str:
+        return await super().const_cast('id')
 
 
 # all double

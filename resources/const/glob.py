@@ -11,6 +11,7 @@ CREATOR_USER_ID = 825549745
 CREATOR_USERNAME = '@capri_xj'
 
 DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S'
+DATE_FORMAT = '%Y-%m-%d'
 
 NBT_SQL_VAR = 'nbt'
 NBT_ID = -1
@@ -51,6 +52,7 @@ GEM_FREQ_YAML_PATH = 'model/yaml/gem_freq.yaml'
 MATERIALS_YAML_PATH = 'model/yaml/materials.yaml'
 RECIPES_YAML_PATH = 'model/yaml/recipes.yaml'
 
+BAN_ARG = 'ban'
 TICKETS_ARG = 'tickets'
 DESCRIPTION_ARG = 'description'
 USERNAME_ARG = 'username'
@@ -119,8 +121,8 @@ ANCHOR_REJECTED = "❌⚓️ you're already anchored here!"
 SQL_SUCCESS = '✅ command executed!'
 MEMBER_HIRED = '✅💼 member hired for the position!'
 RESET_PRICE_COMMAND_DONE = '✅ manual price reset executed based on the ticket inflation rate'
-MEMBER_ALREADY_HIRED = '❌ member already holds this position!'
-MEMBER_FIRED = '❌💼 member has been fired!'
+MEMBER_ALREADY_HIRED = '⚠️ member already holds this position!'
+MEMBER_FIRED = '💢💼 member has been fired!'
 MEMBER_ALREADY_FIRED = '❌ cannot fire member as he does not hold this position!'
 UNREG_CREATOR_ERROR = "i won't kill you, my lord! ♥️"
 DELETED_MEMBER = '[kicked out]'
@@ -132,9 +134,9 @@ CALLBACK_FLOOD_CONTROL = 'not so fast! at this rate, telegram will send ticketo-
 
 PUBLIC_VIOLATION = '⚠️ this command can be used only in groups'
 PRIVATE_VIOLATION = '⚠️ this command can be used only in the private messages of the bot'
-AWARD_DUPLICATE = '❌ participant already has this award!'
-REG_DENIED_CTT_NONE = '❌ you are already a participant in ticketonomics!'
-REG_DENIED_CTT_REPLY = '❌ this participant is already part of ticketonomics!'
+AWARD_DUPLICATE = '⚠️ participant already has this award!'
+REG_DENIED_CTT_NONE = '⚠️ you are already a member of ticketonomics!'
+REG_DENIED_CTT_REPLY = '⚠️ this participant is already part of ticketonomics!'
 SQL_FAILED = '❌ command rejected!'
 COM_PARSER_FAILED = '❌ invalid command!'
 TG_MSG_LEN_LIMIT_ERROR = '⚠️ the result is too long for a telegram message'
@@ -142,13 +144,17 @@ TARGET_NOT_MEMBER_ERROR = '❌ the specified user is not a ticketonomics member!
 GET_MEMBER_FAILED = '❌ member not found! check the id you entered'
 GET_AWARD_FAILED = '❌ specified award does not exist! check the id you entered'
 SERVICE_OPERATION_NONE_RESULT = '😔 couldn’t complete the operation..'
-NOT_MEMBER_ERROR = '❌ to use the bot, you must be a member of the sfs chat and send the /reg command. more instructions can be found at /help'
+NOT_MEMBER_ERROR = '⚠️ to use the bot, you must be a member of the sfs chat and send the /reg command. more instructions can be found at /help'
 TBOX_UNAVAILABLE_ERROR = '❌ you already opened a tbox today!'
 TPAY_UNAVAILABLE_ERROR = '❌ rejected! daily transaction limit reached'
 MSELL_QUANTITY_INVALID = '❌ invalid input! try again (reply required!)'
 MSELL_ITEMS_LIMIT_REACHED = "❌ too much! consider the limit. *sell cancelled*"
 SELF_TRANS_ERROR = '❌ you cannot tpay yourself'
 NOT_TXT_FILE_ERROR = "❌ it's not a text file"
+
+MEMBER_RES = 'member'
+POSITION_RES = 'position'
+AMOUNT_RES = 'amount'
 
 BAL_NAME = "🪪 name"
 BAL_PERSONAL = '💳 personal account'
@@ -161,14 +167,13 @@ BALM_NO_GEMSTONES = 'you have no gemstones yet.. 😶‍🌫️'
 BALM_NO_INTERMEDIATES = 'you have no intermediates yet.. 😶‍🌫️'
 BALM_NO_ARTIFACT_TEMPLATES = 'you have no artifact templates yet.. 😶‍🌫️'
 BALM_TITLE = '<b>📦 materials account</b>'
-BALM_MEMBER = 'member'
 BALM_START_TEXT = """
 page 1 - gemstones
 page 2 - intermediates
 page 3 - artifact templates
 """
 
-TBOX_MEMBER = '🪪 member'
+TBOX_MEMBER = f'🪪 {MEMBER_RES}'
 
 LTRANS_TITLE = '<b>📊 income and expenses history (tickets)</b>'
 LTRANS_START_TEXT = """
@@ -177,7 +182,6 @@ LTRANS_START_TEXT = """
 📦 msell | 🧾 taxes
 """
 LTRANS_TRANS_HISTORY_EMPTY = 'your transactions history is empty.. 😶‍🌫️'
-LTRANS_MEMBER = 'member'
 LTRANS_FROM = 'from'
 LTRANS_TO = 'to'
 LTRANS_TEXT = 'text'
@@ -226,7 +230,6 @@ HIRE_JOBS = 'jobs of the member'
 TPAY_SENDER = 'sender'
 TPAY_RECEIVER = 'receiver'
 TPAY_TOTAL = 'total'
-TPAY_AMOUNT = 'amount'
 TPAY_TAX = 'tax'
 TPAY_DESCRIPTION = 'text'
 
@@ -285,6 +288,14 @@ SFS_ALERT_TEXT = """
 
 🔪💀 🔥 АДМІНІСТРАЦІЯ ЧАТУ ЗАХИСТИТЬ ВАС ВІД СФС. ВІРТЕ В АДМІНІСТРАЦІЮ, СЛАВА СПІЛЬНОТІ! 🔥 💀🔪
 *
+"""
+
+START_TEXT = """
+*Ticketo-chan* (ukrainian: Тікето-тяночка) is the main bot of *Ticketonomics*! The platform for games and role-playing based on *tickets* (bot's currency)
+
+More information, updates and news available in *TossaTickets* (https://t.me/+q66chy227wk5MWQy)
+
+To join Ticketonomics, you must become part of our Community by joining one of our groups
 """
 
 HELP_TEXT = """

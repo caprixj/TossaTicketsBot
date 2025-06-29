@@ -1,20 +1,22 @@
 from typing import Type, List
 
-from model.types.ticketonomics_types import TicketonomicsType, Username, UserID, PercentSpecialArgument, \
-    IdSpecialArgument
+from model.types.ticketonomics_types import TicketonomicsType, Username, UserID, PercentConstArg, IdConstArg
 from command.parser.types.target_type import CommandTargetType as ctt
 from resources.const import glob
+from resources.funcs import funcs
 
 
 class CommandOverload:
     def __init__(self,
                  oid: str = None,
+                 otype: str = None,
                  creator: bool = False,
                  reply: bool = False,
                  no_self_reply: bool = False,
                  private: bool = False,
                  public: bool = False):
         self.oid = oid
+        self.otype = otype
         self.creator = creator
         self.reply = reply
         self.no_self_reply = no_self_reply
@@ -40,11 +42,11 @@ class CommandOverload:
         return self
 
     def add_percent(self):
-        self.schema[glob.PERCENT_ARG] = PercentSpecialArgument
+        self.schema[glob.PERCENT_ARG] = PercentConstArg
         return self
 
     def add_id(self):
-        self.schema[glob.ID_ARG] = IdSpecialArgument
+        self.schema[glob.ID_ARG] = IdConstArg
         return self
 
     def get_order_value(self) -> int:
@@ -77,6 +79,9 @@ class CommandOverloadGroup:
             else:
                 all_on = all(getattr(o, name) for o in overloads)
                 setattr(self, name, all_on)
+
+        if not funcs.all_unique_or_none([o.oid for o in overloads]):
+            raise RuntimeError('cog: not all oid unique!')
 
     def __iter__(self):
         return iter(self.overloads)

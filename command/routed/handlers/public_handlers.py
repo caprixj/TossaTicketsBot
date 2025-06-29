@@ -28,6 +28,17 @@ from resources.funcs import funcs
 router = Router()
 
 
+@router.message(Command(cl.start.name))
+async def start_(message: Message):
+    await validate_user(message.from_user)
+    await message.answer(
+        text=glob.START_TEXT,
+        parse_mode=ParseMode.MARKDOWN,
+        link_preview_options=LinkPreviewOptions(is_disabled=True),
+        reply_markup=hide_keyboard()
+    )
+
+
 @router.message(Command(cl.help.name))
 async def help_(message: Message):
     await validate_user(message.from_user)
@@ -98,7 +109,7 @@ async def balm(message: Message):
         return await message.answer(glob.GET_MEMBER_FAILED)
 
     viewer = PagedViewer(
-        title=f'{glob.BALM_TITLE}\n{glob.BALM_MEMBER}: {funcs.get_formatted_name(target_member)}',
+        title=f'{glob.BALM_TITLE}\n{glob.MEMBER_RES}: {funcs.get_formatted_name(target_member)}',
         data_extractor=functools.partial(service.balm, target_member.user_id),
         page_generator=page_generators.balm,
         page_message=message,
@@ -170,12 +181,12 @@ async def tpay(message: Message, callback_message: Message = None, fee_incorpora
 
     total, transfer, fee = await calculate_transfer(cpr.args[glob.TICKETS_ARG])
 
-    tpay_confirmation_text = (f'{glob.TPAY_SENDER}: {funcs.get_formatted_name(sender, ping=True)}\n'
-                              f'{glob.TPAY_RECEIVER}: {funcs.get_formatted_name(receiver, ping=True)}\n\n'
-                              f'*{glob.TPAY_TOTAL}: {total:.2f}*\n'
-                              f'{glob.TPAY_AMOUNT}: {transfer:.2f}\n'
-                              f'{glob.TPAY_TAX}: {fee:.2f} ({int(100 * glob.SINGLE_TAX)}%, min {glob.MIN_SINGLE_TAX:.2f})\n\n'
-                              f'{glob.TPAY_DESCRIPTION}: _{description}_')
+    tpay_text = (f'{glob.TPAY_SENDER}: {funcs.get_formatted_name(sender, ping=True)}\n'
+                 f'{glob.TPAY_RECEIVER}: {funcs.get_formatted_name(receiver, ping=True)}\n\n'
+                 f'*{glob.TPAY_TOTAL}: {total:.2f}*\n'
+                 f'{glob.AMOUNT_RES}: {transfer:.2f}\n'
+                 f'{glob.TPAY_TAX}: {fee:.2f} ({int(100 * glob.SINGLE_TAX)}%, min {glob.MIN_SINGLE_TAX:.2f})\n\n'
+                 f'{glob.TPAY_DESCRIPTION}: _{description}_')
 
     operation_id = await service.operation_manager.register(
         func=functools.partial(service.tpay, sender, receiver, transfer, description),
@@ -183,7 +194,7 @@ async def tpay(message: Message, callback_message: Message = None, fee_incorpora
     )
 
     if fee_incorporated:
-        await callback_message.edit_text(text=tpay_confirmation_text)
+        await callback_message.edit_text(text=tpay_text)
         await callback_message.edit_reply_markup(
             reply_markup=tpay_keyboard(
                 operation_id=operation_id,
@@ -193,7 +204,7 @@ async def tpay(message: Message, callback_message: Message = None, fee_incorpora
         )
     else:
         await message.answer(
-            text=tpay_confirmation_text,
+            text=tpay_text,
             reply_markup=tpay_keyboard(
                 operation_id=operation_id,
                 sender_id=sender.user_id,
@@ -287,7 +298,7 @@ async def ltrans(message: Message):
         target_member = await service.get_member(message.from_user.id)
 
     viewer = PagedViewer(
-        title=f'{glob.LTRANS_TITLE}\n{glob.LTRANS_MEMBER}: {funcs.get_formatted_name(target_member)}',
+        title=f'{glob.LTRANS_TITLE}\n{glob.MEMBER_RES}: {funcs.get_formatted_name(target_member)}',
         data_extractor=functools.partial(service.ltrans, target_member.user_id),
         page_generator=page_generators.ltrans,
         page_message=message,
@@ -333,7 +344,7 @@ async def laward(message: Message):
 
 
 @router.message(Command(commands=[cl.topt.name, cl.topm.name]))
-async def rating(message: Message):
+async def top(message: Message):
     if not await validate_message(message):
         return
 
@@ -541,20 +552,24 @@ async def reg(message: Message, bot: Bot):
     target_member = await service.get_target_member(cpr)
 
     if target_member is None:
-        response = False
-        if cpr.overload.target_type == ctt.NONE:
-            response = await service.create_member(message.from_user, message.chat.id)
-        elif cpr.overload.target_type == ctt.REPLY:
-            response = await service.create_member(message.reply_to_message.from_user, message.chat.id)
+        response = await service.reg_member(
+            sender=message.from_user,
+            target=message.reply_to_message.from_user if cpr.overload.target_type == ctt.REPLY else message.from_user,
+            anchor_=message.chat.id
+        )
 
         if not response and not message.from_user.id == glob.CREATOR_USER_ID:
             return message.answer(_get_random_crv_message())
+
+        reply_uid = message.reply_to_message.from_user.id \
+            if message.reply_to_message is not None \
+            else None
 
         await bot.send_message(
             chat_id=glob.CREATOR_USER_ID,
             text=(f'chat id: {message.chat.id}\n'
                   f'from-user id: {message.from_user.id}\n'
-                  f'reply-user id: {message.reply_to_message.id if message.reply_to_message is not None else None}')
+                  f'reply-user id: {reply_uid}')
         )
 
         await message.answer(glob.REG_SUCCESS)

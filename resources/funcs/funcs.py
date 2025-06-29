@@ -88,6 +88,11 @@ def perturb_probs(probs: dict[str, float], sigma: float) -> list[float]:
     return [round(w / total, 5) for w in weighted]
 
 
+def all_unique_or_none(li: list[str]) -> bool:
+    strings = [s for s in li if s is not None]
+    return len(strings) == len(set(strings))
+
+
 def _escape_markdown_v2(text: str) -> str:
     return re.sub(r'([_*])', r'\\\1', text)
 

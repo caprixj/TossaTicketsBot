@@ -12,7 +12,6 @@ from model.dto import AwardDTO, LTransDTO
 from model.types import TicketTransactionType
 from repository.ordering_type import OrderingType
 from resources.const import glob
-from resources.const.glob import DATETIME_FORMAT
 from resources.funcs.funcs import get_current_datetime
 from resources import sql
 
@@ -274,7 +273,7 @@ async def get_topt_members(order: OrderingType = OrderingType.DESC, limit: Optio
         order=order.value,
         limit_clause=limit_clause
     )
-    params = (limit, ) if limit is not None else ()
+    params = (limit,) if limit is not None else ()
 
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
         cursor = await db.execute(query, params)
@@ -382,7 +381,7 @@ async def get_txn_stats(user_id: int) -> LTransDTO:
         # taxes
         await cursor.execute(
             sql.SELECT_NON_TPAY_TAXES_BY_USER_ID,
-            (user_id, )
+            (user_id,)
         )
         taxes = [TaxTransaction(*row) for row in await cursor.fetchall()]
 
@@ -427,11 +426,18 @@ async def get_employee(user_id: float, position: str) -> Optional[Employee]:
         return Employee(*row) if row else None
 
 
-async def get_employee_position_names(user_id: float) -> Optional[List[str]]:
+async def get_job_names(user_id: float) -> Optional[List[str]]:
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
-        cursor = await db.execute(sql.SELECT_EMPLOYEE_POSITION_NAMES, (user_id,))
+        cursor = await db.execute(sql.SELECT_EMPLOYEE_JOB_NAMES, (user_id,))
         rows = await cursor.fetchall()
         return [row[0] for row in rows]
+
+
+async def get_job_name(position: str) -> Optional[str]:
+    async with aiosqlite.connect(glob.rms.db_file_path) as db:
+        cursor = await db.execute(sql.SELECT_JOB_NAME, (position,))
+        row = await cursor.fetchone()
+        return row[0] if row else None
 
 
 async def get_jobs() -> Optional[List[Job]]:
@@ -493,10 +499,32 @@ async def get_all_member_materials() -> list[MemberMaterial]:
         return [MemberMaterial(*row) for row in rows]
 
 
-async def get_sold_items_count_today(user_id: int) -> int:
-    today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0).strftime(DATETIME_FORMAT)
+async def get_member_sold_mc_by_period(user_id: int) -> int:
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
-        cursor = await db.execute(sql.SELECT_SOLD_ITEMS_COUNT_TODAY, (user_id, today))
+        cursor = await db.execute(
+            sql.SELECT_MEMBER_SOLD_MAT_COUNT_BY_PERIOD,
+            (user_id, datetime.now().strftime(glob.DATE_FORMAT))
+        )
+        row = await cursor.fetchone()
+        return int(row[0]) if row[0] else 0
+
+
+async def get_sold_mat_revenue_by_period(start_day: datetime) -> int:
+    async with aiosqlite.connect(glob.rms.db_file_path) as db:
+        cursor = await db.execute(
+            sql.SELECT_SOLD_MAT_REVENUE_BY_PERIOD,
+            (start_day.strftime(glob.DATE_FORMAT), )
+        )
+        row = await cursor.fetchone()
+        return int(row[0]) if row[0] else 0
+
+
+async def get_farmed_mc_by_period(start_day: datetime) -> int:
+    async with aiosqlite.connect(glob.rms.db_file_path) as db:
+        cursor = await db.execute(
+            sql.SELECT_FARMED_MAT_COUNT_BY_PERIOD,
+            (start_day.strftime(glob.DATE_FORMAT), )
+        )
         row = await cursor.fetchone()
         return int(row[0]) if row[0] else 0
 

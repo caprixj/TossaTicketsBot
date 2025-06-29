@@ -1,5 +1,4 @@
 import random
-from io import BytesIO
 
 from aiogram import Router, Bot
 from aiogram.enums import ParseMode
@@ -10,7 +9,6 @@ import resources.const.glob as glob
 from command.parser.keyboards.keyboards import hide_keyboard
 from model.database import AwardMember
 from resources.funcs import funcs
-from resources.funcs.funcs import get_formatted_name
 from service import service_core as service, scheduling
 from service.price_manager import reset_prices
 from command.parser.core import cog
@@ -18,7 +16,8 @@ from command.parser.core.overload import CommandOverload, CommandOverloadGroup
 from command.parser.core.parser import CommandParser
 from command.parser.results.parser_result import CommandParserResult
 from command.routed.util.validations import validate_message
-from model.types.ticketonomics_types import BaseText, Real, PNReal, SID, EmployeePosition, Username, UserID, ChatID
+from model.types.ticketonomics_types import BaseText, Real, PNReal, SID, EmployeePosition, Username, UserID, ChatID, \
+    ConstArg
 from command.parser.types.com_list import CommandList as cl
 
 from resources.const.rands import crv_messages
@@ -106,7 +105,11 @@ async def addt(message: Message):
         description=cpr.args.get(glob.DESCRIPTION_ARG, None)
     )
 
-    await message.answer(f'{glob.ADDT_TEXT}\nmember: {get_formatted_name(target_member)}')
+    await message.answer(
+        f'{glob.ADDT_TEXT}'
+        f'\n{glob.MEMBER_RES}: {funcs.get_formatted_name(target_member)}'
+        f'\n{glob.AMOUNT_RES}: +{cpr.args[glob.TICKETS_ARG]:.2f}'
+    )
 
 
 @router.message(Command(cl.delt.name))
@@ -127,7 +130,11 @@ async def delt(message: Message):
         description=cpr.args.get(glob.DESCRIPTION_ARG, None)
     )
 
-    await message.answer(f'{glob.DELT_TEXT}\nmember: {get_formatted_name(target_member)}')
+    await message.answer(
+        f'{glob.DELT_TEXT}'
+        f'\n{glob.MEMBER_RES}: {funcs.get_formatted_name(target_member)}'
+        f'\n{glob.AMOUNT_RES}: -{cpr.args[glob.TICKETS_ARG]:.2f}'
+    )
 
 
 @router.message(Command(cl.sett.name))
@@ -142,13 +149,18 @@ async def sett(message: Message):
     if target_member is None:
         return await message.answer(glob.GET_MEMBER_FAILED)
 
-    await service.sett(
+    transfer_amount = await service.sett(
         member=target_member,
         tickets=cpr.args[glob.TICKETS_ARG],
         description=cpr.args.get(glob.DESCRIPTION_ARG, None)
     )
 
-    await message.answer(f'{glob.SETT_TEXT}\nmember: {get_formatted_name(target_member)}')
+    sign = '+' if transfer_amount > 0 else ''
+    await message.answer(
+        f'{glob.SETT_TEXT}'
+        f'\n{glob.MEMBER_RES}: {funcs.get_formatted_name(target_member)}'
+        f'\n{glob.AMOUNT_RES}: {sign}{transfer_amount:.2f}'
+    )
 
 
 @router.message(Command(cl.award.name))
@@ -233,8 +245,11 @@ async def fire(message: Message):
     employee_position = cpr.args[glob.EMPLOYEE_ARG]
 
     fired = await service.fire(target_member.user_id, employee_position)
-    answer = glob.MEMBER_FIRED if fired else glob.MEMBER_ALREADY_FIRED
-    await message.answer(answer)
+    await message.answer(
+        f'{glob.MEMBER_FIRED if fired else glob.MEMBER_ALREADY_FIRED}'
+        f'\n{glob.MEMBER_RES}: {funcs.get_formatted_name(target_member)}'
+        f'\n{glob.POSITION_RES}: {await service.get_job_name(employee_position)}'
+    )
 
 
 @router.message(Command(cl.resetprice.name))
@@ -282,9 +297,28 @@ async def unreg(message: Message):
         return
 
     og = CommandOverloadGroup([
+        # <reply> /c
         CommandOverload(reply=True),
+
+        # /c <username:username>
         CommandOverload().add(glob.USERNAME_ARG, Username),
-        CommandOverload().add(glob.USER_ID_ARG, UserID)
+
+        # /c <user_id:userid>
+        CommandOverload().add(glob.USER_ID_ARG, UserID),
+
+        # <reply> /c ban
+        CommandOverload(otype=glob.BAN_ARG, reply=True)
+        .add(glob.BAN_ARG, ConstArg),
+
+        # /c ban <username:username>
+        CommandOverload(otype=glob.BAN_ARG)
+        .add(glob.BAN_ARG, ConstArg)
+        .add(glob.USERNAME_ARG, Username),
+
+        # /c ban <user_id:userid>
+        CommandOverload(otype=glob.BAN_ARG)
+        .add(glob.BAN_ARG, ConstArg)
+        .add(glob.USER_ID_ARG, UserID)
     ], creator=True)
 
     cpr = await CommandParser(message, og).parse()
@@ -300,8 +334,8 @@ async def unreg(message: Message):
     if target_member.user_id == glob.CREATOR_USER_ID:
         return await message.answer(glob.UNREG_CREATOR_ERROR)
 
-    await service.unreg(target_member)
-    await message.answer(f'{glob.UNREG_TEXT}\nmember: {get_formatted_name(target_member)}')
+    await service.unreg(target_member, otype=cpr.overload.otype)
+    await message.answer(f'{glob.UNREG_TEXT}\n{glob.MEMBER_RES}: {funcs.get_formatted_name(target_member)}')
 
 
 @router.message(Command(cl.db.name))

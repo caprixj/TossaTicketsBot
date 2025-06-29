@@ -1,6 +1,6 @@
 import copy
 import random
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional, List, Any
 
 import aiofiles
@@ -116,31 +116,38 @@ async def _delete_tickets(member: Member, tickets: float, txn_type: TicketTransa
     ))
 
 
-async def _set_tickets(member: Member, tickets: float, txn_type: TicketTransactionType, description: str = None):
+async def _set_tickets(
+        member: Member, tickets: float, txn_type: TicketTransactionType, description: str = None
+) -> float:
     if member.tickets == tickets:
-        return
+        return 0
 
     time = get_current_datetime()
 
-    if tickets > member.tickets:
+    if tickets > member.tickets:  # addt
+        transfer = tickets - member.tickets
         await repo.insert_ticket_txn(TicketTransaction(
             receiver_id=member.user_id,
-            transfer=tickets - member.tickets,
+            transfer=transfer,
             time=time,
             description=description,
             type_=txn_type
         ))
-    else:
+    else:  # delt
+        transfer = member.tickets - tickets
         await repo.insert_ticket_txn(TicketTransaction(
             sender_id=member.user_id,
-            transfer=member.tickets - tickets,
+            transfer=transfer,
             time=time,
             description=description,
             type_=txn_type
         ))
 
+    init_member_tickets = member.tickets
     member.tickets = tickets
     await repo.update_member_tickets(member)
+
+    return transfer if tickets > init_member_tickets else -transfer
 
 
 async def _profit_business_account(member: Member, transfer: float, profit_type: ProfitType, artifact_id: int):
@@ -438,16 +445,16 @@ async def anchor(user_id: int, chat_id: int) -> str:
 """ Creator Interfaces """
 
 
-async def addt(member: Member, tickets: float, description: str = None) -> None:
+async def addt(member: Member, tickets: float, description: str = None):
     await _add_tickets(member, tickets, TicketTransactionType.CREATOR, description)
 
 
-async def delt(member: Member, tickets: float, description: str = None) -> None:
+async def delt(member: Member, tickets: float, description: str = None):
     await _delete_tickets(member, tickets, TicketTransactionType.CREATOR, description)
 
 
-async def sett(member: Member, tickets: float, description: str = None) -> None:
-    await _set_tickets(member, tickets, TicketTransactionType.CREATOR, description)
+async def sett(member: Member, tickets: float, description: str = None) -> float:
+    return await _set_tickets(member, tickets, TicketTransactionType.CREATOR, description)
 
 
 async def award(m: Member, a: Award, issue_date: str):
@@ -494,7 +501,7 @@ async def fire(user_id: int, position: str) -> bool:
         return True
 
 
-async def unreg(m: Member):
+async def unreg(m: Member, otype: str):
     await _set_tickets(
         member=m,
         tickets=0,
@@ -502,13 +509,14 @@ async def unreg(m: Member):
         description='unreg'
     )
 
-    await repo.insert_del_member(DelMember(
-        user_id=m.user_id,
-        username=m.username,
-        first_name=m.first_name,
-        last_name=m.last_name,
-        anchor=m.anchor
-    ))
+    if otype == glob.BAN_ARG:
+        await repo.insert_del_member(DelMember(
+            user_id=m.user_id,
+            username=m.username,
+            first_name=m.first_name,
+            last_name=m.last_name,
+            anchor=m.anchor
+        ))
 
     await repo.delete_member(m.user_id)
 
@@ -542,15 +550,19 @@ async def get_award(cpr: CommandParserResult) -> Optional[Award]:
 
 
 async def get_job_names(user_id: float) -> Optional[List[str]]:
-    return await repo.get_employee_position_names(user_id)
+    return await repo.get_job_names(user_id)
 
 
-async def get_tpool() -> float:
+async def get_job_name(position: str) -> Optional[str]:
+    return await repo.get_job_name(position)
+
+
+async def get_tpool(infl: bool = False) -> float:
     return sum([
         await get_total_tickets(),
         await get_business_tpool(),
         # await get_artifact_tpool(),
-        await get_material_tpool()
+        await get_material_tpool(infl)
     ])
 
 
@@ -570,12 +582,21 @@ async def get_business_tpool() -> float:
 #     return sum(a.age_multiplier() * a.investment for a in await repo.get_all_artifacts())
 
 
-async def get_material_tpool() -> float:
+async def get_material_tpool(infl: bool = False, taxed: bool = True) -> float:
     pure_mpool = await get_gc_value(
         await get_mpool_gc(GemCountingMode.PRICING)
     )
 
-    return round(pure_mpool * (1 - glob.SINGLE_TAX), 2)
+    taxed_mpool = round(pure_mpool * (1 - glob.SINGLE_TAX), 2)
+
+    if not infl:
+        return taxed_mpool if taxed else pure_mpool
+
+    month_sold = await repo.get_sold_mat_revenue_by_period(
+        start_day=datetime.now() - timedelta(days=30)
+    )
+
+    return round(month_sold / 30, 2)
 
     # artifact_mtpool = sum([
     #     await get_artifact_creation_price(a)
@@ -693,8 +714,9 @@ async def get_material_name(emoji: str) -> str:
             return m.name
 
 
-async def get_sold_items_count_today(user_id: int) -> int:
-    return await repo.get_sold_items_count_today(user_id)
+async def get_sold_mc_today(user_id: int) -> int:
+    # default: the period of one day (yesterday)
+    return await repo.get_member_sold_mc_by_period(user_id)
 
 
 async def get_material_price(material_name: str) -> float:
@@ -709,20 +731,20 @@ async def get_formatted_material_name(material_name: str) -> str:
 """ Member """
 
 
-async def create_member(user: User, anchor_: int) -> bool:
-    dm = await get_del_member(user.id)
-    is_creator = user.id == glob.CREATOR_USER_ID
+async def reg_member(sender: User, target: User, anchor_: int) -> bool:
+    dm = await get_del_member(target.id)
+    is_creator = sender.id == glob.CREATOR_USER_ID
 
     if dm is not None:
         if not is_creator:
             return False
-        await repo.delete_del_member(user.id)
+        await repo.delete_del_member(target.id)
 
     await repo.insert_member(Member(
-        user_id=user.id,
-        username=user.username,
-        first_name=user.first_name,
-        last_name=user.last_name,
+        user_id=target.id,
+        username=target.username,
+        first_name=target.first_name,
+        last_name=target.last_name,
         anchor=anchor_
     ))
 
@@ -837,7 +859,7 @@ async def msell_transaction(data: dict[str, Any]):
         transfer=revenue,
         type_=TicketTransactionType.MSELL,
         time=current_datetime,
-        description=f'{TicketTransactionType.MSELL} - {quantity} ({material.name})'
+        description=f'{TicketTransactionType.MSELL.value} - {quantity} ({material.name})'
     ))
 
     # -tax

@@ -40,6 +40,8 @@ class CommandList(str, Enum):
     # # # # # # # # #
     # for all users
 
+    # /start
+    start = 'start'
     # /help
     help = 'help'
     # cog: pure
