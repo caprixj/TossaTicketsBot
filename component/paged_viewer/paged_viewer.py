@@ -7,7 +7,7 @@ from aiogram.types import InlineKeyboardMarkup, Message, InlineKeyboardButton, C
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from service import service_core as service
-from resources.const import glob
+from resources import glob
 from command.routed.callbacks.custom_callback_data import get_operation_callback_data, OperationCallbackData
 
 

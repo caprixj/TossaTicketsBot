@@ -1,4 +1,4 @@
-from resources.funcs import funcs
+from resources import funcs
 
 
 class Award:
@@ -6,7 +6,7 @@ class Award:
                  award_id: str = None,
                  name: str = None,
                  description: str = None,
-                 payment: float = 0.0):
+                 payment: int = 0):
         self.award_id = award_id  # SID
         self.name = name  # Text64
         self.description = description  # Text512

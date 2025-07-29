@@ -51,18 +51,6 @@ class Text256(TicketonomicsType):
             raise ValueError()
 
 
-# any string <= 4096 chars
-class Text4096(TicketonomicsType):
-    def __init__(self, data: str):
-        super().__init__(data)
-
-    async def cast(self) -> str:
-        if len(self.data) <= 4096:
-            return self.data
-        else:
-            raise ValueError()
-
-
 # any string <= 512 chars
 class Text512(TicketonomicsType):
     def __init__(self, data: str):
@@ -70,6 +58,18 @@ class Text512(TicketonomicsType):
 
     async def cast(self) -> str:
         if len(self.data) <= 512:
+            return self.data
+        else:
+            raise ValueError()
+
+
+# any string <= 4096 chars
+class Text4096(TicketonomicsType):
+    def __init__(self, data: str):
+        super().__init__(data)
+
+    async def cast(self) -> str:
+        if len(self.data) <= 4096:
             return self.data
         else:
             raise ValueError()
@@ -105,41 +105,41 @@ class IdConstArg(ConstArg):
         return await super().const_cast('id')
 
 
-# all double
-class Real(TicketonomicsType):
+# all double (to int cents)
+class RealTickets(TicketonomicsType):
     def __init__(self, data: str):
         super().__init__(data)
         self.pattern = r'^-?(?:[1-9]\d*|0)(?:[.,]\d{1,2})?$'
 
-    async def cast(self) -> float:
+    async def cast(self) -> int:
         if bool(re.match(self.pattern, self.data)):
-            return float(_eufloat(self.data))
+            return round(_eufloat(self.data) * 100)
         else:
             raise ValueError()
 
 
-# all double except zero
-class NReal(TicketonomicsType):
+# all double except zero (to int cents)
+class NRealTickets(TicketonomicsType):
     def __init__(self, data: str):
         super().__init__(data)
         self.pattern = r'^(?!-?0+(?:[.,]0{1,2})?$)-?(?:[1-9]\d*|0)(?:[.,]\d{1,2})?$'
 
-    async def cast(self) -> float:
+    async def cast(self) -> int:
         if bool(re.match(self.pattern, self.data)):
-            return float(_eufloat(self.data))
+            return round(_eufloat(self.data) * 100)
         else:
             raise ValueError()
 
 
-# all positive double except zero
-class PNReal(TicketonomicsType):
+# all positive double except zero (to int cents)
+class PNRealTickets(TicketonomicsType):
     def __init__(self, data: str):
         super().__init__(data)
         self.pattern = r'^(?!0(?:[.,]0{1,2})?$)(?:[1-9]\d*|0)(?:[.,]\d{1,2})?$'
 
-    async def cast(self) -> float:
+    async def cast(self) -> int:
         if bool(re.match(self.pattern, self.data)):
-            return float(_eufloat(self.data))
+            return round(_eufloat(self.data) * 100)
         else:
             raise ValueError()
 
@@ -239,6 +239,6 @@ class EmployeePosition(TicketonomicsType):
 
 def xreal(arg_type: Type[TicketonomicsType]) -> bool:
     return arg_type in [
-        Real, NReal, PNReal,
+        RealTickets, NRealTickets, PNRealTickets,
         Int, NInt, PNInt
     ]

@@ -3,12 +3,12 @@ from datetime import datetime, timedelta
 from aiogram import Bot
 
 from model.database import SalaryPayout
-from resources.funcs import funcs
+from resources import funcs
 from service import service_core as service, price_manager
 from aiogram.types import FSInputFile
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
-import resources.const.glob as glob
+import resources.glob as glob
 from repository import repository_core as repo
 
 aiosch = AsyncIOScheduler()
@@ -48,7 +48,7 @@ async def daily_sched(bot: Bot = None):
     await service.reset_tpay_available()
     await service.reset_tbox_available()
     await price_manager.reset_prices(bot)
-    await service.payout_profits()
+    # await service.payout_profits()  # (!) disabled artifact payouts
     await _salary_control()
 
     await repo.insert_daily_schedule(date=funcs.get_current_datetime())

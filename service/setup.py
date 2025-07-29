@@ -1,18 +1,19 @@
 import os
 import sys
 import xml.etree.ElementTree as ET
+from typing import Optional
 
 import aiosqlite
 
 from pathlib import Path
 
-import resources.const.glob as glob
+import resources.glob as glob
 from model.types.run_mode import RunMode, RunModeSettings
-from resources.funcs.funcs import get_materials_yaml
-from resources import sql
+from resources.funcs import get_materials_yaml
+from repository import sql
 
 
-def define_run_mode() -> RunMode:
+def define_run_mode() -> Optional[RunMode]:
     if len(sys.argv) <= 1:
         return RunMode.DEFAULT
 
@@ -22,6 +23,7 @@ def define_run_mode() -> RunMode:
         return RunMode.DEV
     elif arg == RunMode.PROD.value:
         return RunMode.PROD
+    return None
 
 
 def define_rms(rm: RunMode) -> bool:
@@ -58,9 +60,8 @@ async def _insert_materials():
 async def _insert_sql_vars():
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
         await db.executemany(
-            sql.INSERT_OR_IGNORE_SQL_VARS,
-            [
-                (glob.NBT_SQL_VAR, '0.00')
+            sql.INSERT_OR_IGNORE_SQL_VARS, [
+                (glob.NBT_SQL_VAR, 0)
             ]
         )
         await db.commit()
@@ -88,10 +89,10 @@ async def _get_create_table_scripts() -> list[str]:
         sql.CREATE_PRICE_HISTORY,
         sql.CREATE_MATERIALS,
         sql.CREATE_MEMBER_MATERIALS,
-        sql.CREATE_MATERIAL_TRANSACTIONS,
-        sql.CREATE_MATERIAL_TRANSACTION_REQUESTS,
+        sql.CREATE_MAT_TXNS,
+        sql.CREATE_MAT_TXN_INVOICES,
         sql.CREATE_DAILY_SCHEDULES,
-        sql.CREATE_ACTIVITY_DATA
+        # sql.CREATE_ACTIVITY_DATA
     ]
 
 

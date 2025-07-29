@@ -1,10 +1,10 @@
-from typing import List
+from typing import List, Optional
 
 from aiogram.types import Message
 
 from command.parser.core.overload import CommandOverloadGroup, CommandOverload
 from command.parser.results.parser_result import CommandParserResult
-from resources.const import glob
+from resources import glob
 
 
 class CommandParser:
@@ -44,7 +44,7 @@ class CommandParser:
             args=parsed_args
         )
 
-    async def parse(self) -> CommandParserResult:
+    async def parse(self) -> Optional[CommandParserResult]:
         if self.overload_group.is_empty():
             raise RuntimeError(glob.NO_OVERLOADS_ERROR)
 

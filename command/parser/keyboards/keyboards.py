@@ -1,7 +1,7 @@
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-import resources.const.glob as glob
+import resources.glob as glob
 from command.routed.callbacks.custom_callback_data import OperationCallbackData, MsellCallbackData
 
 

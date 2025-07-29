@@ -8,11 +8,10 @@ from aiogram import Bot
 
 from model.database.dynprices import RateReset
 from model.types.gem_counting_mode import GemCountingMode
-from resources.const import glob
-from resources.const.glob import MAX_FLUCT, MIN_FLUCT, FLUCT_GAUSS_SIGMA, INFL_ALPHA, \
+from resources import glob, funcs
+from resources.glob import MAX_FLUCT, MIN_FLUCT, FLUCT_GAUSS_SIGMA, INFL_ALPHA, \
     INIT_TPOOL, GEM_FREQ_YAML_PATH, MIN_DELTA_GEM_RATE, MAX_DELTA_GEM_RATE, GEM_BASE_PRICE
-from resources.funcs import funcs
-from resources.funcs.funcs import get_current_datetime, strdate
+from resources.funcs import get_current_datetime, strdate
 from repository import repository_core as repo
 from service import service_core as service
 
@@ -51,7 +50,7 @@ async def reset_prices(bot: Bot = None):
     ))
 
     if bot:
-        text = f"{glob.RATE_RESET_TEXT}: {'+' if diff - 1 > 0 else str()}{(diff - 1) * 100:.2f}%"
+        text = f"{glob.RATE_RESET_TEXT}: {'+' if diff - 1 > 0 else ''}{(diff - 1) * 100:.2f}%"
         await funcs.broadcast_message(bot, text)
 
 
@@ -69,7 +68,7 @@ def _get_updated_fluctuation(last_fluctuation: float) -> float:
 
 
 def _get_updated_inflation(tpool: float) -> float:
-    return 1 + INFL_ALPHA * math.log(tpool / INIT_TPOOL)
+    return 1 + INFL_ALPHA * math.log(tpool / 100 / INIT_TPOOL)
 
 
 async def _reset_gem_rates(updated_rate: float):

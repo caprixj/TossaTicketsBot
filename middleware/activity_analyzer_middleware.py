@@ -2,7 +2,7 @@ from aiogram import BaseMiddleware
 from aiogram.types import Message
 
 from service import activity_analyzer
-import resources.const.glob as glob
+import resources.glob as glob
 
 
 async def _message_important(m: Message) -> bool:

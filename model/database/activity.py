@@ -2,7 +2,7 @@ from datetime import datetime
 
 from aiogram.enums import ContentType
 
-from resources.const.glob import DATETIME_FORMAT
+from resources.glob import DATETIME_FORMAT
 
 
 class MessageActivityData:

@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from datetime import datetime
 
 from model.types import ArtifactType
-from resources.const.glob import DATETIME_FORMAT, ARTIFACT_AGE_MULTIPLIER, ARTIFACT_OWNER_PROFIT_RATE
+from resources.glob import DATETIME_FORMAT, ARTIFACT_AGE_MULTIPLIER, ARTIFACT_OWNER_PROFIT_RATE
 
 
 class Artifact:
@@ -12,7 +12,7 @@ class Artifact:
                  owner_id: int = 0,
                  name: str = None,
                  type_: ArtifactType = ArtifactType.TEXT,
-                 investment: float = 0.0,
+                 investment: int = 0,
                  file_id: str = None,
                  description: str = None,
                  created_date: str = None):
@@ -34,8 +34,8 @@ class Artifact:
     def age(self) -> int:
         return 1 + (datetime.now() - self.created_date).days
 
-    def get_owner_profit(self) -> float:
-        return round(ARTIFACT_OWNER_PROFIT_RATE * self.investment, 2)
+    def get_owner_profit(self) -> int:
+        return round(ARTIFACT_OWNER_PROFIT_RATE * self.investment)
 
 
 class MemberMaterial:

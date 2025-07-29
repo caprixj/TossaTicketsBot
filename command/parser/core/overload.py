@@ -2,8 +2,7 @@ from typing import Type, List
 
 from model.types.ticketonomics_types import TicketonomicsType, Username, UserID, PercentConstArg, IdConstArg
 from command.parser.types.target_type import CommandTargetType as ctt
-from resources.const import glob
-from resources.funcs import funcs
+from resources import glob, funcs
 
 
 class CommandOverload:

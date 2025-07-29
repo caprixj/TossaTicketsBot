@@ -9,11 +9,11 @@ from model.database import *
 from model.database.transactions import BusinessProfitTransaction, MaterialTransaction, TicketTransaction, \
     TaxTransaction
 from model.dto import AwardDTO, LTransDTO
-from model.types import TicketTransactionType
+from model.types import TicketTxnType
 from repository.ordering_type import OrderingType
-from resources.const import glob
-from resources.funcs.funcs import get_current_datetime
-from resources import sql
+from resources.funcs import get_current_datetime
+from resources import glob
+from repository import sql
 
 
 async def sql_execute(query: str, many: bool = False) -> (bool, str):
@@ -115,16 +115,19 @@ async def insert_ticket_txn(ticket_txn: TicketTransaction) -> int:
         return int(row[0]) if row else 0
 
 
-async def insert_tax_txn(tax_txn: TaxTransaction):
+async def insert_tax_txn(tax_txn: TaxTransaction) -> int:
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
-        await db.execute(sql.INSERT_TAX_TXN, (
-            tax_txn.ticket_txn_id,
+        cursor = await db.execute(sql.INSERT_TAX_TXN, (
+            tax_txn.parent_id,
             tax_txn.user_id,
             tax_txn.amount,
-            tax_txn.type,
+            tax_txn.tax_type,
+            tax_txn.parent_type,
             tax_txn.time
         ))
+        row = await cursor.fetchone()
         await db.commit()
+        return int(row[0]) if row else 0
 
 
 async def insert_business_profit(bpt: BusinessProfitTransaction):
@@ -185,7 +188,7 @@ async def insert_salary_payout(payout: SalaryPayout):
         await db.commit()
 
 
-async def insert_employee(user_id: float, position: str, hired_date: str):
+async def insert_employee(user_id: int, position: str, hired_date: str):
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
         await db.execute(sql.INSERT_EMPLOYEE, (
             user_id,
@@ -209,14 +212,13 @@ async def insert_employment_history(paid_member: Employee, fired_date: str):
 
 async def insert_material_transaction(mt: MaterialTransaction):
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
-        await db.execute(sql.INSERT_MATERIAL_TRANSACTION, (
+        await db.execute(sql.INSERT_MAT_TXNS, (
             mt.sender_id,
             mt.receiver_id,
             mt.type_,
             mt.material_name,
             mt.quantity,
-            mt.transfer,
-            mt.tax,
+            mt.ticket_txn,
             mt.date,
             mt.description
         ))
@@ -324,25 +326,25 @@ async def get_awards_count(user_id: int) -> int:
         return int(row[0]) if row else 0
 
 
-async def get_nbt() -> float:
+async def get_nbt() -> int:
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
         cursor = await db.execute(sql.SELECT_SQL_VAR, (glob.NBT_SQL_VAR,))
         row = await cursor.fetchone()
-        return float(row[0]) if row else 0
+        return int(row[0]) if row else 0
 
 
-async def get_sum_tickets() -> float:
+async def get_sum_tickets() -> int:
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
         cursor = await db.execute(sql.SELECT_SUM_TICKETS)
         row = await cursor.fetchone()
-        return float(row[0]) if row else 0
+        return int(row[0]) if row else 0
 
 
-async def get_sum_business_accounts() -> float:
+async def get_sum_business_accounts() -> int:
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
         cursor = await db.execute(sql.SELECT_SUM_BUSINESS_ACCOUNTS)
         row = await cursor.fetchone()
-        return float(row[0]) if row else 0
+        return int(row[0]) if row else 0
 
 
 async def get_txn_stats(user_id: int) -> LTransDTO:
@@ -360,25 +362,46 @@ async def get_txn_stats(user_id: int) -> LTransDTO:
         # addts
         await cursor.execute(
             sql.SELECT_ADDTS_BY_USER_ID,
-            (user_id, TicketTransactionType.CREATOR)
+            (user_id, TicketTxnType.CREATOR)
         )
         addts = [TicketTransaction(*row) for row in await cursor.fetchall()]
 
         # delts
         await cursor.execute(
             sql.SELECT_DELTS_BY_USER_ID,
-            (user_id, TicketTransactionType.CREATOR)
+            (user_id, TicketTxnType.CREATOR)
         )
         delts = [TicketTransaction(*row) for row in await cursor.fetchall()]
 
         # msells
         await cursor.execute(
             sql.SELECT_MSELLS_BY_USER_ID,
-            (user_id, TicketTransactionType.MSELL)
+            (user_id, TicketTxnType.MSELL)
         )
         msells = [TicketTransaction(*row) for row in await cursor.fetchall()]
 
-        # taxes
+        # salaries
+        await cursor.execute(
+            sql.SELECT_SALARY_TXNS_BY_USER_ID,
+            (user_id, TicketTxnType.SALARY)
+        )
+        salaries = [TicketTransaction(*row) for row in await cursor.fetchall()]
+
+        # awards
+        await cursor.execute(
+            sql.SELECT_AWARD_TXNS_BY_USER_ID,
+            (user_id, TicketTxnType.AWARD)
+        )
+        awards_ = [TicketTransaction(*row) for row in await cursor.fetchall()]
+
+        # unknown
+        await cursor.execute(
+            sql.SELECT_UNKNOWN_TXNS_BY_USER_ID,
+            (user_id, TicketTxnType.UNKNOWN)
+        )
+        unknowns = [TicketTransaction(*row) for row in await cursor.fetchall()]
+
+        # taxes (tpay single tax excluded)
         await cursor.execute(
             sql.SELECT_NON_TPAY_TAXES_BY_USER_ID,
             (user_id,)
@@ -388,7 +411,7 @@ async def get_txn_stats(user_id: int) -> LTransDTO:
         # unique_tpay_members
         unique_tpay_members = await _get_unique_members(cursor, user_id, tpays)
 
-        return LTransDTO(user_id, tpays, addts, delts, msells, taxes, unique_tpay_members)
+        return LTransDTO(user_id, tpays, addts, delts, msells, salaries, awards_, unknowns, taxes, unique_tpay_members)
 
 
 async def get_last_daily_schedule_date() -> Optional[datetime]:
@@ -419,14 +442,14 @@ async def get_employees() -> Optional[List[Employee]]:
         return [Employee(*row) for row in rows]
 
 
-async def get_employee(user_id: float, position: str) -> Optional[Employee]:
+async def get_employee(user_id: int, position: str) -> Optional[Employee]:
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
         cursor = await db.execute(sql.SELECT_EMPLOYEE_BY_PRIMARY_KEY, (user_id, position))
         row = await cursor.fetchone()
         return Employee(*row) if row else None
 
 
-async def get_job_names(user_id: float) -> Optional[List[str]]:
+async def get_job_names(user_id: int) -> Optional[List[str]]:
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
         cursor = await db.execute(sql.SELECT_EMPLOYEE_JOB_NAMES, (user_id,))
         rows = await cursor.fetchall()
@@ -513,7 +536,7 @@ async def get_sold_mat_revenue_by_period(start_day: datetime) -> int:
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
         cursor = await db.execute(
             sql.SELECT_SOLD_MAT_REVENUE_BY_PERIOD,
-            (start_day.strftime(glob.DATE_FORMAT), )
+            (start_day.strftime(glob.DATE_FORMAT),)
         )
         row = await cursor.fetchone()
         return int(row[0]) if row[0] else 0
@@ -523,7 +546,7 @@ async def get_farmed_mc_by_period(start_day: datetime) -> int:
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
         cursor = await db.execute(
             sql.SELECT_FARMED_MAT_COUNT_BY_PERIOD,
-            (start_day.strftime(glob.DATE_FORMAT), )
+            (start_day.strftime(glob.DATE_FORMAT),)
         )
         row = await cursor.fetchone()
         return int(row[0]) if row[0] else 0
@@ -536,7 +559,7 @@ async def get_material_price(material_name: str) -> float:
         return float(row[0]) if row else 0
 
 
-async def _get_unique_members(cursor: Cursor, user_id: int, tpays: dict[TicketTransaction, float]) -> list[Member]:
+async def _get_unique_members(cursor: Cursor, user_id: int, tpays: dict[TicketTransaction, int]) -> list[Member]:
     unique_ids = set()
     unique_members = list()
 
@@ -549,7 +572,12 @@ async def _get_unique_members(cursor: Cursor, user_id: int, tpays: dict[TicketTr
     for member_id in unique_ids:
         await cursor.execute(sql.SELECT_MEMBER_BY_USER_ID, (member_id,))
         row = await cursor.fetchone()
-        unique_members.append(Member(*row) if row else Member(user_id=member_id, first_name='[deleted]'))
+        unique_members.append(
+            Member(*row) if row else Member(
+                user_id=member_id,
+                first_name=glob.DELETED_MEMBER
+            )
+        )
 
     return unique_members
 
@@ -596,7 +624,7 @@ async def spend_tbox_available(user_id: int):
 
 
 async def reset_tpay_available():
-    await _execute(sql.RESET_MEMBER_TPAY_AVAILABLE)
+    await _execute(sql.RESET_MEMBER_TPAY_AVAILABLE, (glob.TPAY_AVAILABLE_LIMIT,))
 
 
 async def reset_tbox_available():

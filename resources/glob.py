@@ -16,8 +16,9 @@ DATE_FORMAT = '%Y-%m-%d'
 NBT_SQL_VAR = 'nbt'
 NBT_ID = -1
 
-SINGLE_TAX = 0.07     # F
-MIN_SINGLE_TAX = 0.1  # M
+MSELL_TAX = 0.3
+SINGLE_TAX = 0.12           # F
+MIN_SINGLE_TAX = 0.1 * 100  # M
 
 INFL_ALPHA = 0.9
 FLUCT_GAUSS_SIGMA = 0.009
@@ -31,7 +32,7 @@ PAGE_ROWS_COUNT_LIMIT = 40
 MSELL_BTN_ROW_LIMIT = 5
 MSELL_ITEMS_LIMIT = 30
 
-GEM_BASE_PRICE = 0.2972122
+GEM_BASE_PRICE = 0.2972122 * 100
 MIN_DELTA_GEM_RATE = 0.5
 MAX_DELTA_GEM_RATE = 2.0
 MAT_RANK_UPVAL = 1.05
@@ -43,9 +44,11 @@ MAX_GEM_COUNT_TBOX = 25
 
 ARTIFACT_AGE_MULTIPLIER = 0.002
 ARTIFACT_OWNER_PROFIT_RATE = 0.01
-MIN_ARTIFACT_INIT_INVEST = 10
+MIN_ARTIFACT_INIT_INVEST = 10 * 100
 
 TG_MSG_LEN_LIMIT = 4096
+
+TPAY_AVAILABLE_LIMIT = 5
 
 ARTIFACT_PROFIT_YAML_PATH = 'model/yaml/artifact_profit.yaml'
 GEM_FREQ_YAML_PATH = 'model/yaml/gem_freq.yaml'
@@ -125,7 +128,7 @@ MEMBER_ALREADY_HIRED = '⚠️ member already holds this position!'
 MEMBER_FIRED = '💢💼 member has been fired!'
 MEMBER_ALREADY_FIRED = '❌ cannot fire member as he does not hold this position!'
 UNREG_CREATOR_ERROR = "i won't kill you, my lord! ♥️"
-DELETED_MEMBER = '[kicked out]'
+DELETED_MEMBER = '[deleted]'
 NOT_IMPLEMENTED = 'not implemented yet :('
 ALERT_CALLBACK_YES = 'you cannot confirm this action!'
 ALERT_CALLBACK_NO = 'you cannot cancel this action!'
@@ -176,11 +179,7 @@ page 3 - artifact templates
 TBOX_MEMBER = f'🪪 {MEMBER_RES}'
 
 LTRANS_TITLE = '<b>📊 income and expenses history (tickets)</b>'
-LTRANS_START_TEXT = """
-🔹 income | 🔻 expanse
-✨ state | 🔀 tpay
-📦 msell | 🧾 taxes
-"""
+LTRANS_START_TEXT = "🔹 income | 🔻 expense"
 LTRANS_TRANS_HISTORY_EMPTY = 'your transactions history is empty.. 😶‍🌫️'
 LTRANS_FROM = 'from'
 LTRANS_TO = 'to'
@@ -240,7 +239,8 @@ MSELL_FIELD_PLACEHOLDER = 'for example, 73'
 MSELL_MATERIALS_TO_SELL = '📄 materials to sell'
 MSELL_PRICE = 'price'
 MSELL_REVENUE = 'revenue'
-MSELL_TAX = 'tax'
+MSELL_SINGLE_TAX_TEXT = 'single tax'
+MSELL_MSELL_TAX_TEXT = 'msell tax'
 MSELL_INCOME = 'income'
 MSELL_YES = '✅ sold for'
 MSELL_NO = '✖️ sell cancelled'

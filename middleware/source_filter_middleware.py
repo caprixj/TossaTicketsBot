@@ -1,8 +1,8 @@
 from aiogram import BaseMiddleware
 from aiogram.types import Message
 
-import resources.const.glob as glob
-from resources.funcs.funcs import get_current_datetime
+import resources.glob as glob
+from resources.funcs import get_current_datetime
 
 
 class SourceFilterMiddleware(BaseMiddleware):

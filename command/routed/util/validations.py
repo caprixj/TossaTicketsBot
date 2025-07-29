@@ -1,6 +1,6 @@
 from aiogram.types import User, Message, CallbackQuery
 
-from resources.const import glob
+from resources import glob
 from service import service_core as service
 
 

@@ -10,9 +10,9 @@ CREATE_MEMBERS = """
         username TEXT,
         first_name TEXT,
         last_name TEXT,
-        tickets REAL NOT NULL DEFAULT 0,
+        tickets INTEGER NOT NULL DEFAULT 0,
         tpay_available INTEGER NOT NULL DEFAULT 3 CHECK(tpay_available >= 0),
-        business_account REAL NOT NULL DEFAULT 0,
+        business_account INTEGER NOT NULL DEFAULT 0,
         tbox_available INTEGER NOT NULL DEFAULT 1 CHECK(tbox_available >= 0),
         anchor INTEGER
     );
@@ -33,7 +33,7 @@ CREATE_ARTIFACTS = """
         owner_id INTEGER NOT NULL,
         name TEXT NOT NULL,
         type TEXT NOT NULL,
-        investment REAL NOT NULL DEFAULT 0,
+        investment INTEGER NOT NULL DEFAULT 0,
         file_id TEXT,
         description TEXT,
         created_date TEXT NOT NULL,
@@ -46,7 +46,7 @@ CREATE_AWARDS = """
         award_id TEXT PRIMARY KEY,
         name TEXT UNIQUE NOT NULL,
         description TEXT NOT NULL,
-        payment REAL NOT NULL
+        payment INTEGER NOT NULL
     );
 """
 CREATE_AWARD_MEMBER = """
@@ -64,7 +64,7 @@ CREATE_TICKET_TXNS = """
         ticket_txn_id INTEGER PRIMARY KEY AUTOINCREMENT,
         sender_id INTEGER NOT NULL,
         receiver_id INTEGER NOT NULL,
-        transfer REAL NOT NULL,
+        transfer INTEGER NOT NULL,
         type TEXT NOT NULL DEFAULT 'unknown',
         time TEXT NOT NULL,
         description TEXT,
@@ -75,10 +75,11 @@ CREATE_TICKET_TXNS = """
 CREATE_TAX_TXNS = """
     CREATE TABLE IF NOT EXISTS tax_txns (
         tax_txn_id INTEGER PRIMARY KEY AUTOINCREMENT,
-        ticket_txn_id INTEGER NOT NULL,
+        parent_id INTEGER NOT NULL,
         user_id INTEGER NOT NULL,
-        amount REAL NOT NULL,
-        type TEXT NOT NULL DEFAULT 'unknown',
+        amount INTEGER NOT NULL,
+        tax_type TEXT NOT NULL DEFAULT 'unknown',
+        parent_type TEXT NOT NULL DEFAULT 'unknown',
         time TEXT NOT NULL,
         FOREIGN KEY (user_id) REFERENCES members (user_id) ON DELETE RESTRICT,
         FOREIGN KEY (ticket_txn_id) REFERENCES ticket_txns (ticket_txn_id) ON DELETE RESTRICT
@@ -89,7 +90,7 @@ CREATE_BUSINESS_PROFITS = """
         business_profit_id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER NOT NULL,
         profit_type TEXT NOT NULL DEFAULT 'unknown',
-        transfer REAL CHECK(transfer > 0),
+        transfer INTEGER CHECK(transfer > 0),
         date TEXT NOT NULL,
         artifact_id INTEGER,
         FOREIGN KEY (user_id) REFERENCES members (user_id) ON DELETE RESTRICT,
@@ -100,7 +101,7 @@ CREATE_BUSINESS_WITHDRAWS = """
     CREATE TABLE IF NOT EXISTS business_withdraws (
         business_withdraw_id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER NOT NULL,
-        transfer REAL CHECK(transfer > 0),
+        transfer INTEGER CHECK(transfer > 0),
         date TEXT NOT NULL,
         FOREIGN KEY (user_id) REFERENCES members (user_id) ON DELETE RESTRICT
     );
@@ -137,7 +138,7 @@ CREATE_EMPLOYMENT_HISTORY = """
         employment_id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER NOT NULL,
         position TEXT NOT NULL,
-        salary REAL NOT NULL,
+        salary INTEGER NOT NULL,
         hired_date TEXT NOT NULL,
         fired_date TEXT NOT NULL,
         FOREIGN KEY (user_id) REFERENCES members (user_id) ON DELETE RESTRICT
@@ -147,7 +148,7 @@ CREATE_JOBS = """
     CREATE TABLE IF NOT EXISTS jobs (
         position TEXT PRIMARY KEY,
         name TEXT NOT NULL,
-        salary REAL NOT NULL DEFAULT 0
+        salary INTEGER NOT NULL DEFAULT 0
     );
 """
 CREATE_PRICES = """
@@ -184,33 +185,32 @@ CREATE_MEMBER_MATERIALS = """
         FOREIGN KEY (material_name) REFERENCES materials(name)
     );
 """
-CREATE_MATERIAL_TRANSACTIONS = """
-    CREATE TABLE IF NOT EXISTS material_transactions (
-        material_transaction_id INTEGER PRIMARY KEY AUTOINCREMENT,
+CREATE_MAT_TXNS = """
+    CREATE TABLE IF NOT EXISTS mat_txns (
+        mat_txn_id INTEGER PRIMARY KEY AUTOINCREMENT,
         sender_id INTEGER NOT NULL DEFAULT -1,
         receiver_id INTEGER NOT NULL DEFAULT -1,
         type TEXT NOT NULL DEFAULT 'unknown',
         material_name TEXT,
         quantity INTEGER NOT NULL CHECK(quantity >= 0),
-        transfer REAL NOT NULL DEFAULT 0,
-        tax REAL NOT NULL,
+        ticket_txn INTEGER,
         date TEXT NOT NULL,
         description TEXT,
         FOREIGN KEY (sender_id) REFERENCES members (user_id) ON DELETE RESTRICT,
         FOREIGN KEY (receiver_id) REFERENCES members (user_id) ON DELETE RESTRICT,
-        FOREIGN KEY (material_name) REFERENCES materials(name) ON DELETE RESTRICT
+        FOREIGN KEY (material_name) REFERENCES materials (name) ON DELETE RESTRICT,
+        FOREIGN KEY (ticket_txn) REFERENCES ticket_txns (ticket_txn_id) ON DELETE RESTRICT
     );
 """
-CREATE_MATERIAL_TRANSACTION_REQUESTS = """
-    CREATE TABLE IF NOT EXISTS material_transaction_requests (
-        material_transaction_request_id INTEGER PRIMARY KEY AUTOINCREMENT,
+CREATE_MAT_TXN_INVOICES = """
+    CREATE TABLE IF NOT EXISTS mat_txn_invoices (
+        mat_txn_invoice_id INTEGER PRIMARY KEY AUTOINCREMENT,
         sender_id INTEGER NOT NULL DEFAULT -1,
         receiver_id INTEGER NOT NULL DEFAULT -1,
-        type TEXT NOT NULL DEFAULT "unknown",
+        type TEXT NOT NULL DEFAULT 'unknown',
         material_name TEXT,
         quantity INTEGER NOT NULL CHECK(quantity >= 0),
-        transfer REAL NOT NULL DEFAULT 0,
-        tax REAL NOT NULL,
+        transfer INTEGER NOT NULL,
         date TEXT NOT NULL,
         description TEXT,
         FOREIGN KEY (sender_id) REFERENCES members (user_id) ON DELETE RESTRICT,

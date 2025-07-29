@@ -13,14 +13,13 @@ from aiogram.types import Message
 
 from model.database import Material
 from model.database.member import Member, DelMember
-from resources.const import glob
-from resources.const.glob import SINGLE_TAX as F, MIN_SINGLE_TAX as M, DATETIME_FORMAT, MATERIALS_YAML_PATH
+from resources import glob
+from resources.glob import SINGLE_TAX as F, MIN_SINGLE_TAX as M, DATETIME_FORMAT, MATERIALS_YAML_PATH
 
 
 async def broadcast_message(
-    bot: Bot,
-    text: str,
-    rate_limit: float = 0.05,   # 20 messages/sec
+    bot: Bot, text: str,
+    rate_limit: float = 0.05,  # 20 messages/sec
 ):
     for cid in glob.rms.get_allowed_chats():
         try:
@@ -42,12 +41,12 @@ def strdate(date: datetime) -> str:
     return date.strftime(DATETIME_FORMAT)
 
 
-async def get_single_tax(transfer: float) -> float:
-    return max(round(F * transfer, 2), M)
+async def get_single_tax(transfer: int) -> int:
+    return max(round(F * transfer), M)
 
 
-async def get_transfer_by_total(t: float) -> float:
-    return t - M if F * (t - M) <= M else round(t / (F + 1), 2)
+async def get_transfer_by_total(t: int) -> int:
+    return t - M if F * (t - M) <= M else round(t / (F + 1))
 
 
 def get_formatted_name(member: Union[Member, DelMember], ping: bool = False) -> str:

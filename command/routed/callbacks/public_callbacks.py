@@ -8,7 +8,7 @@ from aiogram.types import CallbackQuery, ForceReply
 from command.routed.util.states import MsellStates
 from model.database import Material
 from service import service_core as service
-import resources.const.glob as glob
+import resources.glob as glob
 from command.routed.handlers.public_handlers import tpay
 from component.paged_viewer.paged_viewer import pmove, phide
 from model.dto.transaction_dto import TransactionResultDTO
@@ -149,8 +149,9 @@ async def msell_yes(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     user_id: int = data['user_id']
     quantity: int = data['quantity']
-    revenue: float = data['revenue']
-    tax: float = data['tax']
+    revenue: int = data['revenue']
+    single_tax: int = data['single_tax']
+    msell_tax: int = data['msell_tax']
 
     sold_items_count_today = await service.get_sold_mc_today(user_id)
 
@@ -167,9 +168,9 @@ async def msell_yes(callback: CallbackQuery, state: FSMContext):
         await state.clear()
         return
 
-    await service.msell_transaction(data)
+    await service.msell_txn(data)
 
-    await callback.message.edit_text(f'*{glob.MSELL_YES} {revenue - tax:.2f} tc*')
+    await callback.message.edit_text(f'*{glob.MSELL_YES} {(revenue - single_tax - msell_tax) / 100:.2f} tc*')
     await callback.answer()
     await state.clear()
 

@@ -2,7 +2,7 @@ from typing import Type
 
 from command.parser.core.overload import CommandOverloadGroup, CommandOverload
 from model.types.ticketonomics_types import xreal, TicketonomicsType, Text256, Username, UserID
-from resources.const.glob import TICKETS_ARG, DESCRIPTION_ARG, USERNAME_ARG, USER_ID_ARG
+from resources.glob import TICKETS_ARG, DESCRIPTION_ARG, USERNAME_ARG, USER_ID_ARG
 
 
 # [<creator>] <reply> /command

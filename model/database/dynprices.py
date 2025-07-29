@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from model.types import ProductType
-from resources.const.glob import DATETIME_FORMAT
+from resources.glob import DATETIME_FORMAT
 
 
 class Price:

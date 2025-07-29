@@ -1,13 +1,13 @@
 from datetime import datetime
 
-from resources.const.glob import DATETIME_FORMAT
+from resources.glob import DATETIME_FORMAT
 
 
 class Job:
     def __init__(self,
                  position: str = None,
                  name: str = None,
-                 salary: float = 0.0):
+                 salary: int = 0):
         self.position = position  # EmployeePosition
         self.name = name
         self.salary = salary
@@ -30,7 +30,7 @@ class Employee:
     def __init__(self,
                  user_id: int = 0,
                  position: str = None,
-                 salary: float = 0.0,
+                 salary: int = 0,
                  hired_date: str = None):
         self.user_id = user_id
         self.position = position

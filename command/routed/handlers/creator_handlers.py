@@ -5,10 +5,10 @@ from aiogram.enums import ParseMode
 from aiogram.filters import Command
 from aiogram.types import Message, FSInputFile
 
-import resources.const.glob as glob
+import resources.glob as glob
 from command.parser.keyboards.keyboards import hide_keyboard
 from model.database import AwardMember
-from resources.funcs import funcs
+from resources import funcs
 from service import service_core as service, scheduling
 from service.price_manager import reset_prices
 from command.parser.core import cog
@@ -16,11 +16,11 @@ from command.parser.core.overload import CommandOverload, CommandOverloadGroup
 from command.parser.core.parser import CommandParser
 from command.parser.results.parser_result import CommandParserResult
 from command.routed.util.validations import validate_message
-from model.types.ticketonomics_types import BaseText, Real, PNReal, SID, EmployeePosition, Username, UserID, ChatID, \
+from model.types.ticketonomics_types import BaseText, RealTickets, PNRealTickets, SID, EmployeePosition, Username, UserID, ChatID, \
     ConstArg
 from command.parser.types.com_list import CommandList as cl
 
-from resources.const.rands import crv_messages
+from resources.rands import crv_messages
 
 router = Router()
 
@@ -89,7 +89,7 @@ async def sqlf(message: Message):
 
 @router.message(Command(cl.addt.name))
 async def addt(message: Message):
-    cpr = await CommandParser(message, cog.tickets(PNReal, creator_required=True)).parse()
+    cpr = await CommandParser(message, cog.tickets(PNRealTickets, creator_required=True)).parse()
 
     if not cpr.valid:
         return await _reply_by_crv(message, cpr)
@@ -108,13 +108,13 @@ async def addt(message: Message):
     await message.answer(
         f'{glob.ADDT_TEXT}'
         f'\n{glob.MEMBER_RES}: {funcs.get_formatted_name(target_member)}'
-        f'\n{glob.AMOUNT_RES}: +{cpr.args[glob.TICKETS_ARG]:.2f}'
+        f'\n{glob.AMOUNT_RES}: +{cpr.args[glob.TICKETS_ARG] / 100:.2f}'
     )
 
 
 @router.message(Command(cl.delt.name))
 async def delt(message: Message):
-    cpr = await CommandParser(message, cog.tickets(PNReal, creator_required=True)).parse()
+    cpr = await CommandParser(message, cog.tickets(PNRealTickets, creator_required=True)).parse()
 
     if not cpr.valid:
         return await _reply_by_crv(message, cpr)
@@ -133,13 +133,13 @@ async def delt(message: Message):
     await message.answer(
         f'{glob.DELT_TEXT}'
         f'\n{glob.MEMBER_RES}: {funcs.get_formatted_name(target_member)}'
-        f'\n{glob.AMOUNT_RES}: -{cpr.args[glob.TICKETS_ARG]:.2f}'
+        f'\n{glob.AMOUNT_RES}: -{cpr.args[glob.TICKETS_ARG] / 100:.2f}'
     )
 
 
 @router.message(Command(cl.sett.name))
 async def sett(message: Message):
-    cpr = await CommandParser(message, cog.tickets(Real, creator_required=True)).parse()
+    cpr = await CommandParser(message, cog.tickets(RealTickets, creator_required=True)).parse()
 
     if not cpr.valid:
         return await _reply_by_crv(message, cpr)
@@ -159,7 +159,7 @@ async def sett(message: Message):
     await message.answer(
         f'{glob.SETT_TEXT}'
         f'\n{glob.MEMBER_RES}: {funcs.get_formatted_name(target_member)}'
-        f'\n{glob.AMOUNT_RES}: {sign}{transfer_amount:.2f}'
+        f'\n{glob.AMOUNT_RES}: {sign}{transfer_amount / 100:.2f}'
     )
 
 

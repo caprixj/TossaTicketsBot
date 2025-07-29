@@ -4,9 +4,9 @@ class Member:
                  username: str = None,
                  first_name: str = None,
                  last_name: str = None,
-                 tickets: float = 0.0,
+                 tickets: int = 0,
                  tpay_available: int = 3,
-                 business_account: float = 0.0,
+                 business_account: int = 0,
                  tbox_available: int = 1,
                  anchor: int = 0):
         self.user_id = user_id

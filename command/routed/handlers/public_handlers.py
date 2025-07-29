@@ -7,10 +7,10 @@ from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, LinkPreviewOptions
 
-import resources.const.glob as glob
+import resources.glob as glob
 from command.routed.util.states import MsellStates
 from model.database import Member, Material
-from resources.const.rands import crv_messages
+from resources.rands import crv_messages
 from service import service_core as service
 from command.routed.util.validations import validate_message, validate_user
 from command.parser.keyboards.keyboards import tpay_keyboard, hide_keyboard, one_btn_keyboard, \
@@ -20,10 +20,10 @@ from command.parser.core.overload import CommandOverload, CommandOverloadGroup
 from command.parser.core.parser import CommandParser
 from component.paged_viewer import page_generators
 from component.paged_viewer.paged_viewer import PagedViewer, keep_paged_viewer
-from model.types.ticketonomics_types import PNReal, NInt, UserID
+from model.types.ticketonomics_types import PNRealTickets, NInt, UserID
 from command.parser.types.com_list import CommandList as cl
 from command.parser.types.target_type import CommandTargetType as ctt
-from resources.funcs import funcs
+from resources import funcs
 
 router = Router()
 
@@ -148,7 +148,7 @@ async def tpay(message: Message, callback_message: Message = None, fee_incorpora
     if not await validate_message(message):
         return
 
-    cpr = await CommandParser(message, cog.tickets(PNReal, creator_required=False)).parse()
+    cpr = await CommandParser(message, cog.tickets(PNRealTickets, creator_required=False)).parse()
 
     if not cpr.valid:
         return await message.answer(glob.COM_PARSER_FAILED)
@@ -170,7 +170,7 @@ async def tpay(message: Message, callback_message: Message = None, fee_incorpora
 
     # t - total, x - transfer, f - fee
     # -> (t, x, f)
-    async def calculate_transfer(x: float) -> (float, float, float):
+    async def calculate_transfer(x: int) -> (int, int, int):
         if fee_incorporated:
             t_fi = x
             x_fi = await funcs.get_transfer_by_total(t_fi)
@@ -181,12 +181,13 @@ async def tpay(message: Message, callback_message: Message = None, fee_incorpora
 
     total, transfer, fee = await calculate_transfer(cpr.args[glob.TICKETS_ARG])
 
-    tpay_text = (f'{glob.TPAY_SENDER}: {funcs.get_formatted_name(sender, ping=True)}\n'
-                 f'{glob.TPAY_RECEIVER}: {funcs.get_formatted_name(receiver, ping=True)}\n\n'
-                 f'*{glob.TPAY_TOTAL}: {total:.2f}*\n'
-                 f'{glob.AMOUNT_RES}: {transfer:.2f}\n'
-                 f'{glob.TPAY_TAX}: {fee:.2f} ({int(100 * glob.SINGLE_TAX)}%, min {glob.MIN_SINGLE_TAX:.2f})\n\n'
-                 f'{glob.TPAY_DESCRIPTION}: _{description}_')
+    tpay_text = (f'{glob.TPAY_SENDER}: {funcs.get_formatted_name(sender, ping=True)}'
+                 f'\n{glob.TPAY_RECEIVER}: {funcs.get_formatted_name(receiver, ping=True)}'
+                 f'\n\n*{glob.TPAY_TOTAL}: {total / 100:.2f}*'
+                 f'\n{glob.AMOUNT_RES}: {transfer / 100:.2f}'
+                 f'\n{glob.TPAY_TAX}: {fee / 100:.2f} '
+                 f'({int(100 * glob.SINGLE_TAX)}%, min {glob.MIN_SINGLE_TAX / 100:.2f})'
+                 f'\n\n{glob.TPAY_DESCRIPTION}: _{description}_')
 
     operation_id = await service.operation_manager.register(
         func=functools.partial(service.tpay, sender, receiver, transfer, description),
@@ -258,20 +259,22 @@ async def msell_quantity(message: Message, state: FSMContext):
 
     price = await service.get_material_price(material.name)
 
-    revenue = round(price * quantity, 2)
-    tax = round(glob.SINGLE_TAX * revenue, 2)
-    income = revenue - tax
+    revenue = round(price * quantity)
+    single_tax = round(glob.SINGLE_TAX * revenue)
+    msell_tax = round(glob.MSELL_TAX * revenue)
+    income = revenue - single_tax - msell_tax
 
-    await state.update_data(quantity=quantity, revenue=revenue, tax=tax)
+    await state.update_data(quantity=quantity, revenue=revenue, single_tax=single_tax, msell_tax=msell_tax)
     await state.set_state(MsellStates.waiting_for_confirmation)
 
     await message.answer(
         text=(f'{glob.MSELL_MATERIALS_TO_SELL}: *{quantity}*'
               f'\n{glob.MSELL_CHOSEN_MATERIAL}: {material.name}{material.emoji}'
-              f'\n{glob.MSELL_PRICE}: {price:.7f} tc'
-              f'\n\n{glob.MSELL_REVENUE}: {revenue:.2f} tc'
-              f'\n{glob.MSELL_TAX}: {tax:.2f} tc _({int(glob.SINGLE_TAX * 100)}%)_'
-              f'\n*{glob.MSELL_INCOME}: {income:.2f} tc*'),
+              f'\n{glob.MSELL_PRICE}: {price / 100:.7f} tc'
+              f'\n\n{glob.MSELL_REVENUE}: {revenue / 100:.2f} tc'
+              f'\n{glob.MSELL_SINGLE_TAX_TEXT}: {single_tax / 100:.2f} tc ({int(glob.SINGLE_TAX * 100)}%)'
+              f'\n{glob.MSELL_MSELL_TAX_TEXT}: {msell_tax / 100:.2f} tc ({int(glob.MSELL_TAX * 100)}%)'
+              f'\n*{glob.MSELL_INCOME}: {income / 100:.2f} tc*'),
         reply_markup=msell_confirmation_keyboard()
     )
 
@@ -494,7 +497,7 @@ async def rusni(message: Message):
 async def p(message: Message):
     og = CommandOverloadGroup([
         # /p <price:pnreal>
-        CommandOverload().add(glob.PRICE_ARG, PNReal)
+        CommandOverload().add(glob.PRICE_ARG, PNRealTickets)
     ])
 
     cpr = await CommandParser(message, og).parse()
@@ -511,24 +514,25 @@ async def p(message: Message):
 
 @router.message(Command(cl.anchor.name))
 async def anchor(message: Message):
-    if not await validate_message(message):
-        return
-
-    og = CommandOverloadGroup([
-        CommandOverload(public=True)
-    ])
-
-    cpr = await CommandParser(message, og).parse()
-
-    if not cpr.valid:
-        if cpr.public_violation:
-            await message.answer(glob.PUBLIC_VIOLATION)
-        else:
-            await message.answer(glob.COM_PARSER_FAILED)
-        return
-
-    response = await service.anchor(message.from_user.id, message.chat.id)
-    await message.answer(response)
+    await message.answer('temporarily disabled')
+    # if not await validate_message(message):
+    #     return
+    #
+    # og = CommandOverloadGroup([
+    #     CommandOverload(public=True)
+    # ])
+    #
+    # cpr = await CommandParser(message, og).parse()
+    #
+    # if not cpr.valid:
+    #     if cpr.public_violation:
+    #         await message.answer(glob.PUBLIC_VIOLATION)
+    #     else:
+    #         await message.answer(glob.COM_PARSER_FAILED)
+    #     return
+    #
+    # response = await service.anchor(message.from_user.id, message.chat.id)
+    # await message.answer(response)
 
 
 @router.message(Command(cl.reg.name))

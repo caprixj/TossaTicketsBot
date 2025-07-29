@@ -9,7 +9,7 @@ from aiogram.enums import ParseMode
 from aiogram.methods import DeleteWebhook
 
 from service import setup, scheduling
-import resources.const.glob as glob
+import resources.glob as glob
 from middleware.activity_analyzer_middleware import ActivityAnalyzerMiddleware
 from middleware.source_filter_middleware import SourceFilterMiddleware
 

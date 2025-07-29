@@ -7,7 +7,8 @@ INSERT_AWARD = "INSERT INTO awards (award_id, name, description, payment) VALUES
 INSERT_AWARD_MEMBER = "INSERT INTO award_member (award_id, owner_id, issue_date) VALUES (?, ?, ?)"
 INSERT_TICKET_TXN = ("INSERT INTO ticket_txns (sender_id, receiver_id, transfer, type, time, description) "
                      "VALUES (?, ?, ?, ?, ?, ?) RETURNING ticket_txn_id")
-INSERT_TAX_TXN = "INSERT INTO tax_txns (ticket_txn_id, user_id, amount, type, time) VALUES (?, ?, ?, ?, ?)"
+INSERT_TAX_TXN = ("INSERT INTO tax_txns (parent_id, user_id, amount, tax_type, parent_type, time) "
+                  "VALUES (?, ?, ?, ?, ?, ?) RETURNING tax_txn_id")
 INSERT_BUSINESS_PROFIT = ("INSERT INTO business_profits (user_id, profit_type, transfer, date, artifact_id) "
                           "VALUES (?, ?, ?, ?, ?)")
 INSERT_RATE_HISTORY = "INSERT INTO rate_history (inflation, fluctuation, plan_date, fact_date) VALUES (?, ?, ?, ?)"
@@ -20,6 +21,6 @@ INSERT_PRICE_HISTORY = "INSERT INTO price_history (product_name, product_type, p
 INSERT_OR_IGNORE_MATERIALS = "INSERT OR IGNORE INTO materials VALUES (?, ?)"
 INSERT_OR_IGNORE_SQL_VARS = "INSERT OR IGNORE INTO vars VALUES (?, ?)"
 INSERT_MEMBER_MATERIAL = "INSERT INTO member_materials (user_id, material_name, quantity) VALUES (?, ?, ?)"
-INSERT_MATERIAL_TRANSACTION = ("INSERT INTO material_transactions (sender_id, receiver_id, type, material_name, "
-                               "quantity, transfer, tax, date, description) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
+INSERT_MAT_TXNS = ("INSERT INTO mat_txns (sender_id, receiver_id, type, material_name, "
+                               "quantity, ticket_txn, date, description) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
 INSERT_DAILY_SCHEDULE = "INSERT INTO daily_schedules (date) VALUES (?)"
