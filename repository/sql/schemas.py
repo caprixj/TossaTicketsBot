@@ -81,8 +81,7 @@ CREATE_TAX_TXNS = """
         tax_type TEXT NOT NULL DEFAULT 'unknown',
         parent_type TEXT NOT NULL DEFAULT 'unknown',
         time TEXT NOT NULL,
-        FOREIGN KEY (user_id) REFERENCES members (user_id) ON DELETE RESTRICT,
-        FOREIGN KEY (ticket_txn_id) REFERENCES ticket_txns (ticket_txn_id) ON DELETE RESTRICT
+        FOREIGN KEY (user_id) REFERENCES members (user_id) ON DELETE RESTRICT
     );
 """
 CREATE_BUSINESS_PROFITS = """
