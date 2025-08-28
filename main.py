@@ -1,54 +1,8 @@
-import asyncio
 import logging
 import sys
-from typing import Union
 
-from aiogram import Bot, Dispatcher
-from aiogram.client.default import DefaultBotProperties
-from aiogram.enums import ParseMode
-from aiogram.methods import DeleteWebhook
-
-from service import setup, scheduling
-import resources.glob as glob
-from middleware.activity_analyzer_middleware import ActivityAnalyzerMiddleware
-from middleware.source_filter_middleware import SourceFilterMiddleware
-
-from service.router_loader import get_routers
-
-dp = Dispatcher()
-for router in get_routers():
-    dp.include_router(router)
-
-bot: Union[Bot, None] = None
-
-
-async def main():
-    global bot
-    run_mode = setup.define_run_mode()
-    valid_args = setup.define_rms(run_mode)
-
-    if not valid_args:
-        raise RuntimeError(glob.INVALID_ARGS)
-
-    await setup.create_databases()
-
-    bot = Bot(
-        token=glob.rms.bot_token,
-        default=DefaultBotProperties(
-            parse_mode=ParseMode.MARKDOWN
-        )
-    )
-
-    await bot(DeleteWebhook(drop_pending_updates=True))
-
-    dp.message.middleware(ActivityAnalyzerMiddleware())
-    dp.message.middleware(SourceFilterMiddleware())
-
-    await scheduling.schedule(bot)
-
-    await dp.start_polling(bot)
-
+import uvicorn
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, stream=sys.stdout)
-    asyncio.run(main())
+    uvicorn.run("webhook_app:create_app", factory=True, host="0.0.0.0", port=8000)
