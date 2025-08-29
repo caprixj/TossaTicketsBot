@@ -12,6 +12,7 @@ class RunMode(str, Enum):
 @dataclass
 class RunModeSettings:
     bot_token: str = None
+    host_url: str = None
     main_chat_id: int = 0
     side_chat_ids: List[int] = field(default_factory=list)
     db_backup_chat_id: int = 0

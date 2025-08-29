@@ -1,3 +1,4 @@
+import traceback
 from contextlib import asynccontextmanager
 from typing import Union
 
@@ -8,12 +9,14 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 
+from model.types import RunMode
 from service import setup, scheduling
 import resources.glob as glob
 from middleware.activity_analyzer_middleware import ActivityAnalyzerMiddleware
 from middleware.source_filter_middleware import SourceFilterMiddleware
 from service.router_loader import get_routers
 
+WEBHOOK_BASE_URL = "https://example.com"
 WEBHOOK_PATH = "/telegram/webhook"  # public endpoint path
 
 api = APIRouter(prefix="/api")
@@ -65,8 +68,12 @@ async def telegram_webhook(request: Request):
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid JSON")
 
-    update = types.Update.model_validate(payload)
-    await dp.feed_update(bot, update)
+    try:
+        update = types.Update.model_validate(payload)
+        await dp.feed_update(bot, update)
+    except Exception as e:
+        traceback.print_exception(type(e), e, e.__traceback__)
+        raise HTTPException(status_code=202)
 
     return {"ok": True}
 
@@ -97,6 +104,14 @@ async def lifespan(app: FastAPI):
 
     app.state.bot = bot
     app.state.dp = dp
+
+    if run_mode == RunMode.PROD:
+        target = glob.rms.host_url.rstrip('/') + WEBHOOK_PATH
+        await bot.set_webhook(
+            url=target,
+            drop_pending_updates=True,
+            secret_token=None
+        )
 
     try:
         yield

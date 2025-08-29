@@ -1,6 +1,6 @@
 import copy
 import random
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional, List, Any
 
 import aiofiles
@@ -22,7 +22,7 @@ from repository.ordering_type import OrderingType
 from repository import repository_core as repo
 from resources import funcs
 from service.operation_manager import ServiceOperationManager
-from resources.funcs import get_formatted_name, get_single_tax, get_current_datetime, strdate, get_materials_yaml
+from resources.funcs import get_formatted_name, get_single_tax, utcnow_str, get_materials_yaml
 
 operation_manager = ServiceOperationManager()
 sfs_alert_pins: dict[int, Message] = {}
@@ -90,7 +90,7 @@ async def sql_execute(query: str, many: bool = False) -> (bool, str):
 
 async def _add_tickets(member: Member, tickets: int, txn_type: TicketTxnType, description: str = None):
     member.tickets += tickets
-    time = get_current_datetime()
+    time = utcnow_str()
 
     await repo.update_member_tickets(member)
     await repo.insert_ticket_txn(TicketTransaction(
@@ -104,7 +104,7 @@ async def _add_tickets(member: Member, tickets: int, txn_type: TicketTxnType, de
 
 async def _delete_tickets(member: Member, tickets: int, txn_type: TicketTxnType, description: str = None):
     member.tickets -= tickets
-    time = get_current_datetime()
+    time = utcnow_str()
 
     await repo.update_member_tickets(member)
     await repo.insert_ticket_txn(TicketTransaction(
@@ -120,7 +120,7 @@ async def _set_tickets(member: Member, tickets: int, txn_type: TicketTxnType, de
     if member.tickets == tickets:
         return 0
 
-    time = get_current_datetime()
+    time = utcnow_str()
 
     if tickets > member.tickets:  # addt
         transfer = tickets - member.tickets
@@ -150,7 +150,7 @@ async def _set_tickets(member: Member, tickets: int, txn_type: TicketTxnType, de
 
 async def _profit_business_account(member: Member, transfer: int, profit_type: ProfitType, artifact_id: int):
     member.business_account += transfer
-    date = get_current_datetime()
+    date = utcnow_str()
 
     await repo.update_member_business_account(member)
     await repo.insert_business_profit(BusinessProfitTransaction(
@@ -216,7 +216,7 @@ async def tbox(user_id: int) -> str:
         type_=MaterialTxnType.TBOX,
         material_name=gems.name,
         quantity=gems.quantity,
-        date=get_current_datetime()
+        date=utcnow_str()
     ))
 
     return (f"*{glob.TBOX_OPENED_TEXT}*\n"
@@ -231,7 +231,7 @@ async def tpay(sender: Member, receiver: Member, transfer: int, description: str
     if total > sender.tickets:
         return TransactionResultDTO(TRE.INSUFFICIENT_FUNDS)
 
-    current_datetime = get_current_datetime()
+    current_datetime = utcnow_str()
 
     # transfer & -tpay_available
     sender.tickets -= transfer
@@ -479,7 +479,7 @@ async def hire(member: Member, position: str) -> str:
     await repo.insert_employee(
         user_id=member.user_id,
         position=position,
-        hired_date=get_current_datetime()
+        hired_date=utcnow_str()
     )
 
     positions = f'{glob.HIRE_JOBS} {get_formatted_name(member)}:'
@@ -495,7 +495,7 @@ async def fire(user_id: int, position: str) -> bool:
     if employee is None:
         return False
     else:
-        await repo.insert_employment_history(employee, get_current_datetime())
+        await repo.insert_employment_history(employee, utcnow_str())
         await repo.delete_employee(user_id, position)
         return True
 
@@ -592,7 +592,7 @@ async def get_material_tpool(infl: bool = False, taxed: bool = True) -> float:
         return taxed_mpool if taxed else pure_mpool
 
     month_sold = await repo.get_sold_mat_revenue_by_period(
-        start_day=datetime.now() - timedelta(days=30)
+        start_day=datetime.now(timezone.utc) - timedelta(days=30)
     )
 
     return month_sold / 30
@@ -835,7 +835,7 @@ async def msell_txn(data: dict[str, Any]):
     single_tax: int = data['single_tax']
     msell_tax: int = data['msell_tax']
     member = await get_member(user_id)
-    current_datetime = get_current_datetime()
+    current_datetime = utcnow_str()
 
     # tickets transaction
     member.tickets += revenue
@@ -943,8 +943,8 @@ async def payout_salaries(lsp_plan_date: datetime):
 
     if employees is None:
         await repo.set_salary_paid_out(
-            plan_date=strdate(lsp_plan_date),
-            fact_date=strdate(datetime.now())
+            plan_date=funcs.to_iso_z(lsp_plan_date),
+            fact_date=funcs.utcnow_str()
         )
         return
 
@@ -964,8 +964,8 @@ async def payout_salaries(lsp_plan_date: datetime):
         )
 
     await repo.set_salary_paid_out(
-        plan_date=strdate(lsp_plan_date),
-        fact_date=strdate(datetime.now())
+        plan_date=funcs.to_iso_z(lsp_plan_date),
+        fact_date=funcs.utcnow_str()
     )
 
 

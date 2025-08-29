@@ -10,7 +10,8 @@ CONFIG_PATH_PROD = '../config/config.xml'
 CREATOR_USER_ID = 825549745
 CREATOR_USERNAME = '@capri_xj'
 
-DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S'
+UTC_FORMAT = '%Y-%m-%dT%H:%M:%SZ'
+UI_DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S'
 DATE_FORMAT = '%Y-%m-%d'
 
 NBT_SQL_VAR = 'nbt'

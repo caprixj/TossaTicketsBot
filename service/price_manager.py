@@ -1,6 +1,6 @@
 import random
 import math
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import aiofiles
 import yaml
@@ -11,7 +11,7 @@ from model.types.gem_counting_mode import GemCountingMode
 from resources import glob, funcs
 from resources.glob import MAX_FLUCT, MIN_FLUCT, FLUCT_GAUSS_SIGMA, INFL_ALPHA, \
     INIT_TPOOL, GEM_FREQ_YAML_PATH, MIN_DELTA_GEM_RATE, MAX_DELTA_GEM_RATE, GEM_BASE_PRICE
-from resources.funcs import get_current_datetime, strdate
+from resources.funcs import utcnow_str
 from repository import repository_core as repo
 from service import service_core as service
 
@@ -26,7 +26,7 @@ async def reset_prices(bot: Bot = None):
     lpr_date = lpr.plan_date.date()
 
     # if somehow we're trying to reset already reset price for today
-    if lpr_date == datetime.now().date():
+    if lpr_date == datetime.now(timezone.utc).date():
         return
 
     updated_inflation = _get_updated_inflation(
@@ -40,13 +40,13 @@ async def reset_prices(bot: Bot = None):
     await repo.reset_artifact_investments(diff)
     await _reset_gem_rates(updated_rate)
 
-    pr_days_dist = abs((datetime.now().date() - lpr.plan_date.date()).days)
+    pr_days_dist = abs((datetime.now(timezone.utc).date() - lpr.plan_date.date()).days)
     await repo.expand_price_history()
     await repo.insert_rate_history(RateReset(
         inflation=updated_inflation,
         fluctuation=updated_fluctuation,
-        plan_date=strdate(lpr.plan_date + timedelta(days=pr_days_dist)),
-        fact_date=get_current_datetime()
+        plan_date=funcs.to_iso_z(lpr.plan_date + timedelta(days=pr_days_dist)),
+        fact_date=utcnow_str()
     ))
 
     if bot:

@@ -2,8 +2,9 @@ import asyncio
 import math
 import random
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Union
+from zoneinfo import ZoneInfo
 
 import aiofiles
 import yaml
@@ -14,7 +15,7 @@ from aiogram.types import Message
 from model.database import Material
 from model.database.member import Member, DelMember
 from resources import glob
-from resources.glob import SINGLE_TAX as F, MIN_SINGLE_TAX as M, DATETIME_FORMAT, MATERIALS_YAML_PATH
+from resources.glob import SINGLE_TAX as F, MIN_SINGLE_TAX as M, UTC_FORMAT, MATERIALS_YAML_PATH, UI_DATETIME_FORMAT
 
 
 async def broadcast_message(
@@ -33,12 +34,40 @@ async def broadcast_message(
         await asyncio.sleep(rate_limit)
 
 
-def get_current_datetime() -> str:
-    return datetime.now().strftime(DATETIME_FORMAT)
+def utcnow_str() -> str:
+    return datetime.now(timezone.utc).replace(microsecond=0).strftime(UTC_FORMAT)
 
 
-def strdate(date: datetime) -> str:
-    return date.strftime(DATETIME_FORMAT)
+def to_iso_z(dt: datetime) -> str:
+    if dt.tzinfo is None:
+        raise ValueError('Naive datetime passed to to_iso_z(dt: datetime) -> str')
+    return dt.astimezone(timezone.utc).replace(microsecond=0).strftime(UTC_FORMAT)
+
+
+def to_utc(iso_utc: str) -> datetime:
+    # if python v3.11+
+    # return datetime.fromisoformat(iso_utc).astimezone(timezone.utc).replace(microsecond=0))
+    return (datetime
+            .fromisoformat(iso_utc.replace('Z', '+00:00'))
+            .astimezone(timezone.utc)
+            .replace(microsecond=0))
+
+def to_kyiv_str(iso_utc: str) -> str:
+    dt = datetime.fromisoformat(iso_utc.replace('Z', '+00:00'))
+
+    if dt.tzinfo is None:
+        raise ValueError('Naive datetime passed to to_kyiv_time_str(iso_utc: str) -> str')
+
+    dt_local = dt.astimezone(ZoneInfo('Europe/Kyiv')).replace(microsecond=0)
+    return f'{dt_local.strftime(UI_DATETIME_FORMAT)} (Kyiv)'
+
+
+def to_utc_str(dt: datetime) -> str:
+    if dt.tzinfo is None:
+        raise ValueError('Naive datetime passed to to_kyiv_time_str(iso_utc: str) -> str')
+
+    dt_local = dt.astimezone(timezone.utc).replace(microsecond=0)
+    return f'{dt_local.strftime(UI_DATETIME_FORMAT)} (UTC)'
 
 
 async def get_single_tax(transfer: int) -> int:

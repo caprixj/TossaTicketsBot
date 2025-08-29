@@ -1,8 +1,9 @@
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 
 from model.types import ArtifactType
-from resources.glob import DATETIME_FORMAT, ARTIFACT_AGE_MULTIPLIER, ARTIFACT_OWNER_PROFIT_RATE
+from resources import funcs
+from resources.glob import ARTIFACT_AGE_MULTIPLIER, ARTIFACT_OWNER_PROFIT_RATE
 
 
 class Artifact:
@@ -24,7 +25,7 @@ class Artifact:
         self.investment = investment
         self.file_id = file_id
         self.description = description
-        self.created_date = datetime.strptime(created_date, DATETIME_FORMAT)
+        self.created_date = funcs.to_utc(created_date)
 
     # +0.2% per day
     def age_multiplier(self) -> float:
@@ -32,7 +33,7 @@ class Artifact:
 
     # неповні дні
     def age(self) -> int:
-        return 1 + (datetime.now() - self.created_date).days
+        return 1 + (datetime.now(timezone.utc) - self.created_date).days
 
     def get_owner_profit(self) -> int:
         return round(ARTIFACT_OWNER_PROFIT_RATE * self.investment)

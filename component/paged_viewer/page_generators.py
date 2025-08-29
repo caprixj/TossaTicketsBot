@@ -7,7 +7,7 @@ from model.database import Ingredient
 from model.database.member import Member
 from model.dto.award_dto import AwardDTO
 from model.dto.ltrans_dto import LTransDTO
-from resources import glob
+from resources import glob, funcs
 from resources.funcs import get_formatted_name
 from resources.glob import PAGE_ROW_CHAR_LIMIT, PAGE_ROWS_COUNT_LIMIT
 
@@ -60,14 +60,14 @@ async def ltrans(dto: LTransDTO, title: str) -> list[str]:
     for addt in dto.addts:
         row = (f"✨🔹 | id: {addt.ticket_txn_id}"
                f" | <b>+{addt.transfer / 100:.2f}</b>"
-               f" | {addt.time}"
+               f" | {funcs.to_utc_str(addt.time)}"
                f" | {glob.LTRANS_TEXT}: <i>{addt.description}</i>")
         rows.append((row, addt.time))
 
     for delt in dto.delts:
         row = (f"✨🔻 | id: {delt.ticket_txn_id}"
                f" | <b>-{delt.transfer / 100:.2f}</b>"
-               f" | {delt.time}"
+               f" | {funcs.to_utc_str(delt.time)}"
                f" | {glob.LTRANS_TEXT}: <i>{delt.description}</i>")
         rows.append((row, delt.time))
 
@@ -79,7 +79,7 @@ async def ltrans(dto: LTransDTO, title: str) -> list[str]:
             row = (f"🔀🔹 | id: {tpay.ticket_txn_id}"
                    f" | {glob.LTRANS_FROM}: <b>{sender_name}</b>"
                    f" | <b>+{tpay.transfer / 100:.2f}</b>"
-                   f" | {tpay.time}"
+                   f" | {funcs.to_utc_str(tpay.time)}"
                    f" | {glob.LTRANS_TEXT}: <i>{tpay.description}</i>")
         else:
             member = _find_member(dto.unique_tpay_members, tpay.receiver_id)
@@ -89,7 +89,7 @@ async def ltrans(dto: LTransDTO, title: str) -> list[str]:
                    f" | {glob.LTRANS_TO}: <b>{receiver_name}</b>"
                    f" | <b>-{tpay.transfer / 100:.2f}</b>"
                    f" | -{tax / 100:.2f}"
-                   f" | {tpay.time}"
+                   f" | {funcs.to_utc_str(tpay.time)}"
                    f" | {glob.LTRANS_TEXT}: <i>{tpay.description}</i>")
 
         rows.append((row, tpay.time))
@@ -97,21 +97,21 @@ async def ltrans(dto: LTransDTO, title: str) -> list[str]:
     for msell in dto.msells:
         row = (f"📦🔹 | id: {msell.ticket_txn_id}"
                f" | <b>+{msell.transfer / 100:.2f}</b>"
-               f" | {msell.time}"
+               f" | {funcs.to_utc_str(msell.time)}"
                f" | {glob.LTRANS_TEXT}: <i>{msell.description}</i>")
         rows.append((row, msell.time))
 
     for salary in dto.salaries:
         row = (f"💸🔹 | id: {salary.ticket_txn_id}"
                f" | <b>+{salary.transfer / 100:.2f}</b>"
-               f" | {salary.time}"
+               f" | {funcs.to_utc_str(salary.time)}"
                f" | {glob.LTRANS_TEXT}: <i>{salary.description}</i>")
         rows.append((row, salary.time))
 
     for award in dto.awards:
         row = (f"🎖🔹 | id: {award.ticket_txn_id}"
                f" | <b>+{award.transfer / 100:.2f}</b>"
-               f" | {award.time}"
+               f" | {funcs.to_utc_str(award.time)}"
                f" | {glob.LTRANS_TEXT}: <i>{award.description}</i>")
         rows.append((row, award.time))
 
@@ -119,7 +119,7 @@ async def ltrans(dto: LTransDTO, title: str) -> list[str]:
         row = f"❔🔹 | id: {unknown.ticket_txn_id} | <b>+{unknown.transfer / 100:.2f}</b>" \
             if unknown.transfer > 0 else \
             f"❔🔻 | id: {unknown.ticket_txn_id} | <b>-{unknown.transfer / 100:.2f}</b>"
-        row += f" | {unknown.time} | {glob.LTRANS_TEXT}: <i>{unknown.description}</i>"
+        row += f" | {funcs.to_utc_str(unknown.time)} | {glob.LTRANS_TEXT}: <i>{unknown.description}</i>"
         rows.append((row, unknown.time))
 
     for tax in dto.taxes:
@@ -127,7 +127,7 @@ async def ltrans(dto: LTransDTO, title: str) -> list[str]:
                f" | tax type: <b>{tax.tax_type}</b>"
                f" | <b>-{tax.amount / 100:.2f}</b>"
                f" | txn-id: {tax.parent_id} (table: <i>{tax.parent_type}</i>)"
-               f" | {tax.time}")
+               f" | {funcs.to_utc_str(tax.time)}")
         rows.append((row, tax.time))
 
     pages = []
@@ -169,7 +169,7 @@ async def laward(result: list[AwardDTO], title: str) -> list[str]:
         award_text = (f"<b>🎖 {ar.award.name}</b>"
                       f"\n\nid: <b>{ar.award.award_id}</b>"
                       f"\n{glob.PAGE_GEN_PAYMENT}: <b>{ar.award.payment / 100:.2f} tc</b>"
-                      f"\n{glob.PAGE_GEN_ISSUED}: <b>{ar.issue_date}</b>"
+                      f"\n{glob.PAGE_GEN_ISSUED}: <b>{funcs.to_kyiv_str(ar.issue_date)}</b>"
                       f"\n\n<b>{glob.PAGE_GEN_STORY}</b>: <i>{ar.award.description}</i>")
 
         pages.append('\n\n'.join([title, award_text]))

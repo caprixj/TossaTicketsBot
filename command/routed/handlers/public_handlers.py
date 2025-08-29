@@ -24,6 +24,7 @@ from model.types.ticketonomics_types import PNRealTickets, NInt, UserID
 from command.parser.types.com_list import CommandList as cl
 from command.parser.types.target_type import CommandTargetType as ctt
 from resources import funcs
+from utc_migration import utc_migrate
 
 router = Router()
 
@@ -628,6 +629,12 @@ async def tag(message: Message):
         text=f"[{glob.TAG_TEXT}](tg://user?id={user_id})",
         parse_mode=ParseMode.MARKDOWN
     )
+
+
+@router.message(Command("utc"))
+async def utc(message: Message):
+    utc_migrate()
+    await message.answer('done')
 
 
 def _get_random_crv_message() -> str:

@@ -1,7 +1,5 @@
-from datetime import datetime
-
 from model.types import ProductType
-from resources.glob import DATETIME_FORMAT
+from resources import funcs
 
 
 class Price:
@@ -24,8 +22,8 @@ class RateReset:
         self.rate_history_id = rate_history_id
         self.inflation = inflation
         self.fluctuation = fluctuation
-        self.plan_date = datetime.strptime(plan_date, DATETIME_FORMAT)
-        self.fact_date = datetime.strptime(fact_date, DATETIME_FORMAT)
+        self.plan_date = funcs.to_utc(plan_date)
+        self.fact_date = funcs.to_utc(fact_date)
 
 
 class PriceHistory:
@@ -39,4 +37,4 @@ class PriceHistory:
         self.product_name = product_name
         self.product_type = product_type
         self.price = price
-        self.reset_date = datetime.strptime(reset_date, DATETIME_FORMAT)
+        self.reset_date = funcs.to_utc(reset_date)

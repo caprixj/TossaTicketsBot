@@ -1,6 +1,7 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from aiogram import Bot
+from pytz import utc
 
 from model.database import SalaryPayout
 from resources import funcs
@@ -11,7 +12,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import resources.glob as glob
 from repository import repository_core as repo
 
-aiosch = AsyncIOScheduler()
+aiosch = AsyncIOScheduler(timezone=utc)
 
 
 async def schedule(bot: Bot):
@@ -42,7 +43,7 @@ async def daily_sched(bot: Bot = None):
 
     # if the last daily schedule from db is today
     # then we skip the update
-    if datetime.now().date() == lds.date():
+    if datetime.now(timezone.utc).date() == lds.date():
         return
 
     await service.reset_tpay_available()
@@ -51,7 +52,7 @@ async def daily_sched(bot: Bot = None):
     # await service.payout_profits()  # (!) disabled artifact payouts
     await _salary_control()
 
-    await repo.insert_daily_schedule(date=funcs.get_current_datetime())
+    await repo.insert_daily_schedule(date=funcs.utcnow_str())
 
     if bot:
         text = f'*{glob.DAILY_SCHEDULE_DONE}*'
@@ -70,14 +71,14 @@ async def _salary_control():
     # if the last salary payout from db is not paid out
     # and we passed the date of the last salary payout (or today is the payout day)
     # then we pay out the salaries
-    if not lsp.paid_out and lsp.plan_date.date() <= datetime.now().date():
+    if not lsp.paid_out and lsp.plan_date.date() <= datetime.now(timezone.utc).date():
         await service.payout_salaries(lsp.plan_date)
 
     # if the next payout is not present in db
     # then we create and insert it into db
-    next_monday = datetime.now() + timedelta(days=7 - datetime.now().weekday())
+    next_monday = datetime.now(timezone.utc) + timedelta(days=7 - datetime.now(timezone.utc).weekday())
     if lsp.plan_date.date() != next_monday.date():
         next_monday_plan = lsp.plan_date + timedelta(days=7 - lsp.plan_date.weekday())
         await repo.insert_salary_payout(SalaryPayout(
-            plan_date=next_monday_plan.strftime(glob.DATETIME_FORMAT)
+            plan_date=next_monday_plan.strftime(glob.UTC_FORMAT)
         ))

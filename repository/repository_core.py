@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlite3 import IntegrityError
 from typing import Optional, List
 
@@ -11,8 +11,8 @@ from model.database.transactions import BusinessProfitTransaction, MaterialTrans
 from model.dto import AwardDTO, LTransDTO
 from model.types import TicketTxnType
 from repository.ordering_type import OrderingType
-from resources.funcs import get_current_datetime
-from resources import glob
+from resources.funcs import utcnow_str
+from resources import glob, funcs
 from repository import sql
 
 
@@ -107,7 +107,7 @@ async def insert_ticket_txn(ticket_txn: TicketTransaction) -> int:
             ticket_txn.receiver_id,
             ticket_txn.transfer,
             ticket_txn.type,
-            ticket_txn.time,
+            funcs.to_iso_z(ticket_txn.time),
             ticket_txn.description
         ))
         row = await cursor.fetchone()
@@ -123,7 +123,7 @@ async def insert_tax_txn(tax_txn: TaxTransaction) -> int:
             tax_txn.amount,
             tax_txn.tax_type,
             tax_txn.parent_type,
-            tax_txn.time
+            funcs.to_iso_z(tax_txn.time)
         ))
         row = await cursor.fetchone()
         await db.commit()
@@ -136,7 +136,7 @@ async def insert_business_profit(bpt: BusinessProfitTransaction):
             bpt.user_id,
             bpt.profit_type,
             bpt.transfer,
-            bpt.date,
+            funcs.to_iso_z(bpt.date),
             bpt.artifact_id
         ))
         await db.commit()
@@ -159,7 +159,7 @@ async def insert_award_member(am: AwardMember) -> bool:
             await db.execute(sql.INSERT_AWARD_MEMBER, (
                 am.award_id,
                 am.owner_id,
-                am.issue_date
+                funcs.to_iso_z(am.issue_date)
             ))
             await db.commit()
             return True
@@ -172,8 +172,8 @@ async def insert_rate_history(price_reset: RateReset):
         await db.execute(sql.INSERT_RATE_HISTORY, (
             price_reset.inflation,
             price_reset.fluctuation,
-            price_reset.plan_date,
-            price_reset.fact_date
+            funcs.to_iso_z(price_reset.plan_date),
+            funcs.to_iso_z(price_reset.fact_date)
         ))
         await db.commit()
 
@@ -181,8 +181,8 @@ async def insert_rate_history(price_reset: RateReset):
 async def insert_salary_payout(payout: SalaryPayout):
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
         await db.execute(sql.INSERT_SALARY_PAYOUT, (
-            payout.plan_date,
-            payout.fact_date,
+            funcs.to_iso_z(payout.plan_date),
+            funcs.to_iso_z(payout.fact_date),
             payout.paid_out
         ))
         await db.commit()
@@ -204,7 +204,7 @@ async def insert_employment_history(paid_member: Employee, fired_date: str):
             paid_member.user_id,
             paid_member.position,
             paid_member.salary,
-            paid_member.hired_date,
+            funcs.to_iso_z(paid_member.hired_date),
             fired_date
         ))
         await db.commit()
@@ -219,7 +219,7 @@ async def insert_material_transaction(mt: MaterialTransaction):
             mt.material_name,
             mt.quantity,
             mt.ticket_txn,
-            mt.date,
+            funcs.to_iso_z(mt.date),
             mt.description
         ))
         await db.commit()
@@ -233,7 +233,7 @@ async def insert_daily_schedule(date: str):
 
 async def expand_price_history():
     price_history_data = [
-        (p.product_name, p.product_type, p.price, get_current_datetime())
+        (p.product_name, p.product_type, p.price, utcnow_str())
         for p in await get_prices()
     ]
 
@@ -411,14 +411,25 @@ async def get_txn_stats(user_id: int) -> LTransDTO:
         # unique_tpay_members
         unique_tpay_members = await _get_unique_members(cursor, user_id, tpays)
 
-        return LTransDTO(user_id, tpays, addts, delts, msells, salaries, awards_, unknowns, taxes, unique_tpay_members)
+        return LTransDTO(
+            user_id,
+            tpays,
+            addts,
+            delts,
+            msells,
+            salaries,
+            awards_,
+            unknowns,
+            taxes,
+            unique_tpay_members
+        )
 
 
 async def get_last_daily_schedule_date() -> Optional[datetime]:
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
         cursor = await db.execute(sql.SELECT_LAST_DAILY_SCHEDULE)
         row = await cursor.fetchone()
-        return datetime.strptime(row[1], glob.DATETIME_FORMAT) if row else None
+        return funcs.to_utc(row[1]) if row else None
 
 
 async def get_last_rate_history() -> Optional[RateReset]:
@@ -526,7 +537,7 @@ async def get_member_sold_mc_by_period(user_id: int) -> int:
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
         cursor = await db.execute(
             sql.SELECT_MEMBER_SOLD_MAT_COUNT_BY_PERIOD,
-            (user_id, datetime.now().strftime(glob.DATE_FORMAT))
+            (user_id, datetime.now(timezone.utc).strftime(glob.DATE_FORMAT))
         )
         row = await cursor.fetchone()
         return int(row[0]) if row[0] else 0

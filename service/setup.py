@@ -135,6 +135,7 @@ def _get_run_mode_settings(run_mode: RunMode) -> RunModeSettings:
                 continue
 
             bot_token = settings.find('bot-token').text
+            host_url = settings.find('host-url').text
             main_chat_id = int(settings.find('main-chat-id').text)
             backup_id = int(settings.find('db-backup-chat-id').text)
             db_path = _parse_pathlib(settings.find('db-file-path').text)
@@ -150,6 +151,7 @@ def _get_run_mode_settings(run_mode: RunMode) -> RunModeSettings:
 
             return RunModeSettings(
                 bot_token=bot_token,
+                host_url=host_url,
                 main_chat_id=main_chat_id,
                 side_chat_ids=side_chat_ids,
                 db_backup_chat_id=backup_id,

@@ -1,9 +1,7 @@
-from datetime import datetime
-
 from model.types import TicketTxnType
 from model.types.profit_type import ProfitType
 from model.types.transaction_types import MaterialTxnType, TaxType, TaxParentType
-from resources.glob import DATETIME_FORMAT
+from resources import funcs
 
 
 class TicketTransaction:
@@ -20,7 +18,7 @@ class TicketTransaction:
         self.receiver_id = receiver_id
         self.transfer = transfer
         self.type = txn_type
-        self.time = datetime.strptime(time, DATETIME_FORMAT)
+        self.time = funcs.to_utc(time)
         self.description = description
 
 
@@ -39,7 +37,7 @@ class TaxTransaction:
         self.amount = amount
         self.tax_type = tax_type
         self.parent_type = parent_type
-        self.time = datetime.strptime(time, DATETIME_FORMAT)
+        self.time = funcs.to_utc(time)
 
 
 class MaterialTransaction:
@@ -60,7 +58,7 @@ class MaterialTransaction:
         self.material_name = material_name
         self.quantity = quantity
         self.ticket_txn = ticket_txn
-        self.date = datetime.strptime(date, DATETIME_FORMAT)
+        self.date = funcs.to_utc(date)
         self.description = description
 
 
@@ -76,7 +74,7 @@ class BusinessProfitTransaction:
         self.user_id = user_id
         self.profit_type = profit_type
         self.transfer = transfer
-        self.date = datetime.strptime(date, DATETIME_FORMAT)
+        self.date = funcs.to_utc(date)
         self.artifact_id = artifact_id
 
 
@@ -89,4 +87,4 @@ class BusinessWithdrawTransaction:
         self.business_withdraw_id = business_withdraw_id
         self.user_id = user_id
         self.transfer = transfer
-        self.date = datetime.strptime(date, DATETIME_FORMAT)
+        self.date = funcs.to_utc(date)

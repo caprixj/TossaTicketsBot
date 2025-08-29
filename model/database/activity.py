@@ -1,8 +1,6 @@
-from datetime import datetime
-
 from aiogram.enums import ContentType
 
-from resources.glob import DATETIME_FORMAT
+from resources import funcs
 
 
 class MessageActivityData:
@@ -14,6 +12,6 @@ class MessageActivityData:
                  is_forward: bool = False):
         self.user_id = user_id
         self.content_type = content_type
-        self.date = datetime.strptime(date, DATETIME_FORMAT)
+        self.date = funcs.to_utc(date)
         self.text_size = text_size
         self.is_forward = is_forward

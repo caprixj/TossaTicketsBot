@@ -1,6 +1,4 @@
-from datetime import datetime
-
-from resources.glob import DATETIME_FORMAT
+from resources import funcs
 
 
 class Job:
@@ -20,9 +18,8 @@ class SalaryPayout:
                  fact_date: str = None,
                  paid_out: bool = False):
         self.salary_payout_id = salary_payout_id
-        self.plan_date = datetime.strptime(plan_date, DATETIME_FORMAT)
-        self.fact_date = datetime.strptime(fact_date, DATETIME_FORMAT) \
-            if fact_date is not None else None
+        self.plan_date = funcs.to_utc(plan_date)
+        self.fact_date = funcs.to_utc(fact_date) if fact_date is not None else None
         self.paid_out = paid_out
 
 
@@ -35,5 +32,4 @@ class Employee:
         self.user_id = user_id
         self.position = position
         self.salary = salary
-        self.hired_date = datetime.strptime(hired_date, DATETIME_FORMAT) \
-            if hired_date is not None else None
+        self.hired_date = funcs.to_utc(hired_date) if hired_date is not None else None
