@@ -331,7 +331,7 @@ async def unreg(message: Message):
     if target_member is None:
         return await message.answer(glob.GET_MEMBER_FAILED)
 
-    if target_member.user_id == glob.CREATOR_USER_ID:
+    if glob.rms.is_admin(target_member.user_id):
         return await message.answer(glob.UNREG_CREATOR_ERROR)
 
     await service.unreg(target_member, otype=cpr.overload.otype)

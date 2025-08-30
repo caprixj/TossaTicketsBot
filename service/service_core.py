@@ -732,7 +732,7 @@ async def get_formatted_material_name(material_name: str) -> Optional[str]:
 
 async def reg_member(sender: User, target: User, anchor_: int) -> bool:
     dm = await get_del_member(target.id)
-    is_creator = sender.id == glob.CREATOR_USER_ID
+    is_creator = glob.rms.is_admin(sender.id)
 
     if dm is not None:
         if not is_creator:

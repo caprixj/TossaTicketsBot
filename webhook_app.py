@@ -16,7 +16,6 @@ from middleware.activity_analyzer_middleware import ActivityAnalyzerMiddleware
 from middleware.source_filter_middleware import SourceFilterMiddleware
 from service.router_loader import get_routers
 
-WEBHOOK_BASE_URL = "https://example.com"
 WEBHOOK_PATH = "/telegram/webhook"  # public endpoint path
 
 api = APIRouter(prefix="/api")

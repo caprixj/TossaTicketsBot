@@ -563,18 +563,19 @@ async def reg(message: Message, bot: Bot):
             anchor_=message.chat.id
         )
 
-        if not response and not message.from_user.id == glob.CREATOR_USER_ID:
+        if not response and not glob.rms.is_admin(message.from_user.id):
             return message.answer(_get_random_crv_message())
 
         reply_uid = message.reply_to_message.from_user.id \
             if message.reply_to_message is not None \
             else None
 
-        await bot.send_message(
-            chat_id=glob.CREATOR_USER_ID,
+        await funcs.broadcast_message(
+            bot=bot,
             text=(f'chat id: {message.chat.id}\n'
                   f'from-user id: {message.from_user.id}\n'
-                  f'reply-user id: {reply_uid}')
+                  f'reply-user id: {reply_uid}'),
+            admins=True
         )
 
         await message.answer(glob.REG_SUCCESS)

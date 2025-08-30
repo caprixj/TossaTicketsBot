@@ -8,7 +8,7 @@ import aiosqlite
 from pathlib import Path
 
 import resources.glob as glob
-from model.types.run_mode import RunMode, RunModeSettings
+from model.types.run_mode import RunMode, RunModeSettings, ConfigChat
 from resources.funcs import get_materials_yaml
 from repository import sql
 
@@ -136,26 +136,43 @@ def _get_run_mode_settings(run_mode: RunMode) -> RunModeSettings:
 
             bot_token = settings.find('bot-token').text
             host_url = settings.find('host-url').text
-            main_chat_id = int(settings.find('main-chat-id').text)
-            backup_id = int(settings.find('db-backup-chat-id').text)
-            db_path = _parse_pathlib(settings.find('db-file-path').text)
+            db_backup_chat_id = int(settings.find('db-backup-chat-id').text)
+            db_file_path = _parse_pathlib(settings.find('db-file-path').text)
 
-            chat_ids_block = settings.find('side-chat-ids')
-            if chat_ids_block is not None:
-                side_chat_ids = [
-                    int(e.text) for e in chat_ids_block.findall('chat-id')
+            admin_ids_block = settings.find('admins')
+            if admin_ids_block is not None:
+                admin_ids = [
+                    int(e.text) for e in admin_ids_block.findall('admin')
                     if e.text and e.text.strip()
                 ]
             else:
-                side_chat_ids = []
+                raise ValueError(f"No admins found for mode '{run_mode.value}'")
+
+            main_chat = ConfigChat(
+                chat_id=int(settings.find('main-chat-id').text),
+                broadcast=bool(int(settings.find('main-chat-id').get('broadcast')))
+            )
+
+            chat_ids_block = settings.find('side-chat-ids')
+            if chat_ids_block is not None:
+                side_chats = [
+                    ConfigChat(
+                        chat_id=int(e.text),
+                        broadcast=bool(e.get('broadcast'))
+                    ) for e in chat_ids_block.findall('chat-id')
+                    if e.text and e.text.strip()
+                ]
+            else:
+                side_chats = []
 
             return RunModeSettings(
                 bot_token=bot_token,
                 host_url=host_url,
-                main_chat_id=main_chat_id,
-                side_chat_ids=side_chat_ids,
-                db_backup_chat_id=backup_id,
-                db_file_path=db_path
+                db_file_path=db_file_path,
+                admin_ids=admin_ids,
+                main_chat=main_chat,
+                side_chats=side_chats,
+                db_backup_chat_id=db_backup_chat_id
             )
 
         raise ValueError(f"No settings found for mode '{run_mode.value}'")

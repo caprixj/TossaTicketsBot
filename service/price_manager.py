@@ -51,7 +51,7 @@ async def reset_prices(bot: Bot = None):
 
     if bot:
         text = f"{glob.RATE_RESET_TEXT}: {'+' if diff - 1 > 0 else ''}{(diff - 1) * 100:.2f}%"
-        await funcs.broadcast_message(bot, text)
+        await funcs.broadcast_message(bot, text, chats=True)
 
 
 def _get_updated_fluctuation(last_fluctuation: float) -> float:

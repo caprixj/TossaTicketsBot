@@ -56,7 +56,7 @@ async def daily_sched(bot: Bot = None):
 
     if bot:
         text = f'*{glob.DAILY_SCHEDULE_DONE}*'
-        await funcs.broadcast_message(bot, text)
+        await funcs.broadcast_message(bot, text, chats=True)
 
 
 async def _salary_control():

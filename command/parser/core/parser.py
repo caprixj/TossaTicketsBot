@@ -83,7 +83,7 @@ class CommandParser:
                 return CommandParserResult(valid=False)
 
         if overload.creator:
-            if self.message.from_user.id != glob.CREATOR_USER_ID:
+            if not glob.rms.is_admin(self.message.from_user.id):
                 if self.overload_group.creator:
                     return CommandParserResult(creator_violation=True)
                 return CommandParserResult(valid=False)

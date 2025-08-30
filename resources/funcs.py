@@ -21,15 +21,26 @@ from resources.glob import SINGLE_TAX as F, MIN_SINGLE_TAX as M, UTC_FORMAT, MAT
 async def broadcast_message(
     bot: Bot, text: str,
     rate_limit: float = 0.05,  # 20 messages/sec
+    chats: bool = False,
+    admins: bool = False
 ):
-    for cid in glob.rms.get_allowed_chats():
+    if not (chats or admins):
+        raise ValueError('def broadcast_message: destination has not been set')
+
+    destinations = []
+    if chats:
+        destinations.extend(glob.rms.get_broadcasting_chats())
+    if admins:
+        destinations.extend(glob.rms.get_admin_ids())
+
+    for d in destinations:
         try:
-            await bot.send_message(chat_id=cid, text=text)
+            await bot.send_message(chat_id=d, text=text)
         except TelegramRetryAfter as e:
             await asyncio.sleep(e.retry_after)
-            await bot.send_message(chat_id=cid, text=text)
+            await bot.send_message(chat_id=d, text=text)
         except TelegramAPIError as err:
-            print(f'Failed to send to {cid}: {err}')
+            print(f'Failed to send to {d}: {err}')
 
         await asyncio.sleep(rate_limit)
 

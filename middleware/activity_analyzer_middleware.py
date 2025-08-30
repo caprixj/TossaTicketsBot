@@ -6,7 +6,7 @@ import resources.glob as glob
 
 
 async def _message_important(m: Message) -> bool:
-    return glob.rms.allowed_chat(m.chat.id) and not m.from_user.is_bot
+    return glob.rms.is_whitelist_chat(m.chat.id) and not m.from_user.is_bot
 
 
 class ActivityAnalyzerMiddleware(BaseMiddleware):
