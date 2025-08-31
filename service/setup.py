@@ -158,7 +158,7 @@ def _get_run_mode_settings(run_mode: RunMode) -> RunModeSettings:
                 side_chats = [
                     ConfigChat(
                         chat_id=int(e.text),
-                        broadcast=bool(e.get('broadcast'))
+                        broadcast=bool(int(e.get('broadcast')))
                     ) for e in chat_ids_block.findall('chat-id')
                     if e.text and e.text.strip()
                 ]
