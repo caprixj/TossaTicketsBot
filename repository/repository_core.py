@@ -180,9 +180,10 @@ async def insert_rate_history(price_reset: RateReset):
 
 async def insert_salary_payout(payout: SalaryPayout):
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
+        fact_date = None if not payout.fact_date else funcs.to_iso_z(payout.fact_date)
         await db.execute(sql.INSERT_SALARY_PAYOUT, (
             funcs.to_iso_z(payout.plan_date),
-            funcs.to_iso_z(payout.fact_date),
+            fact_date,
             payout.paid_out
         ))
         await db.commit()
