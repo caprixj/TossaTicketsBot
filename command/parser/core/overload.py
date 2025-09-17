@@ -1,51 +1,49 @@
 from typing import Type, List
 
-from model.types.ticketonomics_types import TicketonomicsType, Username, UserID, PercentConstArg, IdConstArg
-from command.parser.types.target_type import CommandTargetType as ctt
-from resources import glob, funcs
+from model.types.custom.flags import Flag
+from model.types.custom.primitives import TicketonomicsType, Username, UserID
+from command.parser.types.target_type import CommandTargetType as CTT
+from resources import glob
+from utils import funcs
 
 
 class CommandOverload:
     def __init__(self,
                  oid: str = None,
                  otype: str = None,
-                 creator: bool = False,
+                 admin: bool = False,
                  reply: bool = False,
                  no_self_reply: bool = False,
                  private: bool = False,
                  public: bool = False):
         self.oid = oid
         self.otype = otype
-        self.creator = creator
+        self.admin = admin
         self.reply = reply
         self.no_self_reply = no_self_reply
         self.private = private
         self.public = public
         self.schema = {}
-        self.target_type = ctt.REPLY if reply else ctt.NONE
+        self.target_type = CTT.REPLY if reply else CTT.NONE
 
     def add(self, name: str, arg_type: Type[TicketonomicsType]):
         if arg_type == Username:
-            if self.target_type != ctt.NONE:
+            if self.target_type != CTT.NONE:
                 raise RuntimeError(glob.DOUBLE_TARGETING_ERROR)
             else:
-                self.target_type = ctt.USERNAME
+                self.target_type = CTT.USERNAME
 
         if arg_type == UserID:
-            if self.target_type != ctt.NONE:
+            if self.target_type != CTT.NONE:
                 raise RuntimeError(glob.DOUBLE_TARGETING_ERROR)
             else:
-                self.target_type = ctt.USER_ID
+                self.target_type = CTT.USER_ID
 
         self.schema[name] = arg_type
         return self
 
-    def add_percent(self):
-        self.schema[glob.PERCENT_ARG] = PercentConstArg
-        return self
-
-    def add_id(self):
-        self.schema[glob.ID_ARG] = IdConstArg
+    def flag(self, flag_type: Type[Flag]):
+        self.schema[flag_type.ID] = flag_type
         return self
 
     def get_order_value(self) -> int:
@@ -56,16 +54,16 @@ class CommandOverload:
 class CommandOverloadGroup:
     def __init__(self,
                  overloads: List[CommandOverload],
-                 creator: bool = False,
+                 admin: bool = False,
                  private: bool = False,
                  public: bool = False):
         self.overloads = overloads
-        self.creator = creator
+        self.admin = admin
         self.private = private
         self.public = public
 
         forced = {
-            'creator': creator,
+            'admin': admin,
             'private': private,
             'public': public,
         }

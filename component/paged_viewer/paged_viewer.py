@@ -1,5 +1,6 @@
 import functools
-from typing import Callable, List, Union
+from typing import Callable, Union
+from uuid import UUID
 
 from aiogram.enums import ParseMode
 from aiogram.exceptions import TelegramRetryAfter
@@ -8,7 +9,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from service import service_core as service
 from resources import glob
-from command.routed.callbacks.custom_callback_data import get_operation_callback_data, OperationCallbackData
+from service.cbdata.encoding import encode_cbdata, ldecode_cbdata
 
 
 class PagedViewer:
@@ -22,11 +23,11 @@ class PagedViewer:
         self.parse_mode = parse_mode
 
         self.current_page_number: int = 1
-        self.pages: List[str] = []
+        self.pages: list[str] = []
 
         self.start_message: Union[Message, None] = None
 
-    async def view(self, operation_id: int):
+    async def view(self, operation_id: UUID):
         data = await self.data_extractor()
         self.pages = await self.page_generator(data, self.title)
 
@@ -39,7 +40,7 @@ class PagedViewer:
         await self.page_message.answer(
             text=self.pages[0],
             parse_mode=self.parse_mode,
-            reply_markup=self.reply_markup(
+            reply_markup=await self.reply_markup(
                 operation_id=operation_id,
                 sender_id=self.page_message.from_user.id
             )
@@ -59,40 +60,55 @@ class PagedViewer:
         self.current_page_number = self.current_page_number + 1 \
             if self.current_page_number < len(self.pages) else 1
 
-    def reply_markup(self, operation_id: int, sender_id: int) -> InlineKeyboardMarkup:
+    async def reply_markup(self, operation_id: UUID, sender_id: int) -> InlineKeyboardMarkup:
+        async def _build_btn(btn_text: str, callback_name: str) -> InlineKeyboardButton:
+            return InlineKeyboardButton(
+                text=btn_text,
+                callback_data=encode_cbdata(
+                    signature=callback_name,
+                    data={
+                        'sender_id': sender_id,
+                        'operation_id': operation_id
+                    }
+                )
+            )
+
         builder = InlineKeyboardBuilder()
-
-        back = OperationCallbackData(glob.PV_BACK_CALLBACK, sender_id, operation_id)
-        forward = OperationCallbackData(glob.PV_FORWARD_CALLBACK, sender_id, operation_id)
         builder.row(
-            InlineKeyboardButton(text='<<', callback_data=back.tostr()),
-            InlineKeyboardButton(
-                text=f'{self.current_page_number} / {len(self.pages)}',
-                callback_data=glob.DECORATIVE_KEYBOARD_BUTTON
+            await _build_btn(
+                btn_text='<<',
+                callback_name=glob.PV_BACK_CALLBACK
             ),
-            InlineKeyboardButton(text='>>', callback_data=forward.tostr()),
+            await _build_btn(
+                btn_text=f'{self.current_page_number} / {len(self.pages)}',
+                callback_name=glob.DECORATIVE_KEYBOARD_BUTTON
+            ),
+            await _build_btn(
+                btn_text='>>',
+                callback_name=glob.PV_FORWARD_CALLBACK
+            )
         )
-
-        hide = OperationCallbackData(glob.PV_HIDE_CALLBACK, sender_id, operation_id)
-        builder.row(InlineKeyboardButton(text=glob.HIDE_BTN, callback_data=hide.tostr()))
+        builder.row(await _build_btn(
+            btn_text=glob.HIDE_BTN,
+            callback_name=glob.PV_HIDE_CALLBACK
+        ))
 
         return builder.as_markup()
 
 
-async def keep_paged_viewer(viewer: PagedViewer) -> PagedViewer:
-    return viewer
-
-
 async def phide(callback: CallbackQuery):
-    data = await get_operation_callback_data(callback.data)
+    sender_id, operation_id = ldecode_cbdata(
+        data=callback.data,
+        binding_types=[int, UUID]
+    )
 
-    if callback.from_user.id != data.sender_id:
+    if callback.from_user.id != sender_id:
         await callback.answer(glob.ALERT_CALLBACK_ACTION, show_alert=True)
         return
 
-    viewer: PagedViewer = await service.operation_manager.run(data.operation_id)
+    viewer: PagedViewer = await service.som().run(operation_id)
 
-    await service.operation_manager.cancel(data.operation_id)
+    await service.som().cancel(operation_id)
 
     if viewer.has_start_message():
         await viewer.start_message.delete()
@@ -102,24 +118,26 @@ async def phide(callback: CallbackQuery):
 
 
 async def pmove(callback: CallbackQuery, move: str):
-    data = await get_operation_callback_data(callback.data)
+    sender_id, operation_id = ldecode_cbdata(
+        data=callback.data,
+        binding_types=[int, UUID]
+    )
 
-    if callback.from_user.id != data.sender_id:
+    if callback.from_user.id != sender_id:
         await callback.answer(glob.ALERT_CALLBACK_ACTION, show_alert=True)
         return
 
-    viewer: PagedViewer = await service.operation_manager.run(data.operation_id)
+    viewer: PagedViewer = await service.som().run(operation_id)
 
     if move == glob.PV_BACK_CALLBACK:
         viewer.page_back()
     elif move == glob.PV_FORWARD_CALLBACK:
         viewer.page_forward()
-    else:
-        raise RuntimeError('pmove(callback: CallbackQuery, move: str): invalid move')
 
-    await service.operation_manager.register(
-        func=functools.partial(keep_paged_viewer, viewer),
-        operation_id=data.operation_id
+    operation_id = await service.som().reg(
+        func=functools.partial(lambda: viewer),
+        operation_id=operation_id,
+        asynchronous=False
     )
 
     try:
@@ -128,9 +146,9 @@ async def pmove(callback: CallbackQuery, move: str):
             parse_mode=viewer.parse_mode
         )
         await callback.message.edit_reply_markup(
-            reply_markup=viewer.reply_markup(
-                operation_id=data.operation_id,
-                sender_id=data.sender_id
+            reply_markup=await viewer.reply_markup(
+                operation_id=operation_id,
+                sender_id=sender_id
             )
         )
         await callback.answer()

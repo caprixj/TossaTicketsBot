@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from model.database import Award
+from model.database.awards import Award
 
 
 @dataclass

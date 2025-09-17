@@ -8,8 +8,9 @@ import aiosqlite
 from pathlib import Path
 
 import resources.glob as glob
-from model.types.run_mode import RunMode, RunModeSettings, ConfigChat
-from resources.funcs import get_materials_yaml
+from model.types.enums import RunMode
+from model.types.run_mode import RunModeSettings, ConfigChat
+from utils.funcs import get_materials_yaml
 from repository import sql
 
 
@@ -73,7 +74,6 @@ async def _get_create_table_scripts() -> list[str]:
         sql.CREATE_MEMBERS,
         sql.CREATE_DEL_MEMBERS,
         sql.CREATE_ARTIFACTS,
-        # sql.CREATE_ARTIFACT_VALUE_HISTORY,
         sql.CREATE_TICKET_TXNS,
         sql.CREATE_TAX_TXNS,
         sql.CREATE_BUSINESS_PROFITS,
@@ -90,9 +90,10 @@ async def _get_create_table_scripts() -> list[str]:
         sql.CREATE_MATERIALS,
         sql.CREATE_MEMBER_MATERIALS,
         sql.CREATE_MAT_TXNS,
-        sql.CREATE_MAT_TXN_INVOICES,
+        sql.CREATE_MAT_ORDERS,
+        sql.CREATE_MAT_DEALS,
+        # sql.CREATE_MAT_TRADING_BLACKLIST,
         sql.CREATE_DAILY_SCHEDULES,
-        # sql.CREATE_ACTIVITY_DATA
     ]
 
 

@@ -9,12 +9,11 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 
-from model.types import RunMode
+from model.types.enums import RunMode
 from service import setup, scheduling
 import resources.glob as glob
-from middleware.activity_analyzer_middleware import ActivityAnalyzerMiddleware
-from middleware.source_filter_middleware import SourceFilterMiddleware
-from service.router_loader import get_routers
+from middleware.fsm_preempt import PreemptFSMContextInPrivateMiddleware
+from middleware.source_logging import SourceFilterMiddleware
 
 WEBHOOK_PATH = "/telegram/webhook"  # public endpoint path
 
@@ -93,16 +92,20 @@ async def lifespan(app: FastAPI):
         default=DefaultBotProperties(parse_mode=ParseMode.MARKDOWN),
     )
 
-    for router in get_routers():
+    from command import all_routers
+    for router in all_routers:
         dp.include_router(router)
 
-    dp.message.middleware(ActivityAnalyzerMiddleware())
+    dp.message.middleware(PreemptFSMContextInPrivateMiddleware())
     dp.message.middleware(SourceFilterMiddleware())
 
     await scheduling.schedule(bot)
 
     app.state.bot = bot
     app.state.dp = dp
+
+    # listener_task = asyncio.create_task(start_redis_listener())
+    # app.state.redis_listener_task = listener_task
 
     if run_mode == RunMode.PROD:
         target = glob.rms.host_url.rstrip('/') + WEBHOOK_PATH
@@ -115,6 +118,7 @@ async def lifespan(app: FastAPI):
     try:
         yield
     finally:
+        # listener_task.cancel()
         await bot.session.close()
 
 

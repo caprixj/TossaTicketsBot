@@ -1,6 +1,7 @@
 import copy
 import random
 from datetime import datetime, timedelta, timezone
+from sqlite3 import IntegrityError
 from typing import Optional, List, Any
 
 import aiofiles
@@ -8,23 +9,26 @@ import yaml
 from aiogram.types import User, Message
 
 import resources.glob as glob
-from command.parser.results.parser_result import CommandParserResult
-from command.parser.types.target_type import CommandTargetType as ctt
-from model.database import Award, AwardMember, Member, TicketTransaction, TaxTransaction, Recipe, Ingredient, \
-    Artifact, Material, MemberMaterial, DelMember
-from model.database.transactions import BusinessProfitTransaction, MaterialTransaction
-from model.dto import AwardDTO, LTransDTO, TransactionResultDTO
-from model.types import TransactionResultErrors as TRE, TicketTxnType, ArtifactType, TaxParentType
-from model.types.gem_counting_mode import GemCountingMode
-from model.types.profit_type import ProfitType
-from model.types.transaction_types import MaterialTxnType, TaxType
-from repository.ordering_type import OrderingType
+from command.parser.results import CommandParserResult
+from command.parser.types import CommandTargetType as CTT
+from model.database.awards import Award, AwardMember
+from model.database.materials import Recipe, Material, Ingredient, MemberMaterial, Artifact, MaterialOrder, MaterialDeal
+from model.database.member import Member, DelMember
+from model.database.transactions import TicketTransaction, BusinessProfitTransaction, MaterialTransaction, \
+    TaxTransaction
+from model.dto.award_dto import AwardDTO
+from model.dto.ltrans_dto import TxnDTO
+from model.dto.msend_dto import MaterialOrderCostDetailsDTO
+from model.dto.txn_dto import TransactionResultDTO
+from model.types.custom.primitives import OrderCode
+from model.types.enums import TicketTxnType, ProfitType, MaterialTxnType, TransactionResultErrors as TRE, TaxType, \
+    TaxParentType, OrderingType, GemCountingMode, ArtifactType, MaterialDealStatus, MaterialDealResult
 from repository import repository_core as repo
-from resources import funcs
-from service.operation_manager import ServiceOperationManager
-from resources.funcs import get_formatted_name, get_single_tax, utcnow_str, get_materials_yaml
+from utils import funcs
+from service.operational.manager import ServiceOperationsManager
+from utils.funcs import get_formatted_name, get_single_tax, utcnow_str, get_materials_yaml
 
-operation_manager = ServiceOperationManager()
+_som: Optional[ServiceOperationsManager] = None
 sfs_alert_pins: dict[int, Message] = {}
 
 _recipes: list[Recipe] = []
@@ -32,7 +36,14 @@ _materials: list[Material] = []
 _gem_freq: dict[str, float] = {}
 _artifact_profit: dict[str, float] = {}
 
-""" Global Getters """
+""" Glob Getters """
+
+
+def som() -> ServiceOperationsManager:
+    global _som
+    if not _som:
+        _som = ServiceOperationsManager()
+    return _som
 
 
 async def _get_recipes() -> List[Recipe]:
@@ -54,30 +65,24 @@ async def _get_recipes() -> List[Recipe]:
 
 async def _get_materials() -> list[Material]:
     global _materials
-
     if not _materials:
         _materials = await get_materials_yaml()
-
     return _materials
 
 
 async def _get_gem_freq() -> dict[str, float]:
     global _gem_freq
-
     if not _gem_freq:
         async with aiofiles.open(glob.GEM_FREQ_YAML_PATH, 'r', encoding='utf-8') as f:
             _gem_freq = yaml.safe_load(await f.read())
-
     return _gem_freq
 
 
 async def _get_artifact_profits_dict() -> dict[str, float]:
     global _artifact_profit
-
     if not _artifact_profit:
         async with aiofiles.open(glob.ARTIFACT_PROFIT_YAML_PATH, 'r', encoding='utf-8') as f:
             _artifact_profit = yaml.safe_load(await f.read())
-
     return _artifact_profit
 
 
@@ -88,64 +93,98 @@ async def sql_execute(query: str, many: bool = False) -> (bool, str):
     return await repo.sql_execute(query, many)
 
 
-async def _add_tickets(member: Member, tickets: int, txn_type: TicketTxnType, description: str = None):
-    member.tickets += tickets
-    time = utcnow_str()
+async def _transfer_tickets(
+        *, sender: Member, receiver: Member, amount: int,
+        txn_type: TicketTxnType, description: str = None, created_at: str = None
+) -> int:
+    """
+    Use only for TicketTransaction transfers
+    :param created_at: ISO-8601 String (the combined date and time in UTC format)
+    :return: Ticket Transaction ID (ticket_txns)
+    """
+    sender.tickets -= amount
+    receiver.tickets += amount
+
+    await repo.update_member_tickets(sender)
+    await repo.update_member_tickets(receiver)
+
+    return await repo.insert_ticket_txn(TicketTransaction(
+        sender_id=sender.user_id,
+        receiver_id=receiver.user_id,
+        transfer=amount,
+        txn_type=txn_type,
+        time=created_at if created_at else utcnow_str(),
+        description=description
+    ))
+
+
+async def _add_tickets(member: Member, amount: int, txn_type: TicketTxnType, description: str = None):
+    """
+    :return: ticket transaction id
+    """
+    member.tickets += amount
+    created_at = utcnow_str()
 
     await repo.update_member_tickets(member)
-    await repo.insert_ticket_txn(TicketTransaction(
+    return await repo.insert_ticket_txn(TicketTransaction(
         receiver_id=member.user_id,
-        transfer=tickets,
-        time=time,
+        transfer=amount,
+        time=created_at,
         description=description,
         txn_type=txn_type
     ))
 
 
-async def _delete_tickets(member: Member, tickets: int, txn_type: TicketTxnType, description: str = None):
+async def _del_tickets(member: Member, tickets: int, txn_type: TicketTxnType, description: str = None):
+    """
+    :return: ticket transaction id
+    """
     member.tickets -= tickets
-    time = utcnow_str()
+    created_at = utcnow_str()
 
     await repo.update_member_tickets(member)
     await repo.insert_ticket_txn(TicketTransaction(
         sender_id=member.user_id,
         transfer=tickets,
-        time=time,
+        time=created_at,
         description=description,
         txn_type=txn_type
     ))
 
 
-async def _set_tickets(member: Member, tickets: int, txn_type: TicketTxnType, description: str = None) -> int:
-    if member.tickets == tickets:
+async def _set_tickets(member: Member, amount: int, txn_type: TicketTxnType, description: str = None) -> int:
+    """
+    :return: ticket transaction id
+    """
+    if member.tickets == amount:
         return 0
 
-    time = utcnow_str()
+    created_at = utcnow_str()
 
-    if tickets > member.tickets:  # addt
-        transfer = tickets - member.tickets
+    if amount > member.tickets:  # addt
+        transfer = amount - member.tickets
         await repo.insert_ticket_txn(TicketTransaction(
             receiver_id=member.user_id,
             transfer=transfer,
-            time=time,
-            description=description,
-            txn_type=txn_type
+            txn_type=txn_type,
+            time=created_at,
+            description=description
         ))
     else:  # delt
-        transfer = member.tickets - tickets
+        transfer = member.tickets - amount
         await repo.insert_ticket_txn(TicketTransaction(
             sender_id=member.user_id,
             transfer=transfer,
-            time=time,
-            description=description,
-            txn_type=txn_type
+            txn_type=txn_type,
+            time=created_at,
+            description=description
         ))
 
     init_member_tickets = member.tickets
-    member.tickets = tickets
+    member.tickets = amount
     await repo.update_member_tickets(member)
 
-    return transfer if tickets > init_member_tickets else -transfer
+    return transfer if amount > init_member_tickets else -transfer
 
 
 async def _profit_business_account(member: Member, transfer: int, profit_type: ProfitType, artifact_id: int):
@@ -198,8 +237,9 @@ async def bal(m: Member) -> str:
             f"\n{glob.BAL_TBOX_AVAILABLE}: {m.tbox_available}")
 
 
-async def balm(user_id: int) -> list[Ingredient]:
-    return await repo.get_member_materials_by_user_id(user_id)
+async def balm(user_id: int) -> tuple[int, list[Ingredient]]:
+    materials: list[Ingredient] = await repo.get_member_materials_by_user_id(user_id)
+    return user_id, materials
 
 
 async def tbox(user_id: int) -> str:
@@ -226,27 +266,22 @@ async def tbox(user_id: int) -> str:
 
 async def tpay(sender: Member, receiver: Member, transfer: int, description: str = None) -> TransactionResultDTO:
     single_tax = await get_single_tax(transfer)
-    total = transfer + single_tax
 
-    if total > sender.tickets:
+    if transfer + single_tax > sender.tickets:
         return TransactionResultDTO(TRE.INSUFFICIENT_FUNDS)
 
-    current_datetime = utcnow_str()
+    created_at = utcnow_str()
 
-    # transfer & -tpay_available
-    sender.tickets -= transfer
+    # transfer & tpay available
     await repo.spend_tpay_available(sender.user_id)
-    await repo.update_member_tickets(sender)
-    receiver.tickets += transfer
-    await repo.update_member_tickets(receiver)
-    ticket_txn_id = await repo.insert_ticket_txn(TicketTransaction(
-        sender_id=sender.user_id,
-        receiver_id=receiver.user_id,
-        transfer=transfer,
+    ticket_txn_id = await _transfer_tickets(
+        sender=sender,
+        receiver=receiver,
+        amount=transfer,
         txn_type=TicketTxnType.TPAY,
-        time=current_datetime,
-        description=description
-    ))
+        description=description,
+        created_at=created_at
+    )
 
     # taxation
     sender.tickets -= single_tax
@@ -257,13 +292,72 @@ async def tpay(sender: Member, receiver: Member, transfer: int, description: str
         amount=single_tax,
         tax_type=TaxType.SINGLE,
         parent_type=TaxParentType.TICKET,
-        time=current_datetime
+        time=created_at
     ))
 
     return TransactionResultDTO(valid=True)
 
 
-async def ltrans(user_id: int) -> LTransDTO:
+async def msell(data: dict[str, Any]):
+    user_id: int = data['user_id']
+    material: Material = data['material']
+    quantity: int = data['quantity']
+    revenue: int = data['revenue']
+    single_tax: int = data['single_tax']
+    msell_tax: int = data['msell_tax']
+    member = await get_member(user_id)
+    current_datetime = utcnow_str()
+
+    # tickets transaction
+    member.tickets += revenue
+    await repo.update_member_tickets(member)
+    ticket_txn_id = await repo.insert_ticket_txn(TicketTransaction(
+        receiver_id=user_id,
+        transfer=revenue,
+        txn_type=TicketTxnType.MSELL,
+        time=current_datetime,
+        description=f'{TicketTxnType.MSELL.value} - {quantity} ({material.name})'
+    ))
+
+    # single taxation
+    member.tickets -= single_tax
+    await repo.update_member_tickets(member)
+    await repo.insert_tax_txn(TaxTransaction(
+        parent_id=ticket_txn_id,
+        user_id=user_id,
+        amount=single_tax,
+        tax_type=TaxType.SINGLE,
+        parent_type=TaxParentType.TICKET,
+        time=current_datetime,
+    ))
+
+    # msell taxation
+    member.tickets -= msell_tax
+    await repo.update_member_tickets(member)
+    await repo.insert_tax_txn(TaxTransaction(
+        parent_id=ticket_txn_id,
+        user_id=user_id,
+        amount=msell_tax,
+        tax_type=TaxType.MSELL,
+        parent_type=TaxParentType.TICKET,
+        time=current_datetime,
+    ))
+
+    # materials transaction
+    diff = Ingredient(material.name, quantity)
+    await repo.spend_tpay_available(user_id)
+    await repo.spend_member_material(user_id, diff)
+    await repo.insert_material_transaction(MaterialTransaction(
+        sender_id=user_id,
+        type_=MaterialTxnType.MSELL,
+        material_name=material.name,
+        quantity=quantity,
+        ticket_txn=ticket_txn_id,
+        date=current_datetime
+    ))
+
+
+async def txn(user_id: int) -> TxnDTO:
     return await repo.get_txn_stats(user_id)
 
 
@@ -271,7 +365,7 @@ async def laward(user_id: int) -> Optional[List[AwardDTO]]:
     return await repo.get_awards(user_id)
 
 
-async def topt(size: int = 0, percent_mode: bool = False, id_mode: bool = False) -> str:
+async def topt(size: int = 0, percent_flag: bool = False, id_flag: bool = False) -> str:
     if size:
         order = OrderingType.DESC if size > 0 else OrderingType.ASC
         limit = abs(size)
@@ -299,7 +393,7 @@ async def topt(size: int = 0, percent_mode: bool = False, id_mode: bool = False)
         else:
             iterator = f'{idx}.'
 
-        if percent_mode:
+        if percent_flag:
             if total_tickets > 0:
                 pct = m.tickets / total_tickets * 100
                 value = f'{pct:.2f}%'
@@ -309,7 +403,7 @@ async def topt(size: int = 0, percent_mode: bool = False, id_mode: bool = False)
             sign = '+' if m.tickets > 0 else ''
             value = f'{sign}{m.tickets / 100:.2f}'
 
-        uid_str = f'`{m.user_id}` ' if id_mode else ''
+        uid_str = f'`{m.user_id}` ' if id_flag else ''
         name = get_formatted_name(m)[:32]
         lines.append(f'{iterator} {uid_str}({value}) {name}')
 
@@ -441,19 +535,19 @@ async def anchor(user_id: int, chat_id: int) -> str:
     return glob.ANCHOR_SUCCESS
 
 
-""" Creator Interfaces """
+""" Admin Interfaces """
 
 
 async def addt(member: Member, tickets: int, description: str = None):
-    await _add_tickets(member, tickets, TicketTxnType.CREATOR, description)
+    await _add_tickets(member, tickets, TicketTxnType.ADMIN, description)
 
 
 async def delt(member: Member, tickets: int, description: str = None):
-    await _delete_tickets(member, tickets, TicketTxnType.CREATOR, description)
+    await _del_tickets(member, tickets, TicketTxnType.ADMIN, description)
 
 
 async def sett(member: Member, tickets: int, description: str = None) -> int:
-    return await _set_tickets(member, tickets, TicketTxnType.CREATOR, description)
+    return await _set_tickets(member, tickets, TicketTxnType.ADMIN, description)
 
 
 async def award(m: Member, a: Award, issue_date: str):
@@ -471,7 +565,7 @@ async def award(m: Member, a: Award, issue_date: str):
             f"\n\n<b>{a.name}</b>"
             f"\n\nid: <b>{a.award_id}</b>"
             f"{payment}"
-            f"\n{glob.AWARD_ISSUED}: <b>{issue_date}</b>"
+            f"\n{glob.AWARD_ISSUED}: <b>{funcs.to_kyiv_str(issue_date)}</b>"
             f"\n\n<b>{glob.AWARD_STORY}</b>: <i>{a.description}</i>")
 
 
@@ -500,24 +594,24 @@ async def fire(user_id: int, position: str) -> bool:
         return True
 
 
-async def unreg(m: Member, otype: str):
+async def unreg(member: Member, otype: str):
     await _set_tickets(
-        member=m,
-        tickets=0,
+        member=member,
+        amount=0,
         txn_type=TicketTxnType.UNREG,
         description='unreg'
     )
 
-    if otype == glob.BAN_ARG:
+    if otype == glob.BAN_FLAG:
         await repo.insert_del_member(DelMember(
-            user_id=m.user_id,
-            username=m.username,
-            first_name=m.first_name,
-            last_name=m.last_name,
-            anchor=m.anchor
+            user_id=member.user_id,
+            username=member.username,
+            first_name=member.first_name,
+            last_name=member.last_name,
+            anchor=member.anchor
         ))
 
-    await repo.delete_member(m.user_id)
+    await repo.delete_member(member.user_id)
 
 
 """ Get """
@@ -532,15 +626,15 @@ async def get_del_member(user_id: int) -> Optional[DelMember]:
 
 
 async def get_target_member(cpr: CommandParserResult) -> Optional[Member]:
-    if cpr.overload.target_type == ctt.NONE:
+    if cpr.overload.target_type == CTT.NONE:
         user_id = cpr.message.from_user.id
         return await repo.get_member_by_user_id(user_id)
-    elif cpr.overload.target_type == ctt.REPLY:
+    elif cpr.overload.target_type == CTT.REPLY:
         user_id = cpr.message.reply_to_message.from_user.id
         return await repo.get_member_by_user_id(user_id)
-    elif cpr.overload.target_type == ctt.USERNAME:
+    elif cpr.overload.target_type == CTT.USERNAME:
         return await repo.get_member_by_username(cpr.args[glob.USERNAME_ARG])
-    elif cpr.overload.target_type == ctt.USER_ID:
+    elif cpr.overload.target_type == CTT.USER_ID:
         return await repo.get_member_by_user_id(cpr.args[glob.USER_ID_ARG])
 
 
@@ -575,10 +669,6 @@ async def get_total_tickets() -> int:
 
 async def get_business_tpool() -> int:
     return await repo.get_sum_business_accounts()
-
-
-# async def get_artifact_tpool() -> float:
-#     return sum(a.age_multiplier() * a.investment for a in await repo.get_all_artifacts())
 
 
 async def get_material_tpool(infl: bool = False, taxed: bool = True) -> float:
@@ -713,6 +803,10 @@ async def get_material_name(emoji: str) -> Optional[str]:
             return m.name
 
 
+async def get_member_material(user_id: int, material_name: str) -> Optional[Ingredient]:
+    return await repo.get_member_material(user_id, material_name)
+
+
 async def get_sold_mc_today(user_id: int) -> int:
     # default: the period of one day (yesterday)
     return await repo.get_member_sold_mc_by_period(user_id)
@@ -725,6 +819,58 @@ async def get_material_price(material_name: str) -> float:
 async def get_formatted_material_name(material_name: str) -> Optional[str]:
     if material_name:
         return material_name.replace('_', ' ')
+
+
+async def get_materials_markup(user_id: int) -> list[list[str]]:
+    materials = await repo.get_member_materials_by_user_id(user_id)
+    reservations = await repo.get_material_reservations(user_id)
+
+    # dict[str, int]
+    gemstone_buttons = {}
+    intermediates_buttons = {}
+    artifact_templates_buttons = {}
+
+    for ing in materials:
+        reserved = reservations.get(ing.name, 0)
+        reserved_str = f' (-{reserved})' if reserved > 0 else ''
+        btn = f'{await get_emoji(ing.name)} {ing.quantity}{reserved_str}\n'
+
+        if await is_gem(ing.name):
+            gemstone_buttons[btn] = ing.quantity
+        elif await is_intermediate(ing.name):
+            intermediates_buttons[btn] = ing.quantity
+        elif await is_artifact_template(ing.name):
+            artifact_templates_buttons[btn] = ing.quantity
+
+    def _form_button_groups(rows: dict[str, int]) -> list[str]:
+        return sorted(rows, key=rows.get, reverse=True)
+
+    gemstones_group = _form_button_groups(gemstone_buttons)
+    intermediates_group = _form_button_groups(intermediates_buttons)
+    artifact_templates_group = _form_button_groups(artifact_templates_buttons)
+
+    def _split_into_rows(button_group: list[str]) -> list[list[str]]:
+        btn_count = int(len(button_group) / glob.CHOOSE_MAT_BTN_ROW_LIMIT) + 1
+        rows = list()
+        for i in range(0, btn_count):
+            beg = glob.CHOOSE_MAT_BTN_ROW_LIMIT * i
+            end = glob.CHOOSE_MAT_BTN_ROW_LIMIT * (i + 1)
+            rows.append(button_group[beg:end])
+        return rows
+
+    return list(filter(bool, [
+        *_split_into_rows(gemstones_group),
+        *_split_into_rows(intermediates_group),
+        *_split_into_rows(artifact_templates_group)
+    ]))
+
+
+async def get_material_reservation(sender_id: int, material_name: str) -> int:
+    return await repo.get_material_reservation(sender_id, material_name)
+
+
+async def get_material_reservations(sender_id: int) -> dict[str, int]:
+    return await repo.get_material_reservations(sender_id)
 
 
 """ Member """
@@ -784,106 +930,276 @@ async def pay_award(member: Member, payment: int, description: str):
     await _add_tickets(member, payment, TicketTxnType.AWARD, description)
 
 
-""" Msell """
+""" Msend """
 
 
-async def msell_markup(user_id: int) -> list[list[str]]:
-    materials = await repo.get_member_materials_by_user_id(user_id)
-
-    # dict[str, int]
-    gemstone_buttons = {}
-    intermediates_buttons = {}
-    artifact_templates_buttons = {}
-
-    for ing in materials:
-        btn = f'{await get_emoji(ing.name)} {ing.quantity}\n'
-        if await is_gem(ing.name):
-            gemstone_buttons[btn] = ing.quantity
-        elif await is_intermediate(ing.name):
-            intermediates_buttons[btn] = ing.quantity
-        elif await is_artifact_template(ing.name):
-            artifact_templates_buttons[btn] = ing.quantity
-
-    def _form_button_groups(rows: dict[str, int]) -> list[str]:
-        return sorted(rows, key=rows.get, reverse=True)
-
-    gemstones_group = _form_button_groups(gemstone_buttons)
-    intermediates_group = _form_button_groups(intermediates_buttons)
-    artifact_templates_group = _form_button_groups(artifact_templates_buttons)
-
-    def _split_into_rows(button_group: list[str]) -> list[list[str]]:
-        btn_count = int(len(button_group) / glob.MSELL_BTN_ROW_LIMIT) + 1
-        rows = list()
-        for i in range(0, btn_count):
-            beg = glob.MSELL_BTN_ROW_LIMIT * i
-            end = glob.MSELL_BTN_ROW_LIMIT * (i + 1)
-            rows.append(button_group[beg:end])
-        return rows
-
-    return list(filter(bool, [
-        *_split_into_rows(gemstones_group),
-        *_split_into_rows(intermediates_group),
-        *_split_into_rows(artifact_templates_group)
-    ]))
-
-
-async def msell_txn(data: dict[str, Any]):
-    user_id: int = data['user_id']
-    material: Material = data['material']
+async def msend_reserve(data: dict[str, Any]) -> Optional[MaterialOrder]:
+    """
+    :param data: FSMContext's get_data()
+    :return: (True, invoice_code) || (False, error_message)
+    """
+    mat_sender_id: int = data['mat_sender_id']
+    mat_receiver_id: int = data['mat_receiver_id']
     quantity: int = data['quantity']
-    revenue: int = data['revenue']
-    single_tax: int = data['single_tax']
-    msell_tax: int = data['msell_tax']
-    member = await get_member(user_id)
-    current_datetime = utcnow_str()
+    offered_cost: int = data['offered_cost']
+    description: str = data['description']
+    material_name: str = data['material_name']
 
-    # tickets transaction
-    member.tickets += revenue
-    await repo.update_member_tickets(member)
-    ticket_txn_id = await repo.insert_ticket_txn(TicketTransaction(
-        receiver_id=user_id,
-        transfer=revenue,
-        txn_type=TicketTxnType.MSELL,
-        time=current_datetime,
-        description=f'{TicketTxnType.MSELL.value} - {quantity} ({material.name})'
-    ))
+    material_bal: Ingredient = await get_member_material(
+        user_id=mat_sender_id,
+        material_name=material_name
+    )
 
-    # single taxation
-    member.tickets -= single_tax
-    await repo.update_member_tickets(member)
+    if material_bal is None or material_bal.quantity < quantity:
+        return None
+
+    order = MaterialOrder(
+        code=OrderCode.generate_random(),
+        sender_id=mat_sender_id,
+        receiver_id=mat_receiver_id,
+        material_name=material_name,
+        quantity=quantity,
+        offered_cost=offered_cost,
+        created_at=funcs.utcnow_str(),
+        description=description
+    )
+
+    while True:
+        try:  # seeking for a free primary key
+            await repo.insert_material_order(order)
+            break
+        except IntegrityError:
+            order.code = OrderCode.generate_random()
+
+    return order
+
+
+async def accept_trade_deal(order: MaterialOrder) -> MaterialDealResult:
+    # error capturing
+    if not order:
+        return MaterialDealResult.ORDER_NOT_FOUND
+
+    sender = await get_member(order.sender_id)
+    if not sender:
+        return MaterialDealResult.SENDER_NOT_FOUND
+
+    receiver = await get_member(order.receiver_id)
+    if not receiver:
+        return MaterialDealResult.RECEIVER_NOT_FOUND
+
+    material_bal: Ingredient = await get_member_material(sender.user_id, order.material_name)
+    if not material_bal:
+        return MaterialDealResult.MATERIAL_NOT_FOUND
+
+    reserved: int = await repo.get_material_reservation_exclude_receiver(
+        sender_id=sender.user_id,
+        receiver_id=receiver.user_id,
+        material_name=order.material_name
+    )
+
+    available = material_bal.quantity - reserved
+    if order.quantity > material_bal.quantity:
+        return MaterialDealResult.NOT_ENOUGH_MATERIAL
+    if order.quantity > available:
+        return MaterialDealResult.RESERVATION_VIOLATED
+
+    # transfer materials
+    material_transfer = Ingredient(name=order.material_name, quantity=order.quantity)
+    await repo.spend_member_material(user_id=sender.user_id, diff=material_transfer)
+    await repo.add_member_material(user_id=receiver.user_id, diff=material_transfer)
+
+    # cost revaluation
+    details = await calculate_material_order_cost_details(order.material_name, order.quantity, order.offered_cost)
+    created_at = utcnow_str()
+
+    # transfer tickets
+    ticket_txn_id = await _transfer_tickets(
+        sender=receiver,  # ticket sender = material receiver
+        receiver=sender,  # ticket receiver = material sender
+        amount=details.total_cost,
+        txn_type=TicketTxnType.MSEND,
+        description=order.description,
+        created_at=created_at
+    )
+
+    # sender pays single tax
+    sender.tickets -= details.single_tax
+    await repo.update_member_tickets(sender)
     await repo.insert_tax_txn(TaxTransaction(
         parent_id=ticket_txn_id,
-        user_id=user_id,
-        amount=single_tax,
+        user_id=sender.user_id,
+        amount=details.single_tax,
         tax_type=TaxType.SINGLE,
         parent_type=TaxParentType.TICKET,
-        time=current_datetime,
+        time=created_at,
     ))
 
-    # msell taxation
-    member.tickets -= msell_tax
-    await repo.update_member_tickets(member)
+    # sender pays msend tax
+    sender.tickets -= details.msend_tax
+    await repo.update_member_tickets(sender)
     await repo.insert_tax_txn(TaxTransaction(
         parent_id=ticket_txn_id,
-        user_id=user_id,
-        amount=msell_tax,
-        tax_type=TaxType.MSELL,
+        user_id=sender.user_id,
+        amount=details.msend_tax,
+        tax_type=TaxType.MSEND,
         parent_type=TaxParentType.TICKET,
-        time=current_datetime,
+        time=created_at,
     ))
 
-    # materials transaction
-    diff = Ingredient(material.name, quantity)
-    await repo.spend_tpay_available(user_id)
-    await repo.spend_member_material(user_id, diff)
-    await repo.insert_material_transaction(MaterialTransaction(
-        sender_id=user_id,
-        type_=MaterialTxnType.MSELL,
-        material_name=material.name,
-        quantity=quantity,
+    # log material transaction
+    mat_txn_id = await repo.insert_material_transaction(MaterialTransaction(
+        receiver_id=receiver.user_id,
+        type_=MaterialTxnType.MSEND,
+        material_name=order.material_name,
+        quantity=order.quantity,
         ticket_txn=ticket_txn_id,
-        date=current_datetime
+        date=created_at,
+        description=order.description
     ))
+
+    # log material deal
+    await repo.insert_material_deal(MaterialDeal(
+        order_code=order.code,
+        mat_txn_id=mat_txn_id,
+        status=MaterialDealStatus.ACCEPTED,
+        material_name=order.material_name,
+        quantity=order.quantity,
+        offered_cost=order.offered_cost,
+        closed_at=created_at,
+        order_created_at=funcs.to_iso_z(order.created_at),
+        description=order.description
+    ))
+
+    # delete material order
+    await repo.delete_material_order(order.code)
+
+    # final
+    return MaterialDealResult.SUCCESS
+
+
+async def cancel_material_deal(order_code: str, status: MaterialDealStatus):
+    if status not in [MaterialDealStatus.REJECTED, MaterialDealStatus.ABORTED]:
+        raise ValueError('Invalid MaterialDealStatus at cancel_trade_deal')
+
+    order: MaterialOrder = await get_material_order(order_code)
+    if not order:
+        return
+
+    await repo.delete_material_order(order_code)
+    await repo.insert_material_deal(MaterialDeal(
+        order_code=order_code,
+        status=status,
+        material_name=order.material_name,
+        quantity=order.quantity,
+        offered_cost=order.offered_cost,
+        closed_at=utcnow_str(),
+        order_created_at=funcs.to_iso_z(order.created_at),
+        description=order.description
+    ))
+
+
+""" Moffer """
+
+
+async def get_moffer_details(order: MaterialOrder) -> Optional[str]:
+    details = await calculate_material_order_cost_details(order.material_name, order.quantity, order.offered_cost)
+    return (f'*{glob.MOFFER_MAT_ORDER}* `#{order.code}`\n_{glob.MOFFER_OFFER}_'
+            f'\n\n{glob.MOFFER_SENDER}: {get_formatted_name(await get_member(order.sender_id), ping=True)}'
+            f'\n{glob.MOFFER_RECEIVER}: {get_formatted_name(await get_member(order.receiver_id), ping=True)}'
+            f'\n\n{glob.MOFFER_YOU_PAY}: *{details.total_cost / 100:.2f} tc*'
+            f'\n{glob.MOFFER_YOU_RECEIVE}: *{order.quantity} {order.material_name}{await get_emoji(order.material_name)}*'
+            f'\n\n{glob.MOFFER_OFFERED_TO_PAY}: {order.offered_cost / 100:.2f} tc'
+            f'\n{glob.MOFFER_SINGLE_TAX_TEXT}: {details.single_tax / 100:.2f} tc ({int(glob.SINGLE_TAX * 100)}%)'
+            f'\n{glob.MOFFER_MSEND_TAX_TEXT}: {details.msend_tax / 100:.2f} tc ({int(glob.MSEND_TAX * 100)}%)'
+            f'\n\n{glob.MOFFER_RATE_PRICE}: {details.rate_price / 100:.7f} tc'
+            f'\n{glob.MOFFER_OFFERED_PRICE}: {details.offered_price / 100:.7f} tc'
+            f'\n\n{glob.MOFFER_DESCRIPTION}: _{order.description}_')
+
+
+async def get_moffers_page(user_id: int) -> Optional[str]:
+    orders: list[MaterialOrder] = await repo.get_receiver_material_orders(user_id)
+    if not orders or len(orders) == 0:
+        return f'_{glob.MOFFER_EMPTY}_'
+
+    moffer_list = []
+    for order in orders:
+        sender = await get_member(order.sender_id)
+        details = await calculate_material_order_cost_details(order.material_name, order.quantity, order.offered_cost)
+        moffer_list.append(
+            f'`#{order.code}`'
+            f' | {glob.MOFFER_FROM}: {get_formatted_name(sender, ping=True)}'
+            f' | *{order.quantity} {order.material_name}{await get_emoji(order.material_name)}*'
+            f' | {glob.MOFFER_COST}: *{details.total_cost / 100:.2f} tc*'
+            f' | {funcs.to_kyiv_str(order.created_at)}'
+            f' | {glob.MOFFER_TEXT}: _{funcs.escape_markdown_v2(order.description)}_'
+        )
+
+    return '\n\n'.join(moffer_list) if moffer_list else None
+
+
+async def get_material_order(order_code: str) -> Optional[MaterialOrder]:
+    return await repo.get_material_order(order_code)
+
+
+async def calculate_material_order_cost_details(
+        material_name: str, quantity: int, offered_cost: int
+) -> MaterialOrderCostDetailsDTO:
+    rate_price = await get_material_price(material_name)
+    offered_price = offered_cost / quantity
+    rate_cost = round(quantity * rate_price)
+    single_tax = round(glob.SINGLE_TAX * rate_cost)
+    msend_tax = round(glob.MSEND_TAX * offered_cost)
+    total_cost = offered_cost + single_tax + msend_tax
+
+    return MaterialOrderCostDetailsDTO(
+        rate_price=rate_price,
+        offered_price=offered_price,
+        rate_cost=rate_cost,
+        single_tax=single_tax,
+        msend_tax=msend_tax,
+        total_cost=total_cost
+    )
+
+
+""" Minvo """
+
+async def get_minvo_details(order: MaterialOrder) -> Optional[str]:
+    details: MaterialOrderCostDetailsDTO = await calculate_material_order_cost_details(
+        order.material_name, order.quantity, order.offered_cost
+    )
+    return (f'*{glob.MINVO_MAT_ORDER}* `#{order.code}`\n_{glob.MINVO_INVOICE}_'
+            f'\n\n{glob.MINVO_SENDER}: {get_formatted_name(await get_member(order.sender_id), ping=True)}'
+            f'\n{glob.MINVO_RECEIVER}: {get_formatted_name(await get_member(order.receiver_id), ping=True)}'
+            f'\n\n{glob.MINVO_YOU_SEND}: *{order.quantity} {order.material_name}{await get_emoji(order.material_name)}*'
+            f'\n{glob.MINVO_YOU_RECEIVE}: *{order.offered_cost / 100:.2f} tc*'
+            f'\n\n{glob.MINVO_BUYER_PAYS}: {details.total_cost / 100:.2f} tc'
+            f'\n{glob.MINVO_SINGLE_TAX_TEXT}: {details.single_tax / 100:.2f} tc ({int(glob.SINGLE_TAX * 100)}%)'
+            f'\n{glob.MINVO_MSEND_TAX_TEXT}: {details.msend_tax / 100:.2f} tc ({int(glob.MSEND_TAX * 100)}%)'
+            f'\n\n{glob.MINVO_RATE_PRICE}: {details.rate_price / 100:.7f} tc'
+            f'\n{glob.MINVO_YOUR_PRICE}: {details.offered_price / 100:.7f} tc'
+            f'\n\n{glob.MINVO_DESCRIPTION}: _{order.description}_')
+
+
+async def get_minvos_page(user_id: int) -> Optional[str]:
+    orders: list[MaterialOrder] = await repo.get_sender_material_orders(user_id)
+    if not orders or len(orders) == 0:
+        return f'_{glob.MINVO_EMPTY}_'
+
+    minvo_list = []
+    for order in orders:
+        receiver = await get_member(order.receiver_id)
+        details = await calculate_material_order_cost_details(order.material_name, order.quantity, order.offered_cost)
+        minvo_list.append(
+            f'`#{order.code}`'
+            f' | {glob.MINVO_TO}: {get_formatted_name(receiver, ping=True)}'
+            f' | *{order.quantity} {order.material_name}{await get_emoji(order.material_name)}*'
+            f' | {glob.MINVO_COST}: *{order.offered_cost / 100:.2f} tc*'
+            f' ({glob.MINVO_TAX_TEXT}: +{(details.single_tax + details.msend_tax) / 100:.2f} tc)'
+            f' | {funcs.to_kyiv_str(order.created_at)}'
+            f' | {glob.MINVO_TEXT}: _{funcs.escape_markdown_v2(order.description)}_'
+        )
+
+    return '\n\n'.join(minvo_list) if minvo_list else None
 
 
 """ SFS Alert """
@@ -927,7 +1243,7 @@ async def payout_profits():
             artifact_id=a.artifact_id
         )
 
-        # only if creator was not unreg from ticketonomics
+        # only if the creator was not unreg from ticketonomics
         # only if the owner is not the creator of the artifact
         if creator is not None and creator.user_id != owner.user_id:
             await _profit_business_account(
@@ -958,7 +1274,7 @@ async def payout_salaries(lsp_plan_date: datetime):
 
         await _add_tickets(
             member=member,
-            tickets=e.salary,
+            amount=e.salary,
             txn_type=TicketTxnType.SALARY,
             description=TicketTxnType.SALARY
         )

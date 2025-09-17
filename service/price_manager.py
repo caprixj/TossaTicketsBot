@@ -7,11 +7,12 @@ import yaml
 from aiogram import Bot
 
 from model.database.dynprices import RateReset
-from model.types.gem_counting_mode import GemCountingMode
-from resources import glob, funcs
+from model.types.enums import GemCountingMode
+from resources import glob
+from utils import funcs
 from resources.glob import MAX_FLUCT, MIN_FLUCT, FLUCT_GAUSS_SIGMA, INFL_ALPHA, \
     INIT_TPOOL, GEM_FREQ_YAML_PATH, MIN_DELTA_GEM_RATE, MAX_DELTA_GEM_RATE, GEM_BASE_PRICE
-from resources.funcs import utcnow_str
+from utils.funcs import utcnow_str
 from repository import repository_core as repo
 from service import service_core as service
 

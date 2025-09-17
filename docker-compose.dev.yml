@@ -1,0 +1,42 @@
+# for dev only (!)
+services:
+  bot:
+    build:
+      context: .
+      dockerfile: dev.Dockerfile
+    container_name: bot
+    environment:
+      REDIS_URL: redis://redis:6380/0
+    depends_on:
+      - redis
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+
+  # what it should look like on prod
+  # for dev overwritten by docker-compose.redis.yml
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    command: >
+      redis-server
+        --appendonly yes
+        --appendfsync everysec
+        --save 900 1 --save 300 10
+        --auto-aof-rewrite-percentage 100
+        --auto-aof-rewrite-min-size 4mb
+        --maxmemory 128mb
+        --maxmemory-policy noeviction
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 2s
+      timeout: 1s
+      retries: 30
+    restart: unless-stopped
+
+volumes:
+  redis-data:

@@ -1,4 +1,4 @@
-from resources import funcs
+from utils import funcs
 
 
 class Award:

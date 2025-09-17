@@ -201,20 +201,46 @@ CREATE_MAT_TXNS = """
         FOREIGN KEY (ticket_txn) REFERENCES ticket_txns (ticket_txn_id) ON DELETE RESTRICT
     );
 """
-CREATE_MAT_TXN_INVOICES = """
-    CREATE TABLE IF NOT EXISTS mat_txn_invoices (
-        mat_txn_invoice_id INTEGER PRIMARY KEY AUTOINCREMENT,
-        sender_id INTEGER NOT NULL DEFAULT -1,
-        receiver_id INTEGER NOT NULL DEFAULT -1,
-        type TEXT NOT NULL DEFAULT 'unknown',
+CREATE_MAT_ORDERS = """
+    CREATE TABLE IF NOT EXISTS mat_orders (
+        code TEXT PRIMARY KEY,
+        sender_id INTEGER NOT NULL,
+        receiver_id INTEGER NOT NULL,
         material_name TEXT,
-        quantity INTEGER NOT NULL CHECK(quantity >= 0),
-        transfer INTEGER NOT NULL,
-        date TEXT NOT NULL,
+        quantity INTEGER NOT NULL CHECK(quantity > 0),
+        offered_cost INTEGER NOT NULL CHECK(offered_cost > 0),
+        created_at TEXT NOT NULL,
         description TEXT,
-        FOREIGN KEY (sender_id) REFERENCES members (user_id) ON DELETE RESTRICT,
-        FOREIGN KEY (receiver_id) REFERENCES members (user_id) ON DELETE RESTRICT,
+        FOREIGN KEY (sender_id) REFERENCES members(user_id) ON DELETE RESTRICT,
+        FOREIGN KEY (receiver_id) REFERENCES members(user_id) ON DELETE RESTRICT,
         FOREIGN KEY (material_name) REFERENCES materials(name) ON DELETE RESTRICT
+    );
+"""
+CREATE_MAT_DEALS = """
+    CREATE TABLE IF NOT EXISTS mat_deals (
+        mat_deal_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        order_code TEXT NOT NULL,
+        status TEXT NOT NULL,
+        mat_txn_id INTEGER,
+        material_name TEXT,
+        quantity INTEGER NOT NULL CHECK(quantity > 0),
+        offered_cost INTEGER NOT NULL CHECK(offered_cost > 0),
+        closed_at TEXT NOT NULL,
+        order_created_at TEXT NOT NULL,
+        description TEXT,
+        FOREIGN KEY (mat_txn_id) REFERENCES mat_txns(mat_txn_id) ON DELETE RESTRICT,
+        FOREIGN KEY (material_name) REFERENCES materials(name) ON DELETE RESTRICT
+    );
+"""
+CREATE_MAT_TRADING_BLACKLIST = """
+    CREATE TABLE IF NOT EXISTS mat_trading_blacklist (
+        blocker_id INTEGER NOT NULL,
+        blocked_id INTEGER NOT NULL,
+        created_at TEXT NOT NULL,
+        PRIMARY KEY (blocker_id, blocked_id),
+        FOREIGN KEY (blocker_id) REFERENCES members(user_id) ON DELETE RESTRICT,
+        FOREIGN KEY (blocked_id) REFERENCES members(user_id) ON DELETE RESTRICT,
+        CHECK (blocker_id != blocked_id)
     );
 """
 CREATE_DAILY_SCHEDULES = """

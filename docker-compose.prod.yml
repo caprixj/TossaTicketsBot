@@ -1,0 +1,63 @@
+name: ticketonimics
+
+services:
+
+  nginx:
+    build:
+      context: ../
+      dockerfile: Infrastructure/Dockerfile
+    container_name: nginx-ticketonomics
+    ports:
+      - "1488:80"
+    networks:
+      - ticketonomics-network
+    restart: on-failure:3
+
+  tg-bot:
+    build:
+      context: ../
+      dockerfile: ./TossaTicketsBot/Dockerfile
+    container_name: bot-ticketonomics
+    volumes:
+      - ./db:/db
+    environment:
+      - APP_ENV=${APP_ENV}
+      - REDIS_URL=redis://redis:6379/0
+    ports:
+      - "1991:8000"
+    networks:
+      - ticketonomics-network
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: on-failure:3
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis-ticketonomics
+    command: >
+      redis-server
+        --appendonly yes
+        --appendfsync everysec
+        --save 900 1 --save 300 10
+        --auto-aof-rewrite-percentage 100
+        --auto-aof-rewrite-min-size 4mb
+        --maxmemory 128mb
+        --maxmemory-policy noeviction
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 2s
+      timeout: 1s
+      retries: 30
+    networks:
+      - ticketonomics-network
+    restart: unless-stopped
+
+networks:
+  ticketonomics-network:
+    driver: bridge
+
+volumes:
+  redis-data:

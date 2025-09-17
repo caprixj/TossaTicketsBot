@@ -1,7 +1,5 @@
-from model.types import TicketTxnType
-from model.types.profit_type import ProfitType
-from model.types.transaction_types import MaterialTxnType, TaxType, TaxParentType
-from resources import funcs
+from model.types.enums import TicketTxnType, ProfitType, MaterialTxnType, TaxType, TaxParentType
+from utils import funcs
 
 
 class TicketTransaction:
@@ -46,7 +44,7 @@ class MaterialTransaction:
                  sender_id: int = -1,
                  receiver_id: int = -1,
                  type_: MaterialTxnType = MaterialTxnType.UNKNOWN,
-                 material_name: str = 0,
+                 material_name: str = None,
                  quantity: int = 0,
                  ticket_txn: int = 0,
                  date: str = None,
@@ -59,6 +57,7 @@ class MaterialTransaction:
         self.quantity = quantity
         self.ticket_txn = ticket_txn
         self.date = funcs.to_utc(date)
+        self.description = description
         self.description = description
 
 

@@ -1,18 +1,23 @@
 from datetime import datetime, timezone
 from sqlite3 import IntegrityError
-from typing import Optional, List
+from typing import Optional
 
 import aiosqlite
 from aiosqlite import Cursor
 
-from model.database import *
-from model.database.transactions import BusinessProfitTransaction, MaterialTransaction, TicketTransaction, \
-    TaxTransaction
-from model.dto import AwardDTO, LTransDTO
-from model.types import TicketTxnType
-from repository.ordering_type import OrderingType
-from resources.funcs import utcnow_str
-from resources import glob, funcs
+from model.database.awards import AwardMember, Award
+from model.database.dynprices import RateReset, Price
+from model.database.jobs import SalaryPayout, Employee, Job
+from model.database.materials import Artifact, Ingredient, MemberMaterial, MaterialOrder, MaterialDeal
+from model.database.member import Member, DelMember
+from model.database.transactions import TicketTransaction, TaxTransaction, BusinessProfitTransaction, \
+    MaterialTransaction
+from model.dto.award_dto import AwardDTO
+from model.dto.ltrans_dto import TxnDTO
+from model.types.enums import OrderingType, TicketTxnType
+from utils.funcs import utcnow_str
+from resources import glob
+from utils import funcs
 from repository import sql
 
 
@@ -211,9 +216,9 @@ async def insert_employment_history(paid_member: Employee, fired_date: str):
         await db.commit()
 
 
-async def insert_material_transaction(mt: MaterialTransaction):
+async def insert_material_transaction(mt: MaterialTransaction) -> int:
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
-        await db.execute(sql.INSERT_MAT_TXNS, (
+        cursor = await db.execute(sql.INSERT_MAT_TXN, (
             mt.sender_id,
             mt.receiver_id,
             mt.type_,
@@ -222,6 +227,39 @@ async def insert_material_transaction(mt: MaterialTransaction):
             mt.ticket_txn,
             funcs.to_iso_z(mt.date),
             mt.description
+        ))
+        row = await cursor.fetchone()
+        await db.commit()
+        return int(row[0]) if row else 0
+
+
+async def insert_material_order(mi: MaterialOrder):
+    async with aiosqlite.connect(glob.rms.db_file_path) as db:
+        await db.execute(sql.INSERT_MAT_ORDER, (
+            mi.code,
+            mi.sender_id,
+            mi.receiver_id,
+            mi.material_name,
+            mi.quantity,
+            mi.offered_cost,
+            funcs.to_iso_z(mi.created_at),
+            mi.description
+        ))
+        await db.commit()
+
+
+async def insert_material_deal(md: MaterialDeal):
+    async with aiosqlite.connect(glob.rms.db_file_path) as db:
+        await db.execute(sql.INSERT_MAT_DEAL, (
+            md.order_code,
+            md.status,
+            md.mat_txn_id,
+            md.material_name,
+            md.quantity,
+            md.offered_cost,
+            funcs.to_iso_z(md.closed_at),
+            funcs.to_iso_z(md.order_created_at),
+            md.description
         ))
         await db.commit()
 
@@ -285,14 +323,14 @@ async def get_topt_members(order: OrderingType = OrderingType.DESC, limit: Optio
     return [Member(*row) for row in rows]
 
 
-async def get_artifacts(user_id: int) -> List[Artifact]:
+async def get_artifacts(user_id: int) -> list[Artifact]:
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
         cursor = await db.execute(sql.SELECT_ARTIFACTS_BY_OWNER_ID, (user_id,))
         rows = await cursor.fetchall()
         return [Artifact(*row) for row in rows]
 
 
-async def get_all_artifacts() -> List[Artifact]:
+async def get_all_artifacts() -> list[Artifact]:
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
         cursor = await db.execute(sql.SELECT_ARTIFACTS)
         rows = await cursor.fetchall()
@@ -313,7 +351,7 @@ async def get_award(award_id: str) -> Optional[Award]:
         return Award(*row) if row else None
 
 
-async def get_awards(user_id: int) -> Optional[List[AwardDTO]]:
+async def get_awards(user_id: int) -> Optional[list[AwardDTO]]:
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
         cursor = await db.execute(sql.SELECT_AWARD_RECORDS_BY_OWNER_ID, (user_id,))
         rows = await cursor.fetchall()
@@ -348,29 +386,37 @@ async def get_sum_business_accounts() -> int:
         return int(row[0]) if row else 0
 
 
-async def get_txn_stats(user_id: int) -> LTransDTO:
+async def get_txn_stats(user_id: int) -> TxnDTO:
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
         cursor = await db.cursor()
 
         # tpays
         await cursor.execute(
-            sql.SELECT_TPAYS_AND_TAXATION_BY_USER_ID,
-            (user_id, user_id)
+            sql.SELECT_TRANSFERS_AND_TAX,
+            (user_id, TicketTxnType.TPAY, user_id, TicketTxnType.TPAY)
         )
         # transaction details: affiliated taxes sum
         tpays = {TicketTransaction(*row[:-1]): row[-1] for row in await cursor.fetchall()}
 
+        # msends
+        await cursor.execute(
+            sql.SELECT_TRANSFERS_AND_TAX,
+            (user_id, TicketTxnType.MSEND, user_id, TicketTxnType.MSEND)
+        )
+        # transaction details: affiliated taxes sum
+        msends = {TicketTransaction(*row[:-1]): row[-1] for row in await cursor.fetchall()}
+
         # addts
         await cursor.execute(
             sql.SELECT_ADDTS_BY_USER_ID,
-            (user_id, TicketTxnType.CREATOR)
+            (user_id, TicketTxnType.ADMIN)
         )
         addts = [TicketTransaction(*row) for row in await cursor.fetchall()]
 
         # delts
         await cursor.execute(
             sql.SELECT_DELTS_BY_USER_ID,
-            (user_id, TicketTxnType.CREATOR)
+            (user_id, TicketTxnType.ADMIN)
         )
         delts = [TicketTransaction(*row) for row in await cursor.fetchall()]
 
@@ -409,12 +455,13 @@ async def get_txn_stats(user_id: int) -> LTransDTO:
         )
         taxes = [TaxTransaction(*row) for row in await cursor.fetchall()]
 
-        # unique_tpay_members
-        unique_tpay_members = await _get_unique_members(cursor, user_id, tpays)
+        # unique_transfer_members
+        unique_transfer_members = await _get_unique_members(cursor, user_id, transfers=tpays | msends)
 
-        return LTransDTO(
+        return TxnDTO(
             user_id,
             tpays,
+            msends,
             addts,
             delts,
             msells,
@@ -422,7 +469,7 @@ async def get_txn_stats(user_id: int) -> LTransDTO:
             awards_,
             unknowns,
             taxes,
-            unique_tpay_members
+            unique_transfer_members
         )
 
 
@@ -447,7 +494,7 @@ async def get_last_salary_payout() -> Optional[SalaryPayout]:
         return SalaryPayout(*row) if row else None
 
 
-async def get_employees() -> Optional[List[Employee]]:
+async def get_employees() -> Optional[list[Employee]]:
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
         cursor = await db.execute(sql.SELECT_EMPLOYEES)
         rows = await cursor.fetchall()
@@ -461,7 +508,7 @@ async def get_employee(user_id: int, position: str) -> Optional[Employee]:
         return Employee(*row) if row else None
 
 
-async def get_job_names(user_id: int) -> Optional[List[str]]:
+async def get_job_names(user_id: int) -> Optional[list[str]]:
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
         cursor = await db.execute(sql.SELECT_EMPLOYEE_JOB_NAMES, (user_id,))
         rows = await cursor.fetchall()
@@ -475,14 +522,14 @@ async def get_job_name(position: str) -> Optional[str]:
         return row[0] if row else None
 
 
-async def get_jobs() -> Optional[List[Job]]:
+async def get_jobs() -> Optional[list[Job]]:
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
         cursor = await db.execute(sql.SELECT_JOBS)
         rows = await cursor.fetchall()
         return [Job(*row) for row in rows]
 
 
-async def get_prices() -> List[Price]:
+async def get_prices() -> list[Price]:
     async with aiosqlite.connect(glob.rms.db_file_path) as db:
         cursor = await db.execute(sql.SELECT_PRICES)
         rows = await cursor.fetchall()
@@ -571,11 +618,56 @@ async def get_material_price(material_name: str) -> float:
         return float(row[0]) if row else 0
 
 
-async def _get_unique_members(cursor: Cursor, user_id: int, tpays: dict[TicketTransaction, int]) -> list[Member]:
-    unique_ids = set()
-    unique_members = list()
+async def get_material_order(order_code: str) -> Optional[MaterialOrder]:
+    async with aiosqlite.connect(glob.rms.db_file_path) as db:
+        cursor = await db.execute(sql.SELECT_MATERIAL_ORDER, (order_code,))
+        row = await cursor.fetchone()
+        return MaterialOrder(*row) if row else None
 
-    for tt in tpays:
+
+async def get_receiver_material_orders(user_id: int) -> list[MaterialOrder]:
+    async with aiosqlite.connect(glob.rms.db_file_path) as db:
+        cursor = await db.execute(sql.SELECT_RECEIVER_MATERIAL_ORDERS, (user_id, ))
+        rows = await cursor.fetchall()
+        return [MaterialOrder(*row) for row in rows]
+
+
+async def get_sender_material_orders(user_id: int) -> list[MaterialOrder]:
+    async with aiosqlite.connect(glob.rms.db_file_path) as db:
+        cursor = await db.execute(sql.SELECT_SENDER_MATERIAL_ORDERS, (user_id, ))
+        rows = await cursor.fetchall()
+        return [MaterialOrder(*row) for row in rows]
+
+
+async def get_material_reservation_exclude_receiver(sender_id: int, receiver_id: int, material_name: str) -> int:
+    async with aiosqlite.connect(glob.rms.db_file_path) as db:
+        cursor = await db.execute(
+            sql.SELECT_MATERIAL_RESERVATION_EXCLUDE_RECEIVER,
+            (sender_id, receiver_id, material_name)
+        )
+        row = await cursor.fetchone()
+        return int(row[0]) if row[0] else 0
+
+
+async def get_material_reservation(sender_id: int, material_name: str) -> int:
+    async with aiosqlite.connect(glob.rms.db_file_path) as db:
+        cursor = await db.execute(sql.SELECT_MATERIAL_RESERVATION, (sender_id, material_name))
+        row = await cursor.fetchone()
+        return int(row[0]) if row[0] else 0
+
+
+async def get_material_reservations(sender_id: int) -> dict[str, int]:
+    async with aiosqlite.connect(glob.rms.db_file_path) as db:
+        cursor = await db.execute(sql.SELECT_LISTED_RESERVED_QUANTITY_BY_SENDER, (sender_id,))
+        rows = await cursor.fetchall()
+        return {row[0]: row[1] for row in rows} if rows else {}
+
+
+async def _get_unique_members(cursor: Cursor, user_id: int, transfers: dict[TicketTransaction, int]) -> list[Member]:
+    unique_ids = set()
+    unique_members = []
+
+    for tt in transfers:
         if tt.sender_id != user_id:
             unique_ids.add(tt.sender_id)
         if tt.receiver_id != user_id:
@@ -714,3 +806,11 @@ async def delete_member(user_id: int):
 
 async def delete_del_member(user_id: int):
     await _execute(sql.DELETE_DEL_MEMBER, (user_id,))
+
+
+async def expire_material_orders():
+    await _execute(sql.DELETE_EXPIRED_MAT_ORDERS, (utcnow_str(),))
+
+
+async def delete_material_order(order_code: str):
+    await _execute(sql.DELETE_MAT_ORDER, (order_code,))

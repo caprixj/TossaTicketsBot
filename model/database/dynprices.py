@@ -1,5 +1,5 @@
-from model.types import ProductType
-from resources import funcs
+from model.types.enums import ProductType
+from utils import funcs
 
 
 class Price:

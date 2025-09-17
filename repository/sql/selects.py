@@ -24,12 +24,20 @@ SELECT_PRICES = "SELECT * FROM prices"
 SELECT_GEM_RATES = "SELECT * FROM prices WHERE product_type = 'gemstone'"
 SELECT_MEMBER_MATERIAL = "SELECT material_name, quantity FROM member_materials WHERE user_id = ? AND material_name = ?"
 SELECT_MEMBER_MATERIALS_BY_USER_ID = "SELECT material_name, quantity FROM member_materials WHERE user_id = ?"
+SELECT_MATERIAL_ORDER = "SELECT * FROM mat_orders WHERE code = ?"
+SELECT_SENDER_MATERIAL_ORDERS = "SELECT * FROM mat_orders WHERE sender_id = ?"
+SELECT_RECEIVER_MATERIAL_ORDERS = "SELECT * FROM mat_orders WHERE receiver_id = ?"
 SELECT_ALL_MEMBER_MATERIALS = "SELECT * FROM member_materials"
 SELECT_SQL_VAR = "SELECT value FROM vars WHERE name = ?"
 SELECT_GEMSTONE_PRICE = "SELECT price FROM prices WHERE product_name = ? AND product_type = 'gemstone'"
+SELECT_FARMED_MAT_COUNT_BY_PERIOD = "SELECT SUM(quantity) FROM mat_txns WHERE type = 'tbox' AND DATE(date) >= ?"
 SELECT_MEMBER_SOLD_MAT_COUNT_BY_PERIOD = ("SELECT SUM(quantity) FROM mat_txns "
                                           "WHERE sender_id = ? AND type = 'msell' AND DATE(date) >= ?")
-SELECT_FARMED_MAT_COUNT_BY_PERIOD = "SELECT SUM(quantity) FROM mat_txns WHERE type = 'tbox' AND DATE(date) >= ?"
+SELECT_MATERIAL_RESERVATION = "SELECT SUM(quantity) FROM mat_orders WHERE sender_id = ? AND material_name = ?"
+SELECT_MATERIAL_RESERVATION_EXCLUDE_RECEIVER = ("SELECT SUM(quantity) FROM mat_orders "
+                                                "WHERE sender_id = ? AND receiver_id != ? AND material_name = ?")
+SELECT_LISTED_RESERVED_QUANTITY_BY_SENDER = ("SELECT material_name, SUM(quantity) FROM mat_orders "
+                                             "WHERE sender_id = ? GROUP BY material_name")
 SELECT_NON_TPAY_TAXES_BY_USER_ID = """
     SELECT txs.* FROM tax_txns AS txs
     JOIN ticket_txns AS tick ON tick.ticket_txn_id = txs.parent_id AND tick.type != 'tpay'
@@ -40,11 +48,12 @@ SELECT_SOLD_MAT_REVENUE_BY_PERIOD = """
     JOIN ticket_txns tt ON mt.ticket_txn = tt.ticket_txn_id 
     WHERE mt.type = 'msell' AND DATE(mt.date) >= ?
 """
-SELECT_TPAYS_AND_TAXATION_BY_USER_ID = """
+SELECT_TRANSFERS_AND_TAX = """
     SELECT tic.*, COALESCE(SUM(txs.amount), 0) AS total_tax
     FROM ticket_txns tic
     LEFT JOIN tax_txns txs ON txs.parent_id = tic.ticket_txn_id AND txs.parent_type = 'ticket'
-    WHERE (tic.sender_id = ? AND tic.receiver_id != -1) OR (tic.sender_id != -1 AND tic.receiver_id = ?)
+    WHERE (tic.sender_id = ? AND tic.receiver_id != -1 AND type = ?)
+       OR (tic.sender_id != -1 AND tic.receiver_id = ? AND type = ?)
     GROUP BY tic.ticket_txn_id;
 """
 SELECT_TOPT = """

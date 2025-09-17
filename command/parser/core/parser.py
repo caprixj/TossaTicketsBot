@@ -31,11 +31,11 @@ class CommandParser:
             ' '.join(self.input_args[los - 1:])
         ] if lia > los else self.input_args
 
-        for (arg_name, arg_type), value in zip(overload.schema.items(), joined_args):
-            try:
+        try:
+            for (arg_name, arg_type), value in zip(overload.schema.items(), joined_args):
                 parsed_args[arg_name] = await arg_type(value).cast()
-            except ValueError:
-                return CommandParserResult(valid=False)
+        except ValueError:
+            return CommandParserResult(valid=False)
 
         return CommandParserResult(
             valid=True,
@@ -82,9 +82,9 @@ class CommandParser:
                     return CommandParserResult(public_violation=True)
                 return CommandParserResult(valid=False)
 
-        if overload.creator:
+        if overload.admin:
             if not glob.rms.is_admin(self.message.from_user.id):
-                if self.overload_group.creator:
+                if self.overload_group.admin:
                     return CommandParserResult(creator_violation=True)
                 return CommandParserResult(valid=False)
 

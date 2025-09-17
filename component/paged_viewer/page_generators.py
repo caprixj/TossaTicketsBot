@@ -3,17 +3,21 @@ from math import ceil
 from typing import Optional
 
 from service import service_core as service
-from model.database import Ingredient
+from model.database.materials import Ingredient
 from model.database.member import Member
 from model.dto.award_dto import AwardDTO
-from model.dto.ltrans_dto import LTransDTO
-from resources import glob, funcs
-from resources.funcs import get_formatted_name
+from model.dto.ltrans_dto import TxnDTO
+from resources import glob
+from utils import funcs
+from utils.funcs import get_formatted_name
 from resources.glob import PAGE_ROW_CHAR_LIMIT, PAGE_ROWS_COUNT_LIMIT
 
 
-async def balm(data: list[Ingredient], title: str) -> list[str]:
-    if not data:
+async def balm(data: tuple[int, list[Ingredient]], title: str) -> list[str]:
+    user_id: int = data[0]
+    mat_data: list[Ingredient] = data[1]
+
+    if not mat_data:
         return [f'{title}\n\n<i>{glob.BALM_BALANCE_EMPTY}</i>']
 
     # dict[str, int]
@@ -21,15 +25,21 @@ async def balm(data: list[Ingredient], title: str) -> list[str]:
     intermediates_rows = {}
     artifact_templates_rows = {}
 
-    for ing in data:
-        row = (f'{ing.quantity}{await service.get_emoji(ing.name)} '
-               f'({await service.get_formatted_material_name(ing.name)})\n')
-        if await service.is_gem(ing.name):
-            gemstones_rows[row] = ing.quantity
-        elif await service.is_intermediate(ing.name):
-            intermediates_rows[row] = ing.quantity
-        elif await service.is_artifact_template(ing.name):
-            artifact_templates_rows[row] = ing.quantity
+    for mat in mat_data:
+        reserved = await service.get_material_reservation(user_id, mat.name)
+        reserved_str = f' (-{reserved})' if reserved > 0 else ''
+
+        emoji = await service.get_emoji(mat.name)
+        material_name = await service.get_formatted_material_name(mat.name)
+
+        row = f'{mat.quantity}{reserved_str}{emoji} ({material_name})\n'
+
+        if await service.is_gem(mat.name):
+            gemstones_rows[row] = mat.quantity
+        elif await service.is_intermediate(mat.name):
+            intermediates_rows[row] = mat.quantity
+        elif await service.is_artifact_template(mat.name):
+            artifact_templates_rows[row] = mat.quantity
 
     def _form_page(rows: dict[str, int]) -> str:
         return ''.join(sorted(rows, key=rows.get, reverse=True))
@@ -51,75 +61,98 @@ async def balm(data: list[Ingredient], title: str) -> list[str]:
     ]
 
 
-async def ltrans(dto: LTransDTO, title: str) -> list[str]:
+async def txn(dto: TxnDTO, title: str) -> list[str]:
     rows = []
 
     if dto.empty():
-        return [f'{title}\n\n<i>{glob.LTRANS_TRANS_HISTORY_EMPTY}</i>']
+        return [f'{title}\n\n<i>{glob.TXN_TRANS_HISTORY_EMPTY}</i>']
 
     for addt in dto.addts:
         row = (f"✨🔹 | id: {addt.ticket_txn_id}"
                f" | <b>+{addt.transfer / 100:.2f}</b>"
-               f" | {funcs.to_utc_str(addt.time)}"
-               f" | {glob.LTRANS_TEXT}: <i>{addt.description}</i>")
+               f" | {funcs.to_kyiv_str(addt.time)}"
+               f" | {glob.TXN_TEXT}: <i>{addt.description}</i>")
         rows.append((row, addt.time))
 
     for delt in dto.delts:
         row = (f"✨🔻 | id: {delt.ticket_txn_id}"
                f" | <b>-{delt.transfer / 100:.2f}</b>"
-               f" | {funcs.to_utc_str(delt.time)}"
-               f" | {glob.LTRANS_TEXT}: <i>{delt.description}</i>")
+               f" | {funcs.to_kyiv_str(delt.time)}"
+               f" | {glob.TXN_TEXT}: <i>{delt.description}</i>")
         rows.append((row, delt.time))
 
     for tpay, tax in dto.tpays.items():
         if tpay.receiver_id == dto.user_id:
-            member = _find_member(dto.unique_tpay_members, tpay.sender_id)
+            member = _find_member(dto.unique_transfer_members, tpay.sender_id)
             sender_name = get_formatted_name(member)
 
             row = (f"🔀🔹 | id: {tpay.ticket_txn_id}"
-                   f" | {glob.LTRANS_FROM}: <b>{sender_name}</b>"
+                   f" | {glob.TXN_FROM}: <b>{sender_name}</b>"
                    f" | <b>+{tpay.transfer / 100:.2f}</b>"
-                   f" | {funcs.to_utc_str(tpay.time)}"
-                   f" | {glob.LTRANS_TEXT}: <i>{tpay.description}</i>")
+                   f" | {funcs.to_kyiv_str(tpay.time)}"
+                   f" | {glob.TXN_TEXT}: <i>{tpay.description}</i>")
         else:
-            member = _find_member(dto.unique_tpay_members, tpay.receiver_id)
+            member = _find_member(dto.unique_transfer_members, tpay.receiver_id)
             receiver_name = get_formatted_name(member)
 
             row = (f"🔀🔻 | id: {tpay.ticket_txn_id}"
-                   f" | {glob.LTRANS_TO}: <b>{receiver_name}</b>"
+                   f" | {glob.TXN_TO}: <b>{receiver_name}</b>"
                    f" | <b>-{tpay.transfer / 100:.2f}</b>"
                    f" | -{tax / 100:.2f}"
-                   f" | {funcs.to_utc_str(tpay.time)}"
-                   f" | {glob.LTRANS_TEXT}: <i>{tpay.description}</i>")
+                   f" | {funcs.to_kyiv_str(tpay.time)}"
+                   f" | {glob.TXN_TEXT}: <i>{tpay.description}</i>")
 
         rows.append((row, tpay.time))
+
+    for msend, tax in dto.msends.items():
+        if msend.receiver_id == dto.user_id:
+            member = _find_member(dto.unique_transfer_members, msend.sender_id)
+            sender_name = get_formatted_name(member)
+
+            row = (f"〽️🔹 | id: {msend.ticket_txn_id}"
+                   f" | {glob.TXN_FROM}: <b>{sender_name}</b>"
+                   f" | <b>+{msend.transfer / 100:.2f}</b>"
+                   f" | {funcs.to_kyiv_str(msend.time)}"
+                   f" | {glob.TXN_TEXT}: <i>{msend.description}</i>")
+        else:
+            member = _find_member(dto.unique_transfer_members, msend.receiver_id)
+            receiver_name = get_formatted_name(member)
+
+            row = (f"〽️🔻 | id: {msend.ticket_txn_id}"
+                   f" | {glob.TXN_TO}: <b>{receiver_name}</b>"
+                   f" | <b>-{msend.transfer / 100:.2f}</b>"
+                   f" | -{tax / 100:.2f}"
+                   f" | {funcs.to_kyiv_str(msend.time)}"
+                   f" | {glob.TXN_TEXT}: <i>{msend.description}</i>")
+
+        rows.append((row, msend.time))
 
     for msell in dto.msells:
         row = (f"📦🔹 | id: {msell.ticket_txn_id}"
                f" | <b>+{msell.transfer / 100:.2f}</b>"
-               f" | {funcs.to_utc_str(msell.time)}"
-               f" | {glob.LTRANS_TEXT}: <i>{msell.description}</i>")
+               f" | {funcs.to_kyiv_str(msell.time)}"
+               f" | {glob.TXN_TEXT}: <i>{msell.description}</i>")
         rows.append((row, msell.time))
 
     for salary in dto.salaries:
         row = (f"💸🔹 | id: {salary.ticket_txn_id}"
                f" | <b>+{salary.transfer / 100:.2f}</b>"
-               f" | {funcs.to_utc_str(salary.time)}"
-               f" | {glob.LTRANS_TEXT}: <i>{salary.description}</i>")
+               f" | {funcs.to_kyiv_str(salary.time)}"
+               f" | {glob.TXN_TEXT}: <i>{salary.description}</i>")
         rows.append((row, salary.time))
 
     for award in dto.awards:
         row = (f"🎖🔹 | id: {award.ticket_txn_id}"
                f" | <b>+{award.transfer / 100:.2f}</b>"
-               f" | {funcs.to_utc_str(award.time)}"
-               f" | {glob.LTRANS_TEXT}: <i>{award.description}</i>")
+               f" | {funcs.to_kyiv_str(award.time)}"
+               f" | {glob.TXN_TEXT}: <i>{award.description}</i>")
         rows.append((row, award.time))
 
     for unknown in dto.unknowns:
         row = f"❔🔹 | id: {unknown.ticket_txn_id} | <b>+{unknown.transfer / 100:.2f}</b>" \
             if unknown.transfer > 0 else \
             f"❔🔻 | id: {unknown.ticket_txn_id} | <b>-{unknown.transfer / 100:.2f}</b>"
-        row += f" | {funcs.to_utc_str(unknown.time)} | {glob.LTRANS_TEXT}: <i>{unknown.description}</i>"
+        row += f" | {funcs.to_kyiv_str(unknown.time)} | {glob.TXN_TEXT}: <i>{unknown.description}</i>"
         rows.append((row, unknown.time))
 
     for tax in dto.taxes:
@@ -127,7 +160,7 @@ async def ltrans(dto: LTransDTO, title: str) -> list[str]:
                f" | tax type: <b>{tax.tax_type}</b>"
                f" | <b>-{tax.amount / 100:.2f}</b>"
                f" | txn-id: {tax.parent_id} (table: <i>{tax.parent_type}</i>)"
-               f" | {funcs.to_utc_str(tax.time)}")
+               f" | {funcs.to_kyiv_str(tax.time)}")
         rows.append((row, tax.time))
 
     pages = []
