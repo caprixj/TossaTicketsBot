@@ -3,7 +3,7 @@ import math
 import random
 import re
 from datetime import datetime, timezone
-from typing import Union
+from typing import Union, Optional
 from zoneinfo import ZoneInfo
 
 import aiofiles
@@ -150,9 +150,9 @@ async def callback_struck_html(callback: CallbackQuery):
     )
 
 
-def escape_markdown_v2(text: str) -> str:
+def escape_markdown_v2(text: str) -> Optional[str]:
     # Escape all MarkdownV2 special chars
-    return re.sub(r'([_*~`])', r'\\\1', text)
+    return re.sub(r'([_*~`])', r'\\\1', text) if text else None
 
 
 def _escape_brackets(text: str) -> str:

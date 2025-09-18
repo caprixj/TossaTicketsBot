@@ -1048,6 +1048,7 @@ async def accept_trade_deal(order: MaterialOrder) -> MaterialDealResult:
 
     # log material transaction
     mat_txn_id = await repo.insert_material_transaction(MaterialTransaction(
+        sender_id=sender.user_id,
         receiver_id=receiver.user_id,
         type_=MaterialTxnType.MSEND,
         material_name=order.material_name,
