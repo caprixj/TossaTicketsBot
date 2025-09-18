@@ -14,9 +14,9 @@ DATE_FORMAT = '%Y-%m-%d'
 NBT_SQL_VAR = 'nbt'
 NBT_ID = -1
 
-MSELL_TAX = 0.4
-MSEND_TAX = 0.04
-SINGLE_TAX = 0.07           # F
+MSELL_TAX = 0.40
+MSEND_TAX = 0.02
+SINGLE_TAX = 0.03           # F
 MIN_SINGLE_TAX = 0.1 * 100  # M
 
 INFL_ALPHA = 0.9
