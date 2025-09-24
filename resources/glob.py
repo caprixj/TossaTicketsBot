@@ -179,6 +179,7 @@ RECEIVER_NOT_FOUND = '❌ receiver not found'
 MATERIAL_NOT_FOUND = '❌ sender does not have this sort of material anymore'
 NOT_ENOUGH_MATERIAL = '❌ sender does not have enough material anymore'
 RESERVATION_VIOLATED = '❌ not enough material. sender has some in reserve for someone else!'
+INSUFFICIENT_FUNDS = '❌ receiver does not have enough tickets'
 UNKNOWN_ENUM = '❌ unknown enum returned'
 ORDER_FORBIDDEN = "❌ forbidden! you cannot see someone else's order details"
 USE_MINVO_INSTEAD = '⚠️ to see details of an order you made, use  `/minvo <order-code>`'

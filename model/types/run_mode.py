@@ -34,4 +34,4 @@ class RunModeSettings:
         ]
 
     def is_whitelist_chat(self, chat_id: int) -> bool:
-        return chat_id in self.get_broadcasting_chats()
+        return chat_id in [chat.chat_id for chat in self.get_chat_whitelist()]

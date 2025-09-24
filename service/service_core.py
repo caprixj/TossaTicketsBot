@@ -1003,13 +1003,18 @@ async def accept_trade_deal(order: MaterialOrder) -> MaterialDealResult:
     if order.quantity > available:
         return MaterialDealResult.RESERVATION_VIOLATED
 
+    # cost revaluation
+    details = await calculate_material_order_cost_details(order.material_name, order.quantity, order.offered_cost)
+
+    # error capturing
+    if receiver.tickets < details.total_cost:
+        return MaterialDealResult.INSUFFICIENT_FUNDS
+
     # transfer materials
     material_transfer = Ingredient(name=order.material_name, quantity=order.quantity)
     await repo.spend_member_material(user_id=sender.user_id, diff=material_transfer)
     await repo.add_member_material(user_id=receiver.user_id, diff=material_transfer)
 
-    # cost revaluation
-    details = await calculate_material_order_cost_details(order.material_name, order.quantity, order.offered_cost)
     created_at = utcnow_str()
 
     # transfer tickets

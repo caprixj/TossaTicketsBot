@@ -331,6 +331,8 @@ async def accept_material_deal_yes(callback: CallbackQuery, bot: Bot):
             return await callback.answer(glob.NOT_ENOUGH_MATERIAL, show_alert=True)
         elif result == MaterialDealResult.RESERVATION_VIOLATED:
             return await callback.answer(glob.RESERVATION_VIOLATED, show_alert=True)
+        elif result == MaterialDealResult.INSUFFICIENT_FUNDS:
+            return await callback.answer(glob.INSUFFICIENT_FUNDS, show_alert=True)
         else:
             return await callback.answer(glob.UNKNOWN_ENUM, show_alert=True)
 
