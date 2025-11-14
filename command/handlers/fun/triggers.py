@@ -7,19 +7,17 @@ from service import service_core as service
 router = Router()
 
 
-@router.message(F.text.regexp(r'^[дД]+[аА]+[.]*[!]*[?]*$'))
-async def da(message: Message):
-    await message.answer(f'пиз{message.text}')
+@router.message(F.text.regexp(r'Рустні|рустні|Рустне|рустне'))
+async def rustni(message: Message):
+    await message.answer('пизда')
 
 
-@router.message(F.text.regexp(r'^[нН]+[єЄ]+[.]*[!]*[?]*$'))
-async def nie_ua(message: Message):
-    await message.answer(f'рука в гав{message.text}!')
-
-
-@router.message(F.text.regexp(r'^[нН]+[еЕ]+[.]*[!]*[?]*$'))
-async def nie_ru(message: Message):
-    await message.answer(f'рука в гов{message.text}!')
+@router.message(F.text.regexp(r'Нєгр|нєгр|Укроп|укроп'))
+async def nigga(message: Message):
+    if 'нєгр' in message.text.lower():
+        await message.answer(f'нєгр син шлюхи')
+    else:
+        await message.answer(f'укроп син шлюхи')
 
 
 @router.message(F.text.regexp(r'сфс|СФС|sfs|SFS'))

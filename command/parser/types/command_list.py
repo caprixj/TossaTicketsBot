@@ -88,6 +88,8 @@ class CommandList(str, Enum):
     unalert = 'unalert'
     # /rusni
     rusni = 'rusni'
+    # /rustni
+    rustni = 'rustni'
     # /p <price:pnreal>
     p = 'p'
     # /tag <user_id:userid>

@@ -13,3 +13,8 @@ router = Router()
 async def rusni(message: Message):
     await validate_message(message)
     await message.answer(glob.RUSNI_TEXT)
+
+
+@router.message(Command(CL.rustni.name))
+async def rustni(message: Message):
+    await rusni(message)
