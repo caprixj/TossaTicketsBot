@@ -93,10 +93,13 @@ class CommandParser:
                 return CommandParserResult(valid=False)
 
         if overload.reply:
-            if self.message.reply_to_message is None:
+            if not self._replied():
                 return CommandParserResult(valid=False)
 
         return await self._validate_args(overload)
 
     def _replied(self) -> bool:
-        return self.message.reply_to_message is not None
+        # group topics add a reply for all messages
+        # we must be sure that the reply is not a topic hack but a real reply
+        return self.message.reply_to_message is not None \
+            and self.message.reply_to_message.forum_topic_created is None

@@ -31,7 +31,7 @@ class CommandList(str, Enum):
     unreg = 'unreg'
     # /db
     db = 'db'
-    # /msg
+    # /msg - DELETED
     msg = 'msg'
     # cog: pure
     atxn = 'atxn'

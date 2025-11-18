@@ -1,4 +1,4 @@
-name: ticketonimics
+name: ticketonomics
 
 services:
 
@@ -16,7 +16,7 @@ services:
   tg-bot:
     build:
       context: ../
-      dockerfile: ./TossaTicketsBot/Dockerfile
+      dockerfile: ./TossaTicketsBot/prod.Dockerfile
     container_name: bot-ticketonomics
     volumes:
       - ./db:/db

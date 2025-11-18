@@ -1,11 +1,3 @@
-Thank you. This is *exactly* what was needed. The `schemas.py` file, in particular, is the "ground truth" that invalidates the high-level "simple" assessment.
-
-My analysis is now completely revised. The "AS-IS" system is not a simple bot; it's a complex, feature-rich monolith with a sophisticated, hand-written data layer. This makes our refactoring task *different*—it's less about "creating from scratch" and more about "migrating and decoupling" an already-complex system.
-
-Here is the new, *much* more accurate `refactor-charter.md`. This is our "source of truth."
-
----
-
 # 🚀 Ticketonomics: Refactor Charter (AS-IS vs. TO-BE)
 
 This document serves as the "source of truth" for the Ticketonomics refactoring, migrating the system from a complex monolithic bot to a modular L1/L2 production economy.
@@ -33,18 +25,17 @@ The core design issue is a **lack of transactional integrity and separation of c
 The data model is **highly complex, relational, and feature-rich**, with over 25 tables. It already implements V1 versions of many "TO-BE" concepts.
 
 * **Core Entities:**
-    * `members`: The central user table with ticket balances, `business_account`, and usage limits (e.g., `tpay_available`).
+    * `members`: The central user table with ticket balances.
     * `del_members`: A table for deleted members.
     * `vars`: A key-value store for global system variables.
 * **Ticket Economy:**
     * `ticket_txns`: Logs all ticket transfers with a `type` enum.
     * `tax_txns`: Logs all tax-related transfers, linked to a parent transaction.
-* **Business & Pricing:**
-    * `business_profits`, `business_withdraws`: Manages the `business_account` balance.
-    * `prices`, `price_history`: Tracks product prices.
-    * `rate_history`: Tracks economic indicators like inflation.
+* **Pricing:**
+    * `prices`, `price_history`: Tracks material and product prices.
+    * `rate_history`: Tracks economic indicators like inflation (emulated).
 * **Employment System:**
-    * `jobs`: Defines available positions and their salaries.
+    * `jobs`: Defines available positions and their salaries. The employer is the Ticketonomics system itself.
     * `employees`: A join table linking `members` to `jobs` (current employment).
     * `employment_history`: A log of all past jobs.
     * `salary_payouts`: A log for the salary payout schedule.
@@ -57,10 +48,10 @@ The data model is **highly complex, relational, and feature-rich**, with over 25
     * `mat_deals`: A log of completed or canceled trades.
     * `mat_trading_blacklist`: A user-level block list for P2P trading.
 * **Asset System (Digital Items):**
-    * `artifacts`: A table for unique, created digital items with an owner and creator.
-    * `awards`, `award_member`: A system for granting achievements/awards to members.
+    * `artifacts`: A table for unique, created digital items with an owner and creator (not working. will be remade from scratch).
+    * `awards`, `award_member`: A system for granting achievements/awards to members from the system.
 * **Logging & Utility:**
-    * `daily_schedules`, `activity_data`: Tables for system scheduling and user activity logging.
+    * `daily_schedules`, `activity_data`: Tables for system scheduling and user activity logging (not working yet, not incorporated into the project).
 
 ---
 
